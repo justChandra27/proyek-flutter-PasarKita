@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
 import 'core/theme/app_theme.dart';
-import 'presentation/home/home_page.dart';
+import 'presentation/home/widgets/home_page.dart';
 import 'presentation/navigation/navigation_page.dart';
+import 'presentation/auth/login_page.dart';
 
 void main() {
 
@@ -24,7 +25,7 @@ class MyApp extends StatelessWidget {
 
       theme: AppTheme.darkTheme,
 
-    home: const NavigationPage(),
+    home: const LoginPage(),
     );
   }
 }

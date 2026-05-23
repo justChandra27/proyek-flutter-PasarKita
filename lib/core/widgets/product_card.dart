@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pasarkita/presentation/product/product_detail_page.dart';
 
 class ProductCard extends StatelessWidget {
 
@@ -16,100 +17,118 @@ class ProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    return Container(
+    return GestureDetector(
 
-      decoration: BoxDecoration(
+      onTap: () {
 
-        color: const Color(0xFF1A1A1A),
+        Navigator.push(
 
-        borderRadius: BorderRadius.circular(20),
-      ),
+          context,
 
-      child: Column(
+          MaterialPageRoute(
 
-        crossAxisAlignment: CrossAxisAlignment.start,
-
-        children: [
-
-          // IMAGE
-          Expanded(
-
-            child: ClipRRect(
-
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(20),
-              ),
-
-              child: Image.network(
-                image,
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
+            builder: (context) => ProductDetailPage(
+              name: name,
+              image: image,
+              price: price,
             ),
           ),
+        );
+      },
 
-          Padding(
-            padding: const EdgeInsets.all(10),
+      child: Container(
 
-            child: Column(
+        decoration: BoxDecoration(
 
-              crossAxisAlignment: CrossAxisAlignment.start,
+          color: const Color(0xFF1A1A1A),
 
-              children: [
+          borderRadius: BorderRadius.circular(20),
+        ),
 
-                Text(
-                  name,
+        child: Column(
 
-                  maxLines: 2,
+          crossAxisAlignment: CrossAxisAlignment.start,
 
-                  overflow: TextOverflow.ellipsis,
+          children: [
 
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
+            Expanded(
+
+              child: ClipRRect(
+
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
                 ),
 
-                const SizedBox(height: 8),
-
-                Text(
-                  price,
-
-                  style: const TextStyle(
-                    color: Color(0xFFD4AF37),
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                const SizedBox(height: 10),
-
-                SizedBox(
-
+                child: Image.network(
+                  image,
                   width: double.infinity,
-
-                  child: ElevatedButton(
-
-                    style: ElevatedButton.styleFrom(
-
-                      backgroundColor: const Color(0xFFD4AF37),
-
-                      foregroundColor: Colors.black,
-
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-
-                    onPressed: () {},
-
-                    child: const Text("Add To Cart"),
-                  ),
+                  fit: BoxFit.cover,
                 ),
-              ],
+              ),
             ),
-          ),
-        ],
+
+            Padding(
+
+              padding: const EdgeInsets.all(12),
+
+              child: Column(
+
+                crossAxisAlignment: CrossAxisAlignment.start,
+
+                children: [
+
+                  Text(
+
+                    name,
+
+                    maxLines: 2,
+
+                    overflow: TextOverflow.ellipsis,
+
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  Text(
+
+                    price,
+
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFD4AF37),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  SizedBox(
+
+                    width: double.infinity,
+
+                    child: ElevatedButton(
+
+                      style: ElevatedButton.styleFrom(
+
+                        backgroundColor: const Color(0xFFD4AF37),
+
+                        foregroundColor: Colors.black,
+                      ),
+
+                      onPressed: () {},
+
+                      child: const Text("Add To Cart"),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
