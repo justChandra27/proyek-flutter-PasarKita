@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:pasarkita/presentation/product/product_detail_page.dart';
+
+import '../../data/models/product_model.dart';
+import '../../presentation/product/product_detail_page.dart';
 
 class ProductCard extends StatelessWidget {
 
@@ -8,14 +10,48 @@ class ProductCard extends StatelessWidget {
   final String price;
 
   const ProductCard({
+
     super.key,
+
     required this.name,
+
     required this.image,
+
     required this.price,
   });
 
   @override
   Widget build(BuildContext context) {
+
+    final product =
+        ProductModel(
+
+      id: '',
+
+      name: name,
+
+      price: int.parse(
+        price.replaceAll(
+          'Rp ',
+          '',
+        ),
+      ),
+
+      description: '',
+
+      imageUrl: image,
+
+      stock: 0,
+
+      category: '',
+
+      sizes: ['M', 'L', 'XL'],
+
+      colors: [
+        'Black',
+        'White',
+      ],
+    );
 
     return GestureDetector(
 
@@ -26,11 +62,9 @@ class ProductCard extends StatelessWidget {
           context,
 
           MaterialPageRoute(
-
-            builder: (context) => ProductDetailPage(
-              name: name,
-              image: image,
-              price: price,
+            builder: (_) =>
+                ProductDetailPage(
+              product: product,
             ),
           ),
         );
@@ -40,91 +74,184 @@ class ProductCard extends StatelessWidget {
 
         decoration: BoxDecoration(
 
-          color: const Color(0xFF1A1A1A),
+          color: const Color(0xFF171717),
 
-          borderRadius: BorderRadius.circular(20),
+          borderRadius:
+              BorderRadius.circular(18),
+
+          boxShadow: [
+
+            BoxShadow(
+
+              color:
+                  Colors.black.withOpacity(
+                0.15,
+              ),
+
+              blurRadius: 8,
+
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
 
         child: Column(
 
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
 
           children: [
 
+            // IMAGE
             Expanded(
+
+              flex: 6,
 
               child: ClipRRect(
 
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(20),
+                borderRadius:
+                    const BorderRadius.vertical(
+                  top: Radius.circular(18),
                 ),
 
-                child: Image.network(
-                  image,
+                child: SizedBox(
+
                   width: double.infinity,
-                  fit: BoxFit.cover,
+
+                  child: Image.asset(
+
+                    image,
+
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
             ),
 
-            Padding(
+            // CONTENT
+            Expanded(
 
-              padding: const EdgeInsets.all(12),
+              flex: 4,
 
-              child: Column(
+              child: Padding(
 
-                crossAxisAlignment: CrossAxisAlignment.start,
+                padding:
+                    const EdgeInsets.all(12),
 
-                children: [
+                child: Column(
 
-                  Text(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
 
-                    name,
+                  children: [
 
-                    maxLines: 2,
+                    Text(
 
-                    overflow: TextOverflow.ellipsis,
+                      name,
 
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                      maxLines: 1,
 
-                  const SizedBox(height: 8),
+                      overflow:
+                          TextOverflow.ellipsis,
 
-                  Text(
+                      style:
+                          const TextStyle(
 
-                    price,
+                        color: Colors.white,
 
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFFD4AF37),
-                    ),
-                  ),
+                        fontSize: 16,
 
-                  const SizedBox(height: 12),
-
-                  SizedBox(
-
-                    width: double.infinity,
-
-                    child: ElevatedButton(
-
-                      style: ElevatedButton.styleFrom(
-
-                        backgroundColor: const Color(0xFFD4AF37),
-
-                        foregroundColor: Colors.black,
+                        fontWeight:
+                            FontWeight.bold,
                       ),
-
-                      onPressed: () {},
-
-                      child: const Text("Add To Cart"),
                     ),
-                  ),
-                ],
+
+                    const SizedBox(height: 6),
+
+                    Text(
+
+                      price,
+
+                      style:
+                          const TextStyle(
+
+                        color:
+                            Color(0xFFD4AF37),
+
+                        fontSize: 17,
+
+                        fontWeight:
+                            FontWeight.bold,
+                      ),
+                    ),
+
+                    const Spacer(),
+
+                    SizedBox(
+
+                      width: double.infinity,
+
+                      height: 38,
+
+                      child: ElevatedButton(
+
+                        style:
+                            ElevatedButton.styleFrom(
+
+                          backgroundColor:
+                              const Color(
+                            0xFFD4AF37,
+                          ),
+
+                          foregroundColor:
+                              Colors.black,
+
+                          elevation: 0,
+
+                          padding:
+                              EdgeInsets.zero,
+
+                          shape:
+                              RoundedRectangleBorder(
+
+                            borderRadius:
+                                BorderRadius.circular(
+                              10,
+                            ),
+                          ),
+                        ),
+
+                        onPressed: () {
+
+                          Navigator.push(
+
+                            context,
+
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  ProductDetailPage(
+                                product: product,
+                              ),
+                            ),
+                          );
+                        },
+
+                        child: const Text(
+
+                          'Tambah',
+
+                          style: TextStyle(
+
+                            fontWeight:
+                                FontWeight.bold,
+
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],

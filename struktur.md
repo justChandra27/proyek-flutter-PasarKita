@@ -62,6 +62,8 @@ lib/
 │   │
 │   ├── profile/
 │   │   └── profile_page.dart
+│   │   └── edit_profile.dart
+│   │   └── order_history.dart
 │   │
 │   └── auth/
 │       ├── login_page.dart

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../home/widgets/home_page.dart';
+import '../home/home_page.dart';
 import '../cart/cart_page.dart';
 import '../profile/profile_page.dart';
 
@@ -12,24 +12,16 @@ class NavigationPage extends StatefulWidget {
 }
 
 class _NavigationPageState extends State<NavigationPage> {
-
   int currentIndex = 0;
 
-  final pages = const [
-    HomePage(),
-    CartPage(),
-    ProfilePage(),
-  ];
+  final pages = const [HomePage(), CartPage(), ProfilePage()];
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-
       body: pages[currentIndex],
 
       bottomNavigationBar: BottomNavigationBar(
-
         currentIndex: currentIndex,
 
         backgroundColor: Colors.black,
@@ -39,29 +31,30 @@ class _NavigationPageState extends State<NavigationPage> {
         unselectedItemColor: Colors.grey,
 
         onTap: (index) {
-
           setState(() {
             currentIndex = index;
           });
         },
 
         items: const [
-
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: "Home",
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
 
           BottomNavigationBarItem(
             icon: Icon(Icons.shopping_cart),
             label: "Cart",
           ),
 
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: "Profile",
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFFD4AF37),
+
+        child: const Icon(Icons.add, color: Colors.black),
+
+        onPressed: () {
+          Navigator.pushNamed(context, '/add-product');
+        },
       ),
     );
   }

@@ -1,173 +1,202 @@
 import 'package:flutter/material.dart';
 
-import 'widgets/size_selector.dart';
-import 'widgets/color_selector.dart';
-import 'widgets/add_to_cart_button.dart';
+import '../../core/services/cart_service.dart';
+import '../../data/models/product_model.dart';
 
-class ProductDetailPage extends StatelessWidget {
+class ProductDetailPage extends StatefulWidget {
+  final ProductModel product;
 
-  final String name;
-  final String image;
-  final String price;
+  const ProductDetailPage({super.key, required this.product});
 
-  const ProductDetailPage({
-    super.key,
-    required this.name,
-    required this.image,
-    required this.price,
-  });
+  @override
+  State<ProductDetailPage> createState() => _ProductDetailPageState();
+}
+
+class _ProductDetailPageState extends State<ProductDetailPage> {
+  final CartService _cartService = CartService();
+
+  String selectedSize = '';
+  String selectedColor = '';
+
+  int quantity = 1;
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.product.sizes.isNotEmpty) {
+      selectedSize = widget.product.sizes.first;
+    }
+
+    if (widget.product.colors.isNotEmpty) {
+      selectedColor = widget.product.colors.first;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-
-      backgroundColor: Colors.black,
-
-      appBar: AppBar(
-        title: Text(name),
-      ),
+      appBar: AppBar(title: Text(widget.product.name)),
 
       body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
 
         child: Column(
-
           crossAxisAlignment: CrossAxisAlignment.start,
 
           children: [
+            // IMAGE
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
 
-            // PRODUCT IMAGE
-            SizedBox(
-
-              height: 350,
-              width: double.infinity,
-
-              child: Image.network(
-                image,
+              child: Image.asset(
+                widget.product.imageUrl,
+                height: 300,
+                width: double.infinity,
                 fit: BoxFit.cover,
               ),
             ),
 
-            Padding(
+            const SizedBox(height: 20),
 
-              padding: const EdgeInsets.all(20),
+            // NAME
+            Text(
+              widget.product.name,
 
-              child: Column(
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
 
-                crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(height: 10),
 
-                children: [
+            // PRICE
+            Text(
+              'Rp ${widget.product.price}',
 
-                  // PRODUCT NAME
-                  Text(
+              style: const TextStyle(
+                fontSize: 22,
+                color: Color(0xFFD4AF37),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
 
-                    name,
+            const SizedBox(height: 20),
 
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+            // SIZE
+            const Text(
+              'Pilih Ukuran',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
 
-                  const SizedBox(height: 10),
+            const SizedBox(height: 10),
 
-                  // PRICE
-                  Text(
+            Wrap(
+              spacing: 10,
 
-                    price,
+              children: widget.product.sizes.map((size) {
+                return ChoiceChip(
+                  label: Text(size),
 
-                    style: const TextStyle(
-                      fontSize: 24,
-                      color: Color(0xFFD4AF37),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  selected: selectedSize == size,
 
-                  const SizedBox(height: 30),
+                  onSelected: (_) {
+                    setState(() {
+                      selectedSize = size;
+                    });
+                  },
+                );
+              }).toList(),
+            ),
 
-                  // SIZE TITLE
-                  const Text(
+            const SizedBox(height: 20),
 
-                    "Ukuran",
+            // COLOR
+            const Text(
+              'Pilih Warna',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
 
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+            const SizedBox(height: 10),
 
-                  const SizedBox(height: 15),
+            Wrap(
+              spacing: 10,
 
-                  // SIZE SELECTOR
-                  const Row(
+              children: widget.product.colors.map((color) {
+                return ChoiceChip(
+                  label: Text(color),
 
-                    children: [
+                  selected: selectedColor == color,
 
-                      SizeSelector(size: "S"),
-                      SizeSelector(size: "M"),
-                      SizeSelector(size: "L"),
-                      SizeSelector(size: "XL"),
-                    ],
-                  ),
+                  onSelected: (_) {
+                    setState(() {
+                      selectedColor = color;
+                    });
+                  },
+                );
+              }).toList(),
+            ),
 
-                  const SizedBox(height: 30),
+            const SizedBox(height: 20),
 
-                  // COLOR TITLE
-                  const Text(
+            // QUANTITY
+            const Text(
+              'Jumlah',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
 
-                    "Warna",
+            const SizedBox(height: 10),
 
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+            Row(
+              children: [
+                IconButton(
+                  onPressed: () {
+                    if (quantity > 1) {
+                      setState(() {
+                        quantity--;
+                      });
+                    }
+                  },
 
-                  const SizedBox(height: 15),
+                  icon: const Icon(Icons.remove_circle),
+                ),
 
-                  // COLOR SELECTOR
-                  const Row(
+                Text(quantity.toString(), style: const TextStyle(fontSize: 20)),
 
-                    children: [
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      quantity++;
+                    });
+                  },
 
-                      ColorSelector(color: Colors.black),
-                      ColorSelector(color: Colors.red),
-                      ColorSelector(color: Colors.blue),
-                      ColorSelector(color: Colors.green),
-                    ],
-                  ),
+                  icon: const Icon(Icons.add_circle),
+                ),
+              ],
+            ),
 
-                  const SizedBox(height: 30),
+            const SizedBox(height: 30),
 
-                  // DESCRIPTION TITLE
-                  const Text(
+            // BUTTON
+            SizedBox(
+              width: double.infinity,
 
-                    "Deskripsi",
+              child: ElevatedButton(
+                onPressed: () async {
+                  await _cartService.addToCart(
+                    product: widget.product,
 
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                    size: selectedSize,
 
-                  const SizedBox(height: 10),
+                    color: selectedColor,
 
-                  const Text(
+                    quantity: quantity,
+                  );
 
-                    "Premium fashion dengan kualitas terbaik dan nyaman digunakan sehari-hari.",
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Produk masuk ke keranjang')),
+                  );
+                },
 
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white70,
-                      height: 1.6,
-                    ),
-                  ),
-
-                  const SizedBox(height: 40),
-
-                  // ADD TO CART BUTTON
-                  const AddToCartButton(),
-                ],
+                child: const Text('Tambah ke Keranjang'),
               ),
             ),
           ],
