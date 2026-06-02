@@ -1,49 +1,37 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/widgets/product_card.dart';
-
+import '../../../core/animations/fade_animation.dart';
 import 'banner_slider.dart';
 import 'category_item.dart';
 import 'search_bar.dart';
 
 class HomePage extends StatelessWidget {
-
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-
-      appBar: AppBar(
-        title: const Text("PasarKita"),
-      ),
+      appBar: AppBar(title: const Text("PasarKita")),
 
       body: ListView(
-
         children: [
-
           // BANNER
-          const BannerSlider(),
+          const FadeAnimation(delay: 200, child: BannerSlider()),
 
           // SEARCH
-          const SearchBarWidget(),
+          const FadeAnimation(delay: 400, child: SearchBarWidget()),
 
           const SizedBox(height: 20),
 
           // CATEGORY TITLE
           const Padding(
-
             padding: EdgeInsets.symmetric(horizontal: 16),
 
             child: Text(
-
               "Kategori",
 
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
           ),
 
@@ -51,17 +39,14 @@ class HomePage extends StatelessWidget {
 
           // CATEGORY LIST
           SizedBox(
-
             height: 50,
 
             child: ListView(
-
               scrollDirection: Axis.horizontal,
 
               padding: const EdgeInsets.symmetric(horizontal: 16),
 
               children: const [
-
                 CategoryItem(title: "Hoodie"),
                 CategoryItem(title: "Jacket"),
                 CategoryItem(title: "Shoes"),
@@ -75,69 +60,69 @@ class HomePage extends StatelessWidget {
 
           // PRODUCT TITLE
           const Padding(
-
             padding: EdgeInsets.symmetric(horizontal: 16),
 
             child: Text(
-
               "Produk Terbaru",
 
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
           ),
 
           const SizedBox(height: 20),
 
           // PRODUCT GRID
-          Padding(
+  FadeAnimation(
 
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+  delay: 600,
 
-            child: GridView.count(
+  child: Padding(
 
-              crossAxisCount: 2,
+    padding: const EdgeInsets.symmetric(horizontal: 16),
 
-              shrinkWrap: true,
+    child: GridView.count(
 
-              physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 2,
 
-              crossAxisSpacing: 16,
+      shrinkWrap: true,
 
-              mainAxisSpacing: 16,
+      physics: const NeverScrollableScrollPhysics(),
 
-              childAspectRatio: 0.62,
+      crossAxisSpacing: 16,
 
-              children: const [
+      mainAxisSpacing: 16,
 
-                ProductCard(
-                  name: "Premium Hoodie",
-                  image: "https://picsum.photos/300/300",
-                  price: "Rp 250.000",
-                ),
+      childAspectRatio: 0.62,
 
-                ProductCard(
-                  name: "Elegant Jacket",
-                  image: "https://picsum.photos/301/300",
-                  price: "Rp 350.000",
-                ),
+      children: const [
 
-                ProductCard(
-                  name: "Fashion T-Shirt",
-                  image: "https://picsum.photos/302/300",
-                  price: "Rp 150.000",
-                ),
+        ProductCard(
+          name: "Premium Hoodie",
+          image: "https://picsum.photos/300/300",
+          price: "Rp 250.000",
+        ),
 
-                ProductCard(
-                  name: "Luxury Sneakers",
-                  image: "https://picsum.photos/303/300",
-                  price: "Rp 550.000",
-                ),
-              ],
-            ),
-          ),
+        ProductCard(
+          name: "Elegant Jacket",
+          image: "https://picsum.photos/301/300",
+          price: "Rp 350.000",
+        ),
+
+        ProductCard(
+          name: "Fashion T-Shirt",
+          image: "https://picsum.photos/302/300",
+          price: "Rp 150.000",
+        ),
+
+        ProductCard(
+          name: "Luxury Sneakers",
+          image: "https://picsum.photos/303/300",
+          price: "Rp 550.000",
+        ),
+      ],
+    ),
+  ),
+),
 
           const SizedBox(height: 30),
         ],
