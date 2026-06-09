@@ -9,17 +9,16 @@ import 'dashboard/dashboard_customer_web.dart';
 import 'cart/cart_customer_web.dart';
 import 'orders/pesanan_customer_web.dart';
 import 'profile/profile_customer_web.dart';
+import '../../core/services/auth_service_appwrite.dart';
 
 class CustomerWebPage extends StatefulWidget {
   const CustomerWebPage({super.key});
 
   @override
-  State<CustomerWebPage> createState() =>
-      _CustomerWebPageState();
+  State<CustomerWebPage> createState() => _CustomerWebPageState();
 }
 
-class _CustomerWebPageState
-    extends State<CustomerWebPage> {
+class _CustomerWebPageState extends State<CustomerWebPage> {
   int selectedIndex = 0;
 
   final List<Widget> pages = const [
@@ -43,21 +42,26 @@ class _CustomerWebPageState
               });
             },
 
-            onLogout: () {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(
-                  builder: (_) =>
-                      const LoginPage(),
-                ),
-                (route) => false,
-              );
+            onLogout: () async {
+              try {
+                await AuthServiceAppwrite().logout();
+
+                if (!context.mounted) return;
+
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginPage()),
+                  (route) => false,
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('Logout gagal: $e')));
+              }
             },
           ),
 
-          Expanded(
-            child: pages[selectedIndex],
-          ),
+          Expanded(child: pages[selectedIndex]),
         ],
       ),
     );

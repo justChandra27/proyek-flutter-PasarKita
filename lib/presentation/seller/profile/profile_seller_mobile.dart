@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '../../auth/login_page.dart';
+import '../../../core/services/auth_service_appwrite.dart';
 
 class SellerEditProfileMobile extends StatelessWidget {
   const SellerEditProfileMobile({super.key});
@@ -81,12 +82,22 @@ class SellerEditProfileMobile extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                onPressed: () {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (_) => const LoginPage()),
-                    (route) => false,
-                  );
+                onPressed: () async {
+                  try {
+                    await AuthServiceAppwrite().logout();
+
+                    if (!context.mounted) return;
+
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (_) => const LoginPage()),
+                      (route) => false,
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('Logout gagal: $e')));
+                  }
                 },
               ),
             ),

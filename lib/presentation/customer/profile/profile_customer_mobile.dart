@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 
 import '../../auth/login_page.dart';
+import '../../../core/services/auth_service_appwrite.dart';
 
 class ProfileCustomerMobile extends StatelessWidget {
   const ProfileCustomerMobile({super.key});
@@ -39,8 +40,7 @@ class ProfileCustomerMobile extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: const Color(0xffEAF1FF),
-                  borderRadius:
-                      BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(18),
                 ),
                 child: Column(
                   children: [
@@ -52,19 +52,13 @@ class ProfileCustomerMobile extends StatelessWidget {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color:
-                                  const Color(
-                                      0xff2563EB),
+                              color: const Color(0xff2563EB),
                               width: 3,
                             ),
                           ),
                           child: const CircleAvatar(
-                            backgroundColor:
-                                Colors.black12,
-                            child: Icon(
-                              Icons.person,
-                              size: 50,
-                            ),
+                            backgroundColor: Colors.black12,
+                            child: Icon(Icons.person, size: 50),
                           ),
                         ),
 
@@ -75,18 +69,12 @@ class ProfileCustomerMobile extends StatelessWidget {
                             width: 30,
                             height: 30,
                             decoration: BoxDecoration(
-                              color:
-                                  const Color(
-                                      0xff2563EB),
-                              borderRadius:
-                                  BorderRadius
-                                      .circular(
-                                          50),
+                              color: const Color(0xff2563EB),
+                              borderRadius: BorderRadius.circular(50),
                             ),
                             child: const Icon(
                               Icons.edit,
-                              color:
-                                  Colors.white,
+                              color: Colors.white,
                               size: 16,
                             ),
                           ),
@@ -100,8 +88,7 @@ class ProfileCustomerMobile extends StatelessWidget {
                       "Adi Prasetyo",
                       style: TextStyle(
                         fontSize: 22,
-                        fontWeight:
-                            FontWeight.bold,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
 
@@ -109,40 +96,31 @@ class ProfileCustomerMobile extends StatelessWidget {
 
                     const Text(
                       "adi.prasetyo@premium.com",
-                      style: TextStyle(
-                        color: Colors.grey,
-                      ),
+                      style: TextStyle(color: Colors.grey),
                     ),
 
                     const SizedBox(height: 18),
 
                     Container(
-                      padding:
-                          const EdgeInsets.symmetric(
+                      padding: const EdgeInsets.symmetric(
                         horizontal: 24,
                         vertical: 12,
                       ),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius:
-                            BorderRadius.circular(
-                                12),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Column(
                         children: [
                           Text(
                             "12",
                             style: TextStyle(
-                              color:
-                                  Color(0xff2563EB),
+                              color: Color(0xff2563EB),
                               fontSize: 20,
-                              fontWeight:
-                                  FontWeight.bold,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                          Text(
-                            "Orders",
-                          ),
+                          Text("Orders"),
                         ],
                       ),
                     ),
@@ -155,33 +133,25 @@ class ProfileCustomerMobile extends StatelessWidget {
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius:
-                      BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(18),
                 ),
                 child: Column(
                   children: [
                     Padding(
-                      padding:
-                          const EdgeInsets.all(
-                              16),
+                      padding: const EdgeInsets.all(16),
                       child: Row(
                         children: [
                           const Text(
                             "Account Settings",
                             style: TextStyle(
-                              fontWeight:
-                                  FontWeight.bold,
+                              fontWeight: FontWeight.bold,
                               fontSize: 16,
                             ),
                           ),
 
                           const Spacer(),
 
-                          Icon(
-                            Icons.settings,
-                            color:
-                                Colors.blue.shade700,
-                          ),
+                          Icon(Icons.settings, color: Colors.blue.shade700),
                         ],
                       ),
                     ),
@@ -190,33 +160,26 @@ class ProfileCustomerMobile extends StatelessWidget {
 
                     _menuItem(
                       icon: Icons.person_outline,
-                      title:
-                          "Personal Information",
-                      subtitle:
-                          "Update your name, email, and phone",
+                      title: "Personal Information",
+                      subtitle: "Update your name, email, and phone",
                       onTap: () {},
                     ),
 
                     const Divider(height: 1),
 
                     _menuItem(
-                      icon:
-                          Icons.location_on_outlined,
+                      icon: Icons.location_on_outlined,
                       title: "Address Book",
-                      subtitle:
-                          "Manage your primary and shipping address",
+                      subtitle: "Manage your primary and shipping address",
                       onTap: () {},
                     ),
 
                     const Divider(height: 1),
 
                     _menuItem(
-                      icon:
-                          Icons.account_balance_wallet_outlined,
-                      title:
-                          "Payment Methods",
-                      subtitle:
-                          "Saved cards and digital wallets",
+                      icon: Icons.account_balance_wallet_outlined,
+                      title: "Payment Methods",
+                      subtitle: "Saved cards and digital wallets",
                       onTap: () {},
                     ),
                   ],
@@ -229,37 +192,35 @@ class ProfileCustomerMobile extends StatelessWidget {
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton.icon(
-                  style:
-                      ElevatedButton.styleFrom(
-                    backgroundColor:
-                        Colors.red,
-                    shape:
-                        RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(
-                              12),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onPressed: () {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            const LoginPage(),
-                      ),
-                      (route) => false,
-                    );
+                  onPressed: () async {
+                    try {
+                      await AuthServiceAppwrite().logout();
+
+                      if (!context.mounted) return;
+
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (_) => const LoginPage()),
+                        (route) => false,
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Logout gagal: $e')),
+                      );
+                    }
                   },
-                  icon: const Icon(
-                    Icons.logout,
-                    color: Colors.white,
-                  ),
+                  icon: const Icon(Icons.logout, color: Colors.white),
                   label: const Text(
                     "Logout Account",
                     style: TextStyle(
                       color: Colors.white,
-                      fontWeight:
-                          FontWeight.bold,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
@@ -280,30 +241,11 @@ class ProfileCustomerMobile extends StatelessWidget {
     required VoidCallback onTap,
   }) {
     return ListTile(
-      contentPadding:
-          const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 8,
-      ),
-      leading: Icon(
-        icon,
-        color: Colors.black54,
-      ),
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: const TextStyle(
-          fontSize: 12,
-        ),
-      ),
-      trailing: const Icon(
-        Icons.chevron_right,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      leading: Icon(icon, color: Colors.black54),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+      trailing: const Icon(Icons.chevron_right),
       onTap: onTap,
     );
   }
