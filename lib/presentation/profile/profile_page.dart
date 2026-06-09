@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'edit_profile_page.dart';
 import 'order_history_page.dart';
+import '../auth/login_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -90,12 +91,15 @@ class ProfilePage extends StatelessWidget {
               // LOGOUT
               profileMenu(
                 context,
-
                 icon: Icons.logout,
-
                 title: "Logout",
-
-                onTap: () {},
+                onTap: () {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginPage()),
+                    (route) => false,
+                  );
+                },
               ),
             ],
           ),

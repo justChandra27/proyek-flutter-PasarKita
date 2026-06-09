@@ -1,16 +1,22 @@
-import 'package:firebase_core/firebase_core.dart';
+//lib/main.dart
+
+// import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
-import 'core/theme/app_theme.dart';
-import 'firebase_options.dart';
+// import 'firebase_options.dart';
 import 'presentation/auth/login_page.dart';
-import 'presentation/navigation/navigation_page.dart';
-import 'presentation/product/add_product_page.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+
+import 'core/appwrite/appwrite_test.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  await AppwriteTest.testConnection();
 
   runApp(const MyApp());
 }
@@ -20,16 +26,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
-
       title: 'PasarKita',
-
-      theme: AppTheme.darkTheme,
-
-      home: const LoginPage(),
-
-      routes: {'/add-product': (context) => const AddProductPage()},
+      home: LoginPage(),
     );
   }
 }

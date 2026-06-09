@@ -1,68 +1,55 @@
+//lib/data/models/product_model.dart
+
 class ProductModel {
-
   final String id;
+  final String sellerId;
   final String name;
-  final int price;
   final String description;
-  final String imageUrl;
-  final int stock;
   final String category;
-
-  final List<dynamic> sizes;
-  final List<dynamic> colors;
+  final double price;
+  final int stock;
+  final String imageUrl;
+  final bool active;
 
   ProductModel({
     required this.id,
+    required this.sellerId,
     required this.name,
-    required this.price,
     required this.description,
-    required this.imageUrl,
-    required this.stock,
     required this.category,
-    required this.sizes,
-    required this.colors,
+    required this.price,
+    required this.stock,
+    required this.imageUrl,
+    required this.active,
   });
 
-  factory ProductModel.fromFirestore(
+  factory ProductModel.fromMap(
+    String id,
     Map<String, dynamic> data,
-    String documentId,
   ) {
-
     return ProductModel(
-      id: documentId,
-
+      id: id,
+      sellerId: data['sellerId'] ?? '',
       name: data['name'] ?? '',
-
-      price: data['price'] ?? 0,
-
-      description:
-          data['description'] ?? '',
-
-      imageUrl:
-          data['imageUrl'] ?? '',
-
+      description: data['description'] ?? '',
+      category: data['category'] ?? '',
+      price: (data['price'] ?? 0).toDouble(),
       stock: data['stock'] ?? 0,
-
-      category:
-          data['category'] ?? '',
-
-      sizes: data['sizes'] ?? [],
-
-      colors: data['colors'] ?? [],
+      imageUrl: data['imageUrl'] ?? '',
+      active: data['active'] ?? true,
     );
   }
 
   Map<String, dynamic> toMap() {
-
     return {
+      'sellerId': sellerId,
       'name': name,
-      'price': price,
       'description': description,
-      'imageUrl': imageUrl,
-      'stock': stock,
       'category': category,
-      'sizes': sizes,
-      'colors': colors,
+      'price': price,
+      'stock': stock,
+      'imageUrl': imageUrl,
+      'active': active,
     };
   }
 }
