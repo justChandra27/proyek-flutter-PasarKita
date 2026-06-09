@@ -406,7 +406,7 @@ class FormPesananSellerWeb extends StatelessWidget {
         children: [
           CircleAvatar(
             backgroundColor:
-                color.withOpacity(.15),
+                color.withValues(alpha: .15),
             child: Icon(
               icon,
               color: color,
@@ -523,7 +523,7 @@ class FormPesananSellerWeb extends StatelessWidget {
             ),
             decoration: BoxDecoration(
               color:
-                  statusColor.withOpacity(.15),
+                  statusColor.withValues(alpha: .15),
               borderRadius:
                   BorderRadius.circular(
                       20),

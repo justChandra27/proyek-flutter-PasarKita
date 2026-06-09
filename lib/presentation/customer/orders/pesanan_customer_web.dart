@@ -215,7 +215,7 @@ class _OrderCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 backgroundColor:
-                    statusColor.withOpacity(.15),
+                    statusColor.withValues(alpha: .15),
                 child: Icon(
                   status == "Selesai"
                       ? Icons.check_circle

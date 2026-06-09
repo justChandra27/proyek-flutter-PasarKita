@@ -333,7 +333,7 @@ class FormPromoWeb extends StatelessWidget {
         children: [
           CircleAvatar(
             backgroundColor:
-                color.withOpacity(.15),
+                color.withValues(alpha: .15),
             child: Icon(
               icon,
               color: color,

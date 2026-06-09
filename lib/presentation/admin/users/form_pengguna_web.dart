@@ -322,7 +322,7 @@ class FormPenggunaWeb extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 24,
-            backgroundColor: color.withOpacity(.15),
+            backgroundColor: color.withValues(alpha: .15),
             child: Icon(icon, color: color),
           ),
 
@@ -364,7 +364,7 @@ class FormPenggunaWeb extends StatelessWidget {
             children: [
               CircleAvatar(
                 backgroundColor:
-                    Colors.blue.withOpacity(.2),
+                    Colors.blue.withValues(alpha: .2),
                 child: Text(
                   avatar,
                   style: const TextStyle(
