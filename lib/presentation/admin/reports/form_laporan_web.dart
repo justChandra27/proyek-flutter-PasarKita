@@ -202,7 +202,7 @@ class FormLaporanWeb extends StatelessWidget {
         children: [
           CircleAvatar(
             backgroundColor:
-                iconColor.withOpacity(.15),
+                iconColor.withValues(alpha: .15),
             child: Icon(
               icon,
               color: iconColor,

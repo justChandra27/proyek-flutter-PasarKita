@@ -23,4 +23,7 @@ class AppwriteConfig {
   // STORAGE
   static const String productBucketId =
       'product_images';
+
+  static const String ordersCollectionId =
+      'orders';
 }

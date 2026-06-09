@@ -354,7 +354,7 @@ class FormTransaksiWeb extends StatelessWidget {
             children: [
               CircleAvatar(
                 backgroundColor:
-                    iconColor.withOpacity(.15),
+                    iconColor.withValues(alpha: .15),
                 child: Icon(
                   icon,
                   color: iconColor,
@@ -369,7 +369,7 @@ class FormTransaksiWeb extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color:
-                        growthColor.withOpacity(.12),
+                        growthColor.withValues(alpha: .12),
                     borderRadius:
                         BorderRadius.circular(20),
                   ),
@@ -431,7 +431,7 @@ class FormTransaksiWeb extends StatelessWidget {
               CircleAvatar(
                 radius: 16,
                 backgroundColor:
-                    Colors.blue.withOpacity(.15),
+                    Colors.blue.withValues(alpha: .15),
                 child: Text(
                   avatar,
                   style: const TextStyle(
@@ -465,7 +465,7 @@ class FormTransaksiWeb extends StatelessWidget {
               vertical: 6,
             ),
             decoration: BoxDecoration(
-              color: color.withOpacity(.15),
+              color: color.withValues(alpha: .15),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(

@@ -372,8 +372,17 @@ class _FormKategoriWebState extends State<FormKategoriWeb> {
         children: [
           CircleAvatar(
             radius: 22,
+<<<<<<< HEAD
             backgroundColor: color.withOpacity(.15),
             child: Icon(icon, color: color),
+=======
+            backgroundColor:
+                color.withValues(alpha: .15),
+            child: Icon(
+              icon,
+              color: color,
+            ),
+>>>>>>> eabe87012266b1c56deb36bb6f629a0c2fc752c7
           ),
 
           const SizedBox(width: 12),

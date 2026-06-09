@@ -145,7 +145,7 @@ class DashboardAdminWeb extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 24,
-            backgroundColor: color.withOpacity(.15),
+            backgroundColor: color.withValues(alpha: .15),
             child: Icon(icon, color: color),
           ),
           const SizedBox(width: 14),

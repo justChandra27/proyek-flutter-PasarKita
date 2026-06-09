@@ -157,7 +157,7 @@ class _RegisterPageState extends State<RegisterPage> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(.08), blurRadius: 20),
+              BoxShadow(color: Colors.black.withValues(alpha: .08), blurRadius: 20),
             ],
           ),
           child: SizedBox(
@@ -451,7 +451,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(.08),
+                    color: Colors.black.withValues(alpha: .08),
                     blurRadius: 15,
                   ),
                 ],
@@ -641,7 +641,7 @@ class _RegisterPageState extends State<RegisterPage> {
           width: 50,
           height: 50,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
+            color: Colors.white.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(icon, color: Colors.white),

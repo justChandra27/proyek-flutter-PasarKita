@@ -414,7 +414,7 @@ class _FormVerifikasiWebState extends State<FormVerifikasiWeb> {
         children: [
           CircleAvatar(
             radius: 24,
-            backgroundColor: color.withOpacity(.15),
+            backgroundColor: color.withValues(alpha: .15),
             child: Icon(icon, color: color),
           ),
 
@@ -457,7 +457,7 @@ class _FormVerifikasiWebState extends State<FormVerifikasiWeb> {
           Row(
             children: [
               CircleAvatar(
-                backgroundColor: Colors.blue.withOpacity(.15),
+                backgroundColor: Colors.blue.withValues(alpha: .15),
                 child: Text(
                   name.isNotEmpty ? name[0].toUpperCase() : '?',
                   style: const TextStyle(color: Colors.blue),

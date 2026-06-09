@@ -239,7 +239,7 @@ class FormKategoriSellerWeb extends StatelessWidget {
           Row(
             children: [
               CircleAvatar(
-                backgroundColor: iconColor.withOpacity(.15),
+                backgroundColor: iconColor.withValues(alpha: .15),
                 child: Icon(
                   icon,
                   color: iconColor,
@@ -309,7 +309,7 @@ class FormKategoriSellerWeb extends StatelessWidget {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(.15),
+                  color: statusColor.withValues(alpha: .15),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
