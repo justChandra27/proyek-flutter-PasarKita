@@ -436,12 +436,8 @@ class _FormPenggunaWebState extends State<FormPenggunaWeb> {
           Row(
             children: [
               CircleAvatar(
-<<<<<<< HEAD
-                backgroundColor: Colors.blue.withOpacity(.2),
-=======
                 backgroundColor:
                     Colors.blue.withValues(alpha: .2),
->>>>>>> eabe87012266b1c56deb36bb6f629a0c2fc752c7
                 child: Text(
                   user.name.isNotEmpty
                       ? user.name
