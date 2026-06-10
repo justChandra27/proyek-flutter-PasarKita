@@ -1,333 +1,433 @@
-import 'package:flutter/material.dart';
+// lib/presentation/admin/transactions/form_transaksi_web.dart
 
-class FormTransaksiWeb extends StatelessWidget {
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../../core/controllers/transaksi_controller.dart';
+import '../../../data/models/transaksi_model.dart';
+
+class FormTransaksiWeb extends StatefulWidget {
   const FormTransaksiWeb({super.key});
 
   @override
+  State<FormTransaksiWeb> createState() => _FormTransaksiWebState();
+}
+
+class _FormTransaksiWebState extends State<FormTransaksiWeb> {
+  final _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<TransaksiController>().init();
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xffF5F6FA),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            // HEADER
-            Row(
+    return Consumer<TransaksiController>(
+      builder: (context, ctrl, _) {
+        return Scaffold(
+          backgroundColor: const Color(0xffF5F6FA),
+          body: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
               children: [
-                const Expanded(
-                  child: Text(
-                    "Transaksi",
-                    style: TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-
-                SizedBox(
-                  width: 300,
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: "Cari transaksi...",
-                      prefixIcon: const Icon(Icons.search),
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(width: 20),
-
-                const VerticalDivider(),
-
-                const SizedBox(width: 10),
-
-                const CircleAvatar(
-                  radius: 22,
-                  backgroundImage: NetworkImage(
-                    "https://i.pravatar.cc/150",
-                  ),
-                ),
-
-                const SizedBox(width: 10),
-
-                const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Admin Utama",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      "Super Admin",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.black54,
-                      ),
-                    ),
-                  ],
-                ),
+                _buildHeader(ctrl),
+                const SizedBox(height: 24),
+                _buildStatCards(ctrl),
+                const SizedBox(height: 24),
+                Expanded(child: _buildTable(ctrl)),
               ],
             ),
+          ),
+        );
+      },
+    );
+  }
 
-            const SizedBox(height: 24),
-
-            // STATISTIC CARD
-            Row(
-              children: [
-                Expanded(
-                  child: _statCard(
-                    icon: Icons.account_balance_wallet_outlined,
-                    title: "Total Pendapatan",
-                    value: "Rp 128.450.000",
-                    growth: "↑12.5%",
-                    growthColor: Colors.green,
-                    iconColor: Colors.blue,
-                  ),
-                ),
-
-                const SizedBox(width: 16),
-
-                Expanded(
-                  child: _statCard(
-                    icon: Icons.swap_horiz,
-                    title: "Jumlah Transaksi",
-                    value: "1,429",
-                    growth: "↑8.2%",
-                    growthColor: Colors.green,
-                    iconColor: Colors.blueGrey,
-                  ),
-                ),
-
-                const SizedBox(width: 16),
-
-                Expanded(
-                  child: _statCard(
-                    icon: Icons.pending_actions,
-                    title: "Transaksi Tertunda",
-                    value: "42",
-                    growth: "",
-                    growthColor: Colors.transparent,
-                    iconColor: Colors.orange,
-                  ),
-                ),
-
-                const SizedBox(width: 16),
-
-                Expanded(
-                  child: _statCard(
-                    icon: Icons.event_busy_outlined,
-                    title: "Transaksi Gagal",
-                    value: "12",
-                    growth: "↓2.1%",
-                    growthColor: Colors.red,
-                    iconColor: Colors.red,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Row(
-                        children: [
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "Riwayat Transaksi Terakhir",
-                                  style: TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                SizedBox(height: 6),
-                                Text(
-                                  "Daftar transaksi real-time dari platform PasarKita",
-                                  style: TextStyle(
-                                    color: Colors.black54,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          OutlinedButton.icon(
-                            onPressed: () {},
-                            icon: const Icon(
-                              Icons.filter_alt_outlined,
-                            ),
-                            label: const Text("Filter"),
-                          ),
-
-                          const SizedBox(width: 12),
-
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  const Color(0xff2563EB),
-                            ),
-                            onPressed: () {},
-                            icon: const Icon(
-                              Icons.download,
-                              color: Colors.white,
-                            ),
-                            label: const Text(
-                              "Ekspor CSV",
-                              style: TextStyle(
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const Divider(height: 1),
-
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: DataTable(
-                          headingRowColor:
-                              WidgetStateProperty.all(
-                            const Color(0xffF8F9FC),
-                          ),
-                          columns: const [
-                            DataColumn(
-                              label: Text("ID TRANSAKSI"),
-                            ),
-                            DataColumn(
-                              label: Text("PELANGGAN"),
-                            ),
-                            DataColumn(
-                              label: Text("METODE"),
-                            ),
-                            DataColumn(
-                              label: Text("JUMLAH"),
-                            ),
-                            DataColumn(
-                              label: Text("TANGGAL"),
-                            ),
-                            DataColumn(
-                              label: Text("STATUS"),
-                            ),
-                            DataColumn(
-                              label: Text("AKSI"),
-                            ),
-                          ],
-                          rows: [
-                            _transactionRow(
-                              "#TRX-98231",
-                              "BS",
-                              "Budi Santoso",
-                              "Transfer Bank",
-                              "Rp 450.000",
-                              "24 Okt 2023\n14:20 WIB",
-                              "Berhasil",
-                              Colors.green,
-                            ),
-
-                            _transactionRow(
-                              "#TRX-98232",
-                              "AN",
-                              "Anita Nur",
-                              "E-Wallet",
-                              "Rp 1.200.000",
-                              "24 Okt 2023\n15:05 WIB",
-                              "Pending",
-                              Colors.orange,
-                            ),
-
-                            _transactionRow(
-                              "#TRX-98233",
-                              "DR",
-                              "Dedi Ramdan",
-                              "Tunai",
-                              "Rp 85.500",
-                              "24 Okt 2023\n15:45 WIB",
-                              "Berhasil",
-                              Colors.green,
-                            ),
-
-                            _transactionRow(
-                              "#TRX-98234",
-                              "SM",
-                              "Siti Maryam",
-                              "Visa Card",
-                              "Rp 2.450.000",
-                              "24 Okt 2023\n16:12 WIB",
-                              "Gagal",
-                              Colors.red,
-                            ),
-
-                            _transactionRow(
-                              "#TRX-98235",
-                              "RP",
-                              "Rizky Pratama",
-                              "QRIS",
-                              "Rp 125.000",
-                              "24 Okt 2023\n17:00 WIB",
-                              "Berhasil",
-                              Colors.green,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 18,
-                      ),
-                      child: Row(
-                        children: [
-                          const Text(
-                            "Menampilkan 1–10 dari 1,429 transaksi",
-                          ),
-                          const Spacer(),
-
-                          _pageButton("<", false),
-                          _pageButton("1", true),
-                          _pageButton("2", false),
-                          _pageButton("3", false),
-
-                          const Padding(
-                            padding:
-                                EdgeInsets.symmetric(horizontal: 8),
-                            child: Text("..."),
-                          ),
-
-                          _pageButton("143", false),
-                          _pageButton(">", false),
-                        ],
-                      ),
+  // ─── HEADER ─────────────────────────────────────────────────────────────
+  Widget _buildHeader(TransaksiController ctrl) {
+    return Row(
+      children: [
+        const Expanded(
+          child: Text(
+            "Transaksi",
+            style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+          ),
+        ),
+        SizedBox(
+          width: 300,
+          child: TextField(
+            controller: _searchController,
+            onChanged: ctrl.search,
+            decoration: InputDecoration(
+              hintText: "Cari transaksi...",
+              prefixIcon: const Icon(Icons.search),
+              filled: true,
+              fillColor: Colors.white,
+              suffixIcon: _searchController.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.close, size: 18),
+                      onPressed: () {
+                        _searchController.clear();
+                        ctrl.search('');
+                      },
                     )
-                  ],
-                ),
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(30),
+                borderSide: BorderSide.none,
               ),
-            )
+            ),
+          ),
+        ),
+        const SizedBox(width: 20),
+        const VerticalDivider(),
+        const SizedBox(width: 10),
+        const CircleAvatar(
+          radius: 22,
+          backgroundImage: NetworkImage("https://i.pravatar.cc/150"),
+        ),
+        const SizedBox(width: 10),
+        const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Admin Utama", style: TextStyle(fontWeight: FontWeight.bold)),
+            Text("Super Admin",
+                style: TextStyle(fontSize: 12, color: Colors.black54)),
           ],
         ),
+      ],
+    );
+  }
+
+  // ─── STAT CARDS ──────────────────────────────────────────────────────────
+  Widget _buildStatCards(TransaksiController ctrl) {
+    return Row(
+      children: [
+        Expanded(
+          child: _statCard(
+            icon: Icons.account_balance_wallet_outlined,
+            title: "Total Pendapatan",
+            value: ctrl.formatRupiah(ctrl.totalPendapatan),
+            iconColor: Colors.blue,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _statCard(
+            icon: Icons.swap_horiz,
+            title: "Jumlah Transaksi",
+            value: ctrl.jumlahTransaksi.toString(),
+            iconColor: Colors.blueGrey,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _statCard(
+            icon: Icons.pending_actions,
+            title: "Transaksi Tertunda",
+            value: ctrl.transaksiPending.toString(),
+            iconColor: Colors.orange,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _statCard(
+            icon: Icons.event_busy_outlined,
+            title: "Transaksi Gagal",
+            value: ctrl.transaksiGagal.toString(),
+            iconColor: Colors.red,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─── TABEL ───────────────────────────────────────────────────────────────
+  Widget _buildTable(TransaksiController ctrl) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
       ),
+      child: Column(
+        children: [
+          _buildTableHeader(ctrl),
+          const Divider(height: 1),
+          Expanded(child: _buildTableBody(ctrl)),
+          _buildPagination(ctrl),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTableHeader(TransaksiController ctrl) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Row(
+        children: [
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Riwayat Transaksi Terakhir",
+                  style: TextStyle(
+                      fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 6),
+                Text(
+                  "Daftar transaksi real-time dari platform PasarKita",
+                  style: TextStyle(color: Colors.black54),
+                ),
+              ],
+            ),
+          ),
+          PopupMenuButton<String?>(
+            initialValue: ctrl.statusFilter,
+            onSelected: ctrl.filterStatus,
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: null, child: Text("Semua")),
+              PopupMenuItem(value: 'berhasil', child: Text("Berhasil")),
+              PopupMenuItem(value: 'pending', child: Text("Pending")),
+              PopupMenuItem(value: 'gagal', child: Text("Gagal")),
+            ],
+            child: OutlinedButton.icon(
+              onPressed: null,
+              icon: const Icon(Icons.filter_alt_outlined),
+              label: Text(ctrl.statusFilter == null
+                  ? "Filter"
+                  : ctrl.statusFilter!),
+            ),
+          ),
+          const SizedBox(width: 12),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xff2563EB)),
+            onPressed: () {},
+            icon: const Icon(Icons.download, color: Colors.white),
+            label: const Text("Ekspor CSV",
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTableBody(TransaksiController ctrl) {
+    if (ctrl.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (ctrl.errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, color: Colors.red, size: 48),
+            const SizedBox(height: 12),
+            Text(ctrl.errorMessage!,
+                textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: ctrl.loadTransaksi,
+              child: const Text("Coba Lagi"),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (ctrl.transaksiList.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.receipt_long_outlined,
+                size: 48, color: Colors.black26),
+            SizedBox(height: 12),
+            Text("Belum ada transaksi",
+                style: TextStyle(color: Colors.black45)),
+          ],
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      child: DataTable(
+        headingRowColor:
+            WidgetStateProperty.all(const Color(0xffF8F9FC)),
+        columns: const [
+          DataColumn(label: Text("ID TRANSAKSI")),
+          DataColumn(label: Text("PELANGGAN")),
+          DataColumn(label: Text("METODE")),
+          DataColumn(label: Text("JUMLAH")),
+          DataColumn(label: Text("TANGGAL")),
+          DataColumn(label: Text("STATUS")),
+          DataColumn(label: Text("AKSI")),
+        ],
+        rows: ctrl.transaksiList
+            .map((trx) => _buildRow(trx, ctrl))
+            .toList(),
+      ),
+    );
+  }
+
+  DataRow _buildRow(TransaksiModel trx, TransaksiController ctrl) {
+    final statusColor = _statusColor(trx.status);
+    return DataRow(cells: [
+      DataCell(Text(
+        '#${trx.id.length >= 8 ? trx.id.substring(0, 8).toUpperCase() : trx.id.toUpperCase()}',
+        style: const TextStyle(
+            color: Color(0xff2563EB), fontWeight: FontWeight.w600),
+      )),
+      DataCell(Row(children: [
+        CircleAvatar(
+          radius: 16,
+          backgroundColor: Colors.blue.withOpacity(.15),
+          child: Text(trx.avatarInitials,
+              style: const TextStyle(fontSize: 11)),
+        ),
+        const SizedBox(width: 10),
+        Text(trx.customerName),
+      ])),
+      DataCell(Text(trx.metodeLabel)),
+      DataCell(Text(ctrl.formatRupiah(trx.jumlah),
+          style: const TextStyle(fontWeight: FontWeight.bold))),
+      DataCell(Text(_formatDate(trx.createdAt))),
+      DataCell(Container(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: statusColor.withOpacity(.15),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(trx.statusLabel,
+            style: TextStyle(
+                color: statusColor, fontWeight: FontWeight.w600)),
+      )),
+      DataCell(IconButton(
+        icon: const Icon(Icons.more_vert),
+        onPressed: () => _showDetail(context, trx, ctrl),
+      )),
+    ]);
+  }
+
+  // ─── PAGINATION ──────────────────────────────────────────────────────────
+  Widget _buildPagination(TransaksiController ctrl) {
+    final from = ((ctrl.currentPage - 1) * ctrl.perPage) + 1;
+    final to =
+        (ctrl.currentPage * ctrl.perPage).clamp(0, ctrl.totalData);
+
+    return Container(
+      padding:
+          const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+      child: Row(
+        children: [
+          Text(
+            "Menampilkan $from–$to dari ${ctrl.totalData} transaksi",
+            style: const TextStyle(color: Colors.black54),
+          ),
+          const Spacer(),
+          _pageButton("<", false, onTap: ctrl.prevPage),
+          _pageButton("1", ctrl.currentPage == 1,
+              onTap: () => ctrl.goToPage(1)),
+          if (ctrl.currentPage > 2 &&
+              ctrl.currentPage < ctrl.totalPages)
+            _pageButton(ctrl.currentPage.toString(), true,
+                onTap: null),
+          if (ctrl.totalPages > 3)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8),
+              child: Text("..."),
+            ),
+          if (ctrl.totalPages > 1)
+            _pageButton(
+              ctrl.totalPages.toString(),
+              ctrl.currentPage == ctrl.totalPages,
+              onTap: () => ctrl.goToPage(ctrl.totalPages),
+            ),
+          _pageButton(">", false, onTap: ctrl.nextPage),
+        ],
+      ),
+    );
+  }
+
+  // ─── DETAIL DIALOG ───────────────────────────────────────────────────────
+  void _showDetail(
+      BuildContext context, TransaksiModel trx, TransaksiController ctrl) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(
+            'Detail #${trx.id.length >= 8 ? trx.id.substring(0, 8).toUpperCase() : trx.id}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _detailRow("Pelanggan", trx.customerName),
+            _detailRow("Metode", trx.metodeLabel),
+            _detailRow("Jumlah", ctrl.formatRupiah(trx.jumlah)),
+            _detailRow("Status", trx.statusLabel),
+            _detailRow("Tanggal", _formatDateFull(trx.createdAt)),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Tutup")),
+        ],
+      ),
+    );
+  }
+
+  // ─── HELPERS ─────────────────────────────────────────────────────────────
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'berhasil': return Colors.green;
+      case 'pending':  return Colors.orange;
+      case 'gagal':    return Colors.red;
+      default:         return Colors.grey;
+    }
+  }
+
+  String _formatDate(DateTime dt) {
+    const months = ['','Jan','Feb','Mar','Apr','Mei','Jun',
+                    'Jul','Agu','Sep','Okt','Nov','Des'];
+    return '${dt.day} ${months[dt.month]} ${dt.year}\n'
+        '${dt.hour.toString().padLeft(2,'0')}:'
+        '${dt.minute.toString().padLeft(2,'0')} WIB';
+  }
+
+  String _formatDateFull(DateTime dt) {
+    const months = ['','Januari','Februari','Maret','April','Mei',
+                    'Juni','Juli','Agustus','September','Oktober',
+                    'November','Desember'];
+    return '${dt.day} ${months[dt.month]} ${dt.year}, '
+        '${dt.hour.toString().padLeft(2,'0')}:'
+        '${dt.minute.toString().padLeft(2,'0')} WIB';
+  }
+
+  Widget _detailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(children: [
+        SizedBox(
+            width: 80,
+            child: Text(label,
+                style: const TextStyle(color: Colors.black54))),
+        const Text(": "),
+        Expanded(child: Text(value)),
+      ]),
     );
   }
 
@@ -335,8 +435,6 @@ class FormTransaksiWeb extends StatelessWidget {
     required IconData icon,
     required String title,
     required String value,
-    required String growth,
-    required Color growthColor,
     required Color iconColor,
   }) {
     return Container(
@@ -347,8 +445,7 @@ class FormTransaksiWeb extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
@@ -384,52 +481,32 @@ class FormTransaksiWeb extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.black54,
-            ),
-          ),
+          Text(title,
+              style: const TextStyle(color: Colors.black54)),
           const SizedBox(height: 6),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          Text(value,
+              style: const TextStyle(
+                  fontSize: 20, fontWeight: FontWeight.bold)),
         ],
       ),
     );
   }
 
-  DataRow _transactionRow(
-    String trxId,
-    String avatar,
-    String customer,
-    String method,
-    String amount,
-    String date,
-    String status,
-    Color color,
-  ) {
-    return DataRow(
-      cells: [
-        DataCell(
-          Text(
-            trxId,
-            style: const TextStyle(
-              color: Color(0xff2563EB),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+  static Widget _pageButton(String text, bool active,
+      {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(left: 8),
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: active ? const Color(0xff2563EB) : Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xffE5E7EB)),
         ),
 
         DataCell(
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 16,
                 backgroundColor:
                     Colors.blue.withValues(alpha: .15),
                 child: Text(
@@ -471,47 +548,9 @@ class FormTransaksiWeb extends StatelessWidget {
             child: Text(
               status,
               style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
-
-        const DataCell(
-          Icon(Icons.more_vert),
-        ),
-      ],
-    );
-  }
-
-  static Widget _pageButton(
-    String text,
-    bool active,
-  ) {
-    return Container(
-      margin: const EdgeInsets.only(left: 8),
-      width: 38,
-      height: 38,
-      decoration: BoxDecoration(
-        color: active
-            ? const Color(0xff2563EB)
-            : Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: const Color(0xffE5E7EB),
+                  color:
+                      active ? Colors.white : Colors.black87)),
         ),
       ),
-      child: Center(
-        child: Text(
-          text,
-          style: TextStyle(
-            color: active
-                ? Colors.white
-                : Colors.black87,
-          ),
-        ),
-      ),
-    );
   }
 }
