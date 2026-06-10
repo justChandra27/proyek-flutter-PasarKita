@@ -10,17 +10,16 @@ import 'orders/form_pesanan_seller_web.dart';
 import 'categories/form_kategori_seller_web.dart';
 
 import '../auth/login_page.dart';
+import '../../core/services/auth_service_appwrite.dart';
 
 class SellerWebPage extends StatefulWidget {
   const SellerWebPage({super.key});
 
   @override
-  State<SellerWebPage> createState() =>
-      _SellerWebPageState();
+  State<SellerWebPage> createState() => _SellerWebPageState();
 }
 
-class _SellerWebPageState
-    extends State<SellerWebPage> {
+class _SellerWebPageState extends State<SellerWebPage> {
   int selectedIndex = 0;
 
   final List<Widget> pages = [
@@ -44,21 +43,26 @@ class _SellerWebPageState
               });
             },
 
-            onLogout: () {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(
-                  builder: (_) =>
-                      const LoginPage(),
-                ),
-                (route) => false,
-              );
+            onLogout: () async {
+              try {
+                await AuthServiceAppwrite().logout();
+
+                if (!context.mounted) return;
+
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginPage()),
+                  (route) => false,
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('Logout gagal: $e')));
+              }
             },
           ),
 
-          Expanded(
-            child: pages[selectedIndex],
-          ),
+          Expanded(child: pages[selectedIndex]),
         ],
       ),
     );

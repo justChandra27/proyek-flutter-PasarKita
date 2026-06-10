@@ -1,3 +1,5 @@
+//lib/presentation/seller/seller_mobile_page.dart
+
 import 'package:flutter/material.dart';
 
 import 'dashboard/dashboard_seller_mobile.dart';

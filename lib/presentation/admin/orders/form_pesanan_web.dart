@@ -1,6 +1,8 @@
 //lib/presentation/admin/orders/form_pesanan_web.dart
-
+//Elsyana
 import 'package:flutter/material.dart';
+import 'package:appwrite/models.dart';
+import '../../../core/services/order_service_appwrite.dart';
 
 class FormPesananWeb extends StatelessWidget {
   const FormPesananWeb({super.key});
@@ -302,7 +304,7 @@ class FormPesananWeb extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 24,
-            backgroundColor: color.withOpacity(.15),
+            backgroundColor: color.withValues(alpha: .15),
             child: Icon(icon, color: color),
           ),
           const SizedBox(width: 14),
@@ -360,7 +362,7 @@ class FormPesananWeb extends StatelessWidget {
               CircleAvatar(
                 radius: 16,
                 backgroundColor:
-                    Colors.blue.withOpacity(.15),
+                    Colors.blue.withValues(alpha: .15),
                 child: Text(
                   avatar,
                   style: const TextStyle(
@@ -392,7 +394,7 @@ class FormPesananWeb extends StatelessWidget {
               vertical: 6,
             ),
             decoration: BoxDecoration(
-              color: color.withOpacity(.15),
+              color: color.withValues(alpha: .15),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(

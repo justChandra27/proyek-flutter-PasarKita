@@ -1,7 +1,167 @@
-import 'package:flutter/material.dart';
+//lib/presentation/admin/categories/form_kategori_web.dart
 
-class FormKategoriWeb extends StatelessWidget {
+import 'package:flutter/material.dart';
+import 'package:appwrite/appwrite.dart';
+
+import '../../../core/appwrite/appwrite_config.dart';
+import '../../../core/appwrite/appwrite_service.dart';
+import '../../../data/models/category_model.dart';
+
+class FormKategoriWeb extends StatefulWidget {
   const FormKategoriWeb({super.key});
+
+  @override
+  State<FormKategoriWeb> createState() => _FormKategoriWebState();
+}
+
+class _FormKategoriWebState extends State<FormKategoriWeb> {
+  final Databases databases = AppwriteService.databases;
+
+  List<CategoryModel> categories = [];
+
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    loadCategories();
+  }
+
+  Future<void> confirmDeleteCategory(CategoryModel category) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Hapus Kategori"),
+          content: Text("Yakin menghapus kategori ${category.name} ?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("Batal"),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text("Hapus"),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result == true) {
+      await deleteCategory(category);
+    }
+  }
+
+  Future<void> deleteCategory(CategoryModel category) async {
+    try {
+      await databases.deleteDocument(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.categoriesCollectionId,
+        documentId: category.documentId,
+      );
+
+      await loadCategories();
+    } catch (e) {
+      debugPrint(e.toString());
+    }
+  }
+
+  Future<void> showAddCategoryDialog() async {
+    final nameController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final imageController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Tambah Kategori"),
+          content: SizedBox(
+            width: 450,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: "Nama Kategori"),
+                ),
+
+                const SizedBox(height: 12),
+
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(labelText: "Deskripsi"),
+                ),
+
+                const SizedBox(height: 12),
+
+                TextField(
+                  controller: imageController,
+                  decoration: const InputDecoration(labelText: "Image URL"),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text("Batal"),
+            ),
+
+            ElevatedButton(
+              onPressed: () async {
+                await databases.createDocument(
+                  databaseId: AppwriteConfig.databaseId,
+                  collectionId: AppwriteConfig.categoriesCollectionId,
+                  documentId: ID.unique(),
+                  data: {
+                    "name": nameController.text,
+                    "description": descriptionController.text,
+                    "imageUrl": imageController.text,
+                    "productCount": 0,
+                    "status": "active",
+                  },
+                );
+
+                if (!mounted) return;
+
+                Navigator.pop(context);
+
+                await loadCategories();
+              },
+              child: const Text("Simpan"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> loadCategories() async {
+    try {
+      final result = await databases.listDocuments(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.categoriesCollectionId,
+      );
+
+      categories = result.documents
+          .map((doc) => CategoryModel.fromMap(doc.data, doc.$id))
+          .toList();
+
+      setState(() {
+        isLoading = false;
+      });
+    } catch (e) {
+      debugPrint(e.toString());
+
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,10 +177,7 @@ class FormKategoriWeb extends StatelessWidget {
                 const Expanded(
                   child: Text(
                     "Manajemen Kategori",
-                    style: TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
                   ),
                 ),
 
@@ -33,8 +190,7 @@ class FormKategoriWeb extends StatelessWidget {
                       filled: true,
                       fillColor: Colors.white,
                       border: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(30),
+                        borderRadius: BorderRadius.circular(30),
                         borderSide: BorderSide.none,
                       ),
                     ),
@@ -43,39 +199,27 @@ class FormKategoriWeb extends StatelessWidget {
 
                 const SizedBox(width: 16),
 
-                Container(
-                  width: 1,
-                  height: 40,
-                  color: Colors.grey.shade300,
-                ),
+                Container(width: 1, height: 40, color: Colors.grey.shade300),
 
                 const SizedBox(width: 16),
 
                 const CircleAvatar(
                   radius: 22,
-                  backgroundImage: NetworkImage(
-                    "https://i.pravatar.cc/150",
-                  ),
+                  backgroundImage: NetworkImage("https://i.pravatar.cc/150"),
                 ),
 
                 const SizedBox(width: 10),
 
                 const Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       "Admin Utama",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     Text(
                       "Super Admin",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.black54,
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.black54),
                     ),
                   ],
                 ),
@@ -88,10 +232,7 @@ class FormKategoriWeb extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Text(
                 "Kelola klasifikasi produk Anda untuk memudahkan pencarian oleh pelanggan.",
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.black54,
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.black54),
               ),
             ),
 
@@ -104,28 +245,23 @@ class FormKategoriWeb extends StatelessWidget {
 
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        const Color(0xff2563EB),
-                    padding:
-                        const EdgeInsets.symmetric(
+                    backgroundColor: const Color(0xff2563EB),
+                    padding: const EdgeInsets.symmetric(
                       horizontal: 22,
                       vertical: 18,
                     ),
                     shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  onPressed: () {},
+                  onPressed: showAddCategoryDialog,
                   icon: const Icon(
                     Icons.add_circle_outline,
                     color: Colors.white,
                   ),
                   label: const Text(
                     "Tambah Kategori Baru",
-                    style: TextStyle(
-                      color: Colors.white,
-                    ),
+                    style: TextStyle(color: Colors.white),
                   ),
                 ),
               ],
@@ -140,7 +276,7 @@ class FormKategoriWeb extends StatelessWidget {
                   child: _statCard(
                     icon: Icons.grid_view_rounded,
                     title: "Total Kategori",
-                    value: "12",
+                    value: categories.length.toString(),
                     color: Colors.blue,
                   ),
                 ),
@@ -173,7 +309,7 @@ class FormKategoriWeb extends StatelessWidget {
                   child: _statCard(
                     icon: Icons.trending_up,
                     title: "Populer (Bulan Ini)",
-                    value: "Elektronik",
+                    value: categories.isNotEmpty ? categories.first.name : "-",
                     color: Colors.grey,
                   ),
                 ),
@@ -183,57 +319,35 @@ class FormKategoriWeb extends StatelessWidget {
             const SizedBox(height: 24),
 
             Expanded(
-              child: GridView.count(
-                crossAxisCount: 4,
-                mainAxisSpacing: 20,
-                crossAxisSpacing: 20,
-                childAspectRatio: 0.78,
-                children: const [
-                  CategoryCard(
-                    title: "Elektronik",
-                    productCount: "245 Produk",
-                    description:
-                        "Perangkat digital, smartphone, laptop, dan aksesori elektronik.",
-                  ),
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : GridView.builder(
+                      itemCount: categories.length + 1,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 4,
+                            mainAxisSpacing: 20,
+                            crossAxisSpacing: 20,
+                            childAspectRatio: 0.78,
+                          ),
+                      itemBuilder: (context, index) {
+                        // Card tambah kategori di posisi terakhir
+                        if (index == categories.length) {
+                          return const AddCategoryCard();
+                        }
 
-                  CategoryCard(
-                    title: "Fashion",
-                    productCount: "512 Produk",
-                    description:
-                        "Pakaian pria, wanita, dan anak-anak dengan tren masa kini.",
-                  ),
+                        final category = categories[index];
 
-                  CategoryCard(
-                    title: "Makanan",
-                    productCount: "189 Produk",
-                    description:
-                        "Bahan makanan segar, camilan, dan minuman.",
-                  ),
-
-                  CategoryCard(
-                    title: "Rumah Tangga",
-                    productCount: "96 Produk",
-                    description:
-                        "Perabotan, dekorasi interior, dan perlengkapan rumah.",
-                  ),
-
-                  CategoryCard(
-                    title: "Kecantikan",
-                    productCount: "124 Produk",
-                    description:
-                        "Produk perawatan wajah, tubuh, dan alat kesehatan.",
-                  ),
-
-                  CategoryCard(
-                    title: "Olahraga",
-                    productCount: "78 Produk",
-                    description:
-                        "Alat fitness, perlengkapan outdoor, dan pakaian olahraga.",
-                  ),
-
-                  AddCategoryCard(),
-                ],
-              ),
+                        return CategoryCard(
+                          title: category.name,
+                          productCount: "${category.productCount} Produk",
+                          description: category.description,
+                          onDelete: () {
+                            confirmDeleteCategory(category);
+                          },
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -252,15 +366,14 @@ class FormKategoriWeb extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius:
-            BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 22,
             backgroundColor:
-                color.withOpacity(.15),
+                color.withValues(alpha: .15),
             child: Icon(
               icon,
               color: color,
@@ -271,25 +384,19 @@ class FormKategoriWeb extends StatelessWidget {
 
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-              mainAxisAlignment:
-                  MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.black54,
-                  ),
+                  style: const TextStyle(fontSize: 12, color: Colors.black54),
                 ),
                 Text(
                   value,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 26,
-                    fontWeight:
-                        FontWeight.bold,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
@@ -305,12 +412,14 @@ class CategoryCard extends StatelessWidget {
   final String title;
   final String productCount;
   final String description;
+  final VoidCallback? onDelete;
 
   const CategoryCard({
     super.key,
     required this.title,
     required this.productCount,
     required this.description,
+    this.onDelete,
   });
 
   @override
@@ -318,12 +427,10 @@ class CategoryCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius:
-            BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Stack(
             children: [
@@ -331,8 +438,7 @@ class CategoryCard extends StatelessWidget {
                 height: 120,
                 decoration: BoxDecoration(
                   color: Colors.grey.shade300,
-                  borderRadius:
-                      const BorderRadius.only(
+                  borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(18),
                     topRight: Radius.circular(18),
                   ),
@@ -343,25 +449,20 @@ class CategoryCard extends StatelessWidget {
                 left: 12,
                 bottom: 12,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(
+                  padding: const EdgeInsets.symmetric(
                     horizontal: 10,
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color:
-                        const Color(0xff2563EB),
-                    borderRadius:
-                        BorderRadius.circular(
-                            8),
+                    color: const Color(0xff2563EB),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     productCount,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,
-                      fontWeight:
-                          FontWeight.w600,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -370,29 +471,23 @@ class CategoryCard extends StatelessWidget {
           ),
 
           Padding(
-            padding:
-                const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
                     Expanded(
                       child: Text(
                         title,
-                        style:
-                            const TextStyle(
+                        style: const TextStyle(
                           fontSize: 18,
-                          fontWeight:
-                              FontWeight.bold,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
 
-                    const Icon(
-                      Icons.more_vert,
-                    ),
+                    const Icon(Icons.more_vert),
                   ],
                 ),
 
@@ -401,12 +496,8 @@ class CategoryCard extends StatelessWidget {
                 Text(
                   description,
                   maxLines: 3,
-                  overflow:
-                      TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.black54,
-                    height: 1.4,
-                  ),
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.black54, height: 1.4),
                 ),
 
                 const SizedBox(height: 18),
@@ -415,20 +506,14 @@ class CategoryCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: ElevatedButton(
-                        style:
-                            ElevatedButton.styleFrom(
-                          backgroundColor:
-                              const Color(
-                                  0xffF1F5F9),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xffF1F5F9),
                           elevation: 0,
                         ),
                         onPressed: () {},
                         child: const Text(
                           "Lihat Detail",
-                          style: TextStyle(
-                            color:
-                                Colors.black87,
-                          ),
+                          style: TextStyle(color: Colors.black87),
                         ),
                       ),
                     ),
@@ -436,13 +521,11 @@ class CategoryCard extends StatelessWidget {
                     const SizedBox(width: 8),
 
                     IconButton(
-                      onPressed: () {},
-                      icon: const Icon(
-                        Icons.delete_outline,
-                      ),
+                      onPressed: onDelete,
+                      icon: const Icon(Icons.delete_outline, color: Colors.red),
                     ),
                   ],
-                )
+                ),
               ],
             ),
           ),
@@ -459,40 +542,26 @@ class AddCategoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(
-          color: Colors.blueGrey.shade200,
-          width: 1.5,
-        ),
-        borderRadius:
-            BorderRadius.circular(18),
+        border: Border.all(color: Colors.blueGrey.shade200, width: 1.5),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: const Column(
-        mainAxisAlignment:
-            MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           CircleAvatar(
             radius: 30,
-            backgroundColor:
-                Color(0xffF1F5F9),
-            child: Icon(
-              Icons.add,
-              size: 30,
-            ),
+            backgroundColor: Color(0xffF1F5F9),
+            child: Icon(Icons.add, size: 30),
           ),
           SizedBox(height: 16),
           Text(
             "Tambah Kategori",
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 6),
           Text(
             "Definisikan segmen baru",
-            style: TextStyle(
-              color: Colors.black54,
-            ),
+            style: TextStyle(color: Colors.black54),
           ),
         ],
       ),

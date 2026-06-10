@@ -15,6 +15,7 @@ import 'categories/form_kategori_web.dart';
 import 'promo/form_promo_web.dart';
 import 'reports/form_laporan_web.dart';
 import '../auth/login_page.dart';
+import '../../core/services/auth_service_appwrite.dart';
 
 class AdminPage extends StatefulWidget {
   const AdminPage({super.key});
@@ -51,12 +52,22 @@ class _AdminPageState extends State<AdminPage> {
               });
             },
 
-            onLogout: () {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const LoginPage()),
-                (route) => false,
-              );
+            onLogout: () async {
+              try {
+                await AuthServiceAppwrite().logout();
+
+                if (!context.mounted) return;
+
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginPage()),
+                  (route) => false,
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('Logout gagal: $e')));
+              }
             },
           ),
 
