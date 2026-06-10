@@ -1,6 +1,5 @@
 // lib/core/appwrite/appwrite_config.dart
 
-
 class AppwriteConfig {
   static const String endpoint =
       'https://sgp.cloud.appwrite.io/v1';
@@ -11,6 +10,7 @@ class AppwriteConfig {
   static const String databaseId =
       'marketplace_db';
 
+  // Collections
   static const String usersCollectionId =
       'users';
 
@@ -20,7 +20,16 @@ class AppwriteConfig {
   static const String categoriesCollectionId =
       'categories';
 
-  // STORAGE
+  static const String ordersCollectionId =
+      'orders';
+
+  static const String orderItemsCollectionId =
+      'order_items';
+
+  static const String transaksiCollection =
+      'transaksi';
+
+  // Storage
   static const String productBucketId =
       'product_images';
 }
