@@ -2,8 +2,33 @@
 
 import 'package:flutter/material.dart';
 
-class PesananCustomerWeb extends StatelessWidget {
+import '../../../core/services/auth_service_appwrite.dart';
+import '../../../core/services/order_service_appwrite.dart';
+import '../../../data/models/order_model.dart';
+
+class PesananCustomerWeb extends StatefulWidget {
   const PesananCustomerWeb({super.key});
+
+  @override
+  State<PesananCustomerWeb> createState() =>
+      _PesananCustomerWebState();
+}
+
+class _PesananCustomerWebState
+    extends State<PesananCustomerWeb> {
+  final OrderServiceAppwrite _orderService = OrderServiceAppwrite();
+  late Future<List<OrderModel>> _ordersFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _ordersFuture = _loadOrders();
+  }
+
+  Future<List<OrderModel>> _loadOrders() async {
+    final account = await AuthServiceAppwrite().getCurrentUser();
+    return _orderService.getOrdersByCustomer(account.$id);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,26 +47,24 @@ class PesananCustomerWeb extends StatelessWidget {
                     child: TextField(
                       decoration: InputDecoration(
                         hintText: "Cari pesanan...",
-                        prefixIcon: const Icon(Icons.search),
+                        prefixIcon:
+                            const Icon(Icons.search),
                         filled: true,
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius:
+                              BorderRadius.circular(14),
                         ),
                       ),
                     ),
                   ),
                 ),
-
                 const SizedBox(width: 20),
-
                 const Icon(
                   Icons.notifications_none,
                   color: Colors.black54,
                 ),
-
                 const SizedBox(width: 16),
-
                 const CircleAvatar(
                   radius: 18,
                   backgroundImage: NetworkImage(
@@ -50,9 +73,7 @@ class PesananCustomerWeb extends StatelessWidget {
                 ),
               ],
             ),
-
             const SizedBox(height: 30),
-
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
@@ -63,9 +84,7 @@ class PesananCustomerWeb extends StatelessWidget {
                 ),
               ),
             ),
-
             const SizedBox(height: 20),
-
             // TAB FILTER
             Row(
               children: [
@@ -78,62 +97,60 @@ class PesananCustomerWeb extends StatelessWidget {
                 _tabButton("Dibatalkan", false),
               ],
             ),
-
             const SizedBox(height: 30),
-
             Expanded(
-              child: ListView(
-                children: const [
-                  _OrderCard(
-                    invoice:
-                        "INV/20231024/MPL/3512941",
-                    status: "Sedang Dikirim",
-                    amount: "Rp 450.000",
-                    date: "24 Okt 2023",
-                    product:
-                        "Jaket Puff Premium Olive",
-                    detail:
-                        "1 Barang x Rp 450.000",
-                    buttonText:
-                        "Lacak Pesanan",
-                    primary: true,
-                  ),
+              child: FutureBuilder<List<OrderModel>>(
+                future: _ordersFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState ==
+                      ConnectionState.waiting) {
+                    return const Center(
+                      child:
+                          CircularProgressIndicator(),
+                    );
+                  }
 
-                  SizedBox(height: 16),
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Text(
+                        "Gagal memuat pesanan: ${snapshot.error}",
+                        style: const TextStyle(
+                          color: Colors.red,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    );
+                  }
 
-                  _OrderCard(
-                    invoice:
-                        "INV/20231020/MPL/3512800",
-                    status: "Selesai",
-                    amount: "Rp 250.000",
-                    date: "20 Okt 2023",
-                    product:
-                        "Baju Kaos Band Premium",
-                    detail:
-                        "1 Barang x Rp 250.000",
-                    buttonText:
-                        "Beli Lagi",
-                    primary: false,
-                  ),
+                  final orders =
+                      snapshot.data ?? [];
 
-                  SizedBox(height: 16),
+                  if (orders.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        "Belum ada pesanan",
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 16,
+                        ),
+                      ),
+                    );
+                  }
 
-                  _OrderCard(
-                    invoice:
-                        "INV/20231015/MPL/3512750",
-                    status: "Selesai",
-                    amount: "Rp 1.150.000",
-                    date: "15 Okt 2023",
-                    product:
-                        "Sepatu Sport X-Grip Red",
-                    detail:
-                        "1 Barang (+2 barang lainnya)",
-                    buttonText:
-                        "Beli Lagi",
-                    primary: false,
-                    showDetailButton: true,
-                  ),
-                ],
+                  return ListView(
+                    children: orders
+                        .map(
+                          (order) => Padding(
+                            padding:
+                                const EdgeInsets.only(
+                                    bottom: 16),
+                            child:
+                                _OrderCard(order: order),
+                          ),
+                        )
+                        .toList(),
+                  );
+                },
               ),
             ),
           ],
@@ -142,10 +159,7 @@ class PesananCustomerWeb extends StatelessWidget {
     );
   }
 
-  static Widget _tabButton(
-    String text,
-    bool active,
-  ) {
+  Widget _tabButton(String text, bool active) {
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: 22,
@@ -155,14 +169,14 @@ class PesananCustomerWeb extends StatelessWidget {
         color: active
             ? const Color(0xff2563EB)
             : const Color(0xffDBEAFE),
-        borderRadius:
-            BorderRadius.circular(25),
+        borderRadius: BorderRadius.circular(25),
       ),
       child: Text(
         text,
         style: TextStyle(
-          color:
-              active ? Colors.white : Colors.black54,
+          color: active
+              ? Colors.white
+              : Colors.black54,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -171,41 +185,59 @@ class PesananCustomerWeb extends StatelessWidget {
 }
 
 class _OrderCard extends StatelessWidget {
-  final String invoice;
-  final String status;
-  final String amount;
-  final String date;
-  final String product;
-  final String detail;
-  final String buttonText;
-  final bool primary;
-  final bool showDetailButton;
+  final OrderModel order;
 
-  const _OrderCard({
-    required this.invoice,
-    required this.status,
-    required this.amount,
-    required this.date,
-    required this.product,
-    required this.detail,
-    required this.buttonText,
-    required this.primary,
-    this.showDetailButton = false,
-  });
+  const _OrderCard({required this.order});
+
+  Color _statusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Colors.orange;
+      case 'processing':
+      case 'shipped':
+        return const Color(0xff2563EB);
+      case 'completed':
+      case 'delivered':
+        return Colors.green;
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _formatPrice(int price) {
+    final p = price.toString();
+    final buffer = StringBuffer();
+    for (int i = 0; i < p.length; i++) {
+      if (i > 0 && (p.length - i) % 3 == 0) buffer.write('.');
+      buffer.write(p[i]);
+    }
+    return 'Rp $buffer';
+  }
+
+  String _formatDate(String isoDate) {
+    try {
+      final date = DateTime.parse(isoDate);
+      final months = [
+        '', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+        'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+      ];
+      return '${date.day} ${months[date.month]} ${date.year}';
+    } catch (_) {
+      return isoDate;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final statusColor =
-        status == "Selesai"
-            ? Colors.green
-            : const Color(0xff2563EB);
+    final statusColor = _statusColor(order.status);
 
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius:
-            BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: Colors.grey.shade200,
         ),
@@ -218,56 +250,52 @@ class _OrderCard extends StatelessWidget {
                 backgroundColor:
                     statusColor.withValues(alpha: .15),
                 child: Icon(
-                  status == "Selesai"
+                  order.status == 'completed' ||
+                          order.status == 'delivered'
                       ? Icons.check_circle
                       : Icons.local_shipping,
                   color: statusColor,
                 ),
               ),
-
               const SizedBox(width: 12),
-
               Expanded(
                 child: Column(
                   crossAxisAlignment:
                       CrossAxisAlignment.start,
                   children: [
                     Text(
-                      invoice,
+                      order.orderCode,
                       style: const TextStyle(
                         fontSize: 12,
                         color: Colors.black54,
                       ),
                     ),
                     Text(
-                      status,
+                      order.status,
                       style: const TextStyle(
                         fontSize: 26,
-                        fontWeight:
-                            FontWeight.bold,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
                 ),
               ),
-
               Column(
                 crossAxisAlignment:
                     CrossAxisAlignment.end,
                 children: [
                   Text(
-                    date,
+                    _formatDate(order.createdAt),
                     style: const TextStyle(
                       color: Colors.black54,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    amount,
+                    _formatPrice(order.totalAmount),
                     style: const TextStyle(
                       color: Color(0xff2563EB),
-                      fontWeight:
-                          FontWeight.bold,
+                      fontWeight: FontWeight.bold,
                       fontSize: 28,
                     ),
                   ),
@@ -275,9 +303,7 @@ class _OrderCard extends StatelessWidget {
               ),
             ],
           ),
-
           const SizedBox(height: 18),
-
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -287,26 +313,19 @@ class _OrderCard extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Container(
-                  width: 70,
-                  height: 70,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius:
-                        BorderRadius.circular(
-                            12),
-                  ),
+                const Icon(
+                  Icons.receipt_long,
+                  size: 40,
+                  color: Colors.black54,
                 ),
-
                 const SizedBox(width: 14),
-
                 Expanded(
                   child: Column(
                     crossAxisAlignment:
                         CrossAxisAlignment.start,
                     children: [
                       Text(
-                        product,
+                        order.orderCode,
                         style: const TextStyle(
                           fontWeight:
                               FontWeight.bold,
@@ -315,53 +334,13 @@ class _OrderCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        detail,
+                        _formatDate(order.createdAt),
                         style: const TextStyle(
                           color: Colors.black54,
                         ),
                       ),
                     ],
                   ),
-                ),
-
-                if (showDetailButton)
-                  Container(
-                    margin:
-                        const EdgeInsets.only(
-                            right: 10),
-                    child: OutlinedButton(
-                      onPressed: () {},
-                      child:
-                          const Text("Detail"),
-                    ),
-                  ),
-
-                ElevatedButton(
-                  style:
-                      ElevatedButton.styleFrom(
-                    backgroundColor: primary
-                        ? const Color(
-                            0xff2563EB)
-                        : Colors.white,
-                    foregroundColor: primary
-                        ? Colors.white
-                        : const Color(
-                            0xff2563EB),
-                    side: BorderSide(
-                      color: primary
-                          ? const Color(
-                              0xff2563EB)
-                          : const Color(
-                              0xff2563EB),
-                    ),
-                    padding:
-                        const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 14,
-                    ),
-                  ),
-                  onPressed: () {},
-                  child: Text(buttonText),
                 ),
               ],
             ),

@@ -1,12 +1,81 @@
 //lib/presentation/customer/profile/profile_customer_web.dart
 
 import 'package:flutter/material.dart';
+import 'package:appwrite/appwrite.dart';
+import 'package:appwrite/models.dart' as models;
 
-class ProfileCustomerWeb extends StatelessWidget {
+import 'package:pasarkita/core/services/auth_service_appwrite.dart';
+import 'package:pasarkita/data/models/user_model.dart';
+import 'package:pasarkita/core/appwrite/appwrite_config.dart';
+import 'package:pasarkita/core/appwrite/appwrite_service.dart';
+import 'package:pasarkita/presentation/auth/login_page.dart';
+
+class ProfileCustomerWeb extends StatefulWidget {
   const ProfileCustomerWeb({super.key});
 
   @override
+  State<ProfileCustomerWeb> createState() =>
+      _ProfileCustomerWebState();
+}
+
+class _ProfileCustomerWebState
+    extends State<ProfileCustomerWeb> {
+  final AuthServiceAppwrite _authService = AuthServiceAppwrite();
+  models.User? _account;
+  UserModel? _userModel;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadUser());
+  }
+
+  Future<void> _loadUser() async {
+    try {
+      final account = await _authService.getCurrentUser();
+
+      try {
+        final databases = AppwriteService.databases;
+        final result = await databases.listDocuments(
+          databaseId: AppwriteConfig.databaseId,
+          collectionId: AppwriteConfig.usersCollectionId,
+          queries: [Query.equal('uid', account.$id)],
+        );
+        if (result.documents.isNotEmpty) {
+          _userModel = UserModel.fromMap(
+            result.documents.first.data,
+            result.documents.first.$id,
+          );
+        }
+      } catch (_) {}
+
+      if (!mounted) return;
+      setState(() {
+        _account = account;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+        (route) => false,
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final name = _userModel?.name ?? _account?.name ?? 'User';
+    final email = _userModel?.email ?? _account?.email ?? '';
+
     return Scaffold(
       backgroundColor: const Color(0xffF8FAFC),
       body: SingleChildScrollView(
@@ -88,21 +157,21 @@ class ProfileCustomerWeb extends StatelessWidget {
 
                   const SizedBox(width: 20),
 
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment:
                           CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Adrian Wijaya",
-                          style: TextStyle(
+                          name,
+                          style: const TextStyle(
                             fontSize: 26,
                             fontWeight:
                                 FontWeight.bold,
                           ),
                         ),
-                        SizedBox(height: 4),
-                        Text(
+                        const SizedBox(height: 4),
+                        const Text(
                           "Gold Member • Sejak 2022",
                           style: TextStyle(
                             color:
@@ -179,7 +248,7 @@ class ProfileCustomerWeb extends StatelessWidget {
                       Expanded(
                         child: _inputField(
                           "NAMA LENGKAP",
-                          "Adrian Wijaya",
+                          name,
                         ),
                       ),
 
@@ -188,7 +257,7 @@ class ProfileCustomerWeb extends StatelessWidget {
                       Expanded(
                         child: _inputField(
                           "ALAMAT EMAIL",
-                          "adrian.wijaya@example.com",
+                          email,
                         ),
                       ),
 

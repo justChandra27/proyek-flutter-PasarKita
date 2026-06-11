@@ -2,8 +2,94 @@
 
 import 'package:flutter/material.dart';
 
-class FormPesananSellerWeb extends StatelessWidget {
+import '../../../core/services/auth_service_appwrite.dart';
+import '../../../core/services/order_service_appwrite.dart';
+import '../../../data/models/order_model.dart';
+import '../../../data/models/order_item_model.dart';
+
+class FormPesananSellerWeb extends StatefulWidget {
   const FormPesananSellerWeb({super.key});
+
+  @override
+  State<FormPesananSellerWeb> createState() =>
+      _FormPesananSellerWebState();
+}
+
+class _FormPesananSellerWebState
+    extends State<FormPesananSellerWeb> {
+  final OrderServiceAppwrite _orderService = OrderServiceAppwrite();
+  late Future<List<Map<String, dynamic>>> _ordersFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _ordersFuture = _loadOrders();
+  }
+
+  Future<List<Map<String, dynamic>>> _loadOrders() async {
+    final account = await AuthServiceAppwrite().getCurrentUser();
+    return _orderService.getSellerOrdersWithDetails(account.$id);
+  }
+
+  String _formatPrice(int price) {
+    final p = price.toString();
+    final buffer = StringBuffer();
+    for (int i = 0; i < p.length; i++) {
+      if (i > 0 && (p.length - i) % 3 == 0) buffer.write('.');
+      buffer.write(p[i]);
+    }
+    return 'Rp $buffer';
+  }
+
+  String _formatDate(String isoDate) {
+    try {
+      final date = DateTime.parse(isoDate);
+      final months = [
+        '', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+        'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+      ];
+      return '${date.day} ${months[date.month]} ${date.year}';
+    } catch (_) {
+      return isoDate;
+    }
+  }
+
+  Color _statusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Colors.green;
+      case 'processing':
+        return Colors.orange;
+      case 'shipped':
+        return const Color(0xff2563EB);
+      case 'delivered':
+      case 'completed':
+        return Colors.blueGrey;
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _statusLabel(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 'PERLU DIPROSES';
+      case 'processing':
+        return 'DIPROSES';
+      case 'shipped':
+        return 'DIKIRIM';
+      case 'delivered':
+        return 'SELESAI';
+      case 'completed':
+        return 'SELESAI';
+      case 'cancelled':
+        return 'DIBATALKAN';
+      default:
+        return status.toUpperCase();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,9 +120,7 @@ class FormPesananSellerWeb extends StatelessWidget {
                     ),
                   ),
                 ),
-
                 const SizedBox(width: 20),
-
                 const Column(
                   crossAxisAlignment:
                       CrossAxisAlignment.end,
@@ -56,9 +140,7 @@ class FormPesananSellerWeb extends StatelessWidget {
                     ),
                   ],
                 ),
-
                 const SizedBox(width: 10),
-
                 const CircleAvatar(
                   radius: 20,
                   backgroundImage: NetworkImage(
@@ -67,9 +149,7 @@ class FormPesananSellerWeb extends StatelessWidget {
                 ),
               ],
             ),
-
             const SizedBox(height: 24),
-
             // TITLE
             Row(
               children: [
@@ -82,8 +162,7 @@ class FormPesananSellerWeb extends StatelessWidget {
                         "Kelola Pesanan",
                         style: TextStyle(
                           fontSize: 30,
-                          fontWeight:
-                              FontWeight.bold,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                       SizedBox(height: 5),
@@ -96,7 +175,6 @@ class FormPesananSellerWeb extends StatelessWidget {
                     ],
                   ),
                 ),
-
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
                     padding:
@@ -119,9 +197,7 @@ class FormPesananSellerWeb extends StatelessWidget {
                 ),
               ],
             ),
-
             const SizedBox(height: 24),
-
             // STAT CARD
             Row(
               children: [
@@ -133,9 +209,7 @@ class FormPesananSellerWeb extends StatelessWidget {
                     Colors.green,
                   ),
                 ),
-
                 const SizedBox(width: 16),
-
                 Expanded(
                   child: _statCard(
                     Icons.local_shipping_outlined,
@@ -144,9 +218,7 @@ class FormPesananSellerWeb extends StatelessWidget {
                     Colors.orange,
                   ),
                 ),
-
                 const SizedBox(width: 16),
-
                 Expanded(
                   child: _statCard(
                     Icons.payments_outlined,
@@ -157,9 +229,7 @@ class FormPesananSellerWeb extends StatelessWidget {
                 ),
               ],
             ),
-
             const SizedBox(height: 24),
-
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
@@ -178,34 +248,21 @@ class FormPesananSellerWeb extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
+                          _tab("Semua", true),
                           _tab(
-                            "Semua",
-                            true,
-                          ),
-                          _tab(
-                            "Perlu Diproses (24)",
+                            "Perlu Diproses",
                             false,
                           ),
-                          _tab(
-                            "Dikirim (12)",
-                            false,
-                          ),
-                          _tab(
-                            "Selesai (156)",
-                            false,
-                          ),
-                          _tab(
-                            "Dibatalkan",
-                            false,
-                          ),
+                          _tab("Dikirim", false),
+                          _tab("Selesai", false),
+                          _tab("Dibatalkan", false),
                         ],
                       ),
                     ),
-
                     const Divider(height: 1),
-
                     Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding:
+                          const EdgeInsets.all(16),
                       child: Row(
                         children: [
                           Expanded(
@@ -231,12 +288,11 @@ class FormPesananSellerWeb extends StatelessWidget {
                               ),
                             ),
                           ),
-
                           const SizedBox(width: 16),
-
                           Container(
                             padding:
-                                const EdgeInsets.symmetric(
+                                const EdgeInsets
+                                    .symmetric(
                               horizontal: 16,
                               vertical: 14,
                             ),
@@ -253,19 +309,14 @@ class FormPesananSellerWeb extends StatelessWidget {
                             ),
                             child: const Row(
                               children: [
-                                Text(
-                                  "Urutkan: Terbaru",
-                                ),
-                                SizedBox(
-                                    width: 5),
+                                Text("Urutkan: Terbaru"),
+                                SizedBox(width: 5),
                                 Icon(Icons
                                     .keyboard_arrow_down),
                               ],
                             ),
                           ),
-
                           const SizedBox(width: 10),
-
                           Container(
                             padding:
                                 const EdgeInsets.all(
@@ -288,64 +339,80 @@ class FormPesananSellerWeb extends StatelessWidget {
                         ],
                       ),
                     ),
-
                     Expanded(
-                      child: ListView(
-                        children: [
-                          _orderItem(
-                            orderId:
-                                "#ORD-20230521-001",
-                            product:
-                                "Sneaker Performance - Stealth Edition",
-                            customer:
-                                "Budi Santoso",
-                            status:
-                                "PERLU DIPROSES",
-                            statusColor:
-                                Colors.green,
-                            price:
-                                "Rp 850.000",
-                            button:
-                                "Proses Pesanan",
-                          ),
+                      child:
+                          FutureBuilder<
+                              List<
+                                  Map<String,
+                                      dynamic>>>(
+                        future: _ordersFuture,
+                        builder: (context,
+                            snapshot) {
+                          if (snapshot
+                                  .connectionState ==
+                              ConnectionState
+                                  .waiting) {
+                            return const Center(
+                              child:
+                                  CircularProgressIndicator(),
+                            );
+                          }
 
-                          _orderItem(
-                            orderId:
-                                "#ORD-20230521-002",
-                            product:
-                                "Minimalist White Watch - Series 2",
-                            customer:
-                                "Siti Aminah",
-                            status:
-                                "DIKIRIM",
-                            statusColor:
-                                Colors.orange,
-                            price:
-                                "Rp 1.200.000",
-                            button:
-                                "Lacak Resi",
-                          ),
+                          if (snapshot.hasError) {
+                            return Center(
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets
+                                        .all(32),
+                                child: Text(
+                                  "Gagal memuat pesanan:\n${snapshot.error}",
+                                  style: const TextStyle(
+                                      color:
+                                          Colors
+                                              .red),
+                                  textAlign:
+                                      TextAlign
+                                          .center,
+                                ),
+                              ),
+                            );
+                          }
 
-                          _orderItem(
-                            orderId:
-                                "#ORD-20230520-098",
-                            product:
-                                "Studio Headphones Pro - Jet Black",
-                            customer:
-                                "Andhika Pratama",
-                            status:
-                                "SELESAI",
-                            statusColor:
-                                Colors.blueGrey,
-                            price:
-                                "Rp 2.450.000",
-                            button:
-                                "Lihat Detail",
-                          ),
-                        ],
+                          final orders =
+                              snapshot.data ?? [];
+
+                          if (orders.isEmpty) {
+                            return const Center(
+                              child: Text(
+                                "Belum ada pesanan",
+                                style: TextStyle(
+                                  color:
+                                      Colors.grey,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            );
+                          }
+
+                          return ListView(
+                            children: orders
+                                .map((entry) {
+                              final order = entry[
+                                      'order']
+                                  as OrderModel;
+                              final items =
+                                  entry['items']
+                                      as List<
+                                          OrderItemModel>;
+                              return _orderItem(
+                                order: order,
+                                items: items,
+                              );
+                            }).toList(),
+                          );
+                        },
                       ),
                     ),
-
                     Container(
                       padding:
                           const EdgeInsets.all(16),
@@ -354,9 +421,7 @@ class FormPesananSellerWeb extends StatelessWidget {
                           const Text(
                             "Menampilkan 1-10 dari 192 pesanan",
                           ),
-
                           const Spacer(),
-
                           _pageButton("<"),
                           _pageButton(
                             "1",
@@ -364,7 +429,6 @@ class FormPesananSellerWeb extends StatelessWidget {
                           ),
                           _pageButton("2"),
                           _pageButton("3"),
-
                           const Padding(
                             padding:
                                 EdgeInsets.symmetric(
@@ -372,7 +436,6 @@ class FormPesananSellerWeb extends StatelessWidget {
                             ),
                             child: Text("..."),
                           ),
-
                           _pageButton("13"),
                           _pageButton(">"),
                         ],
@@ -382,6 +445,115 @@ class FormPesananSellerWeb extends StatelessWidget {
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _orderItem({
+    required OrderModel order,
+    required List<OrderItemModel> items,
+  }) {
+    final statusColor = _statusColor(order.status);
+    final sellerSubtotal =
+        items.fold<int>(0, (sum, i) => sum + i.subtotal);
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 20,
+        vertical: 10,
+      ),
+      leading: Container(
+        width: 55,
+        height: 55,
+        decoration: BoxDecoration(
+          color: Colors.grey.shade300,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: const Icon(Icons.receipt_long, color: Colors.grey),
+      ),
+      title: Row(
+        children: [
+          Text(
+            order.orderCode,
+            style: const TextStyle(
+              color: Color(0xff1D4ED8),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: .15),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              _statusLabel(order.status),
+              style: TextStyle(
+                color: statusColor,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("Pembeli: ${order.customerName}"),
+          Text(
+            items
+                .map((i) =>
+                    "${i.productName} (${i.quantity}x ${_formatPrice(i.price)})")
+                .join(", "),
+            style: const TextStyle(color: Colors.grey, fontSize: 12),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+      trailing: SizedBox(
+        width: 170,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  _formatPrice(sellerSubtotal),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xff1D4ED8),
+                  ),
+                ),
+                Text(
+                  _formatDate(order.createdAt),
+                  style: const TextStyle(
+                    color: Colors.grey,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 12),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xff1D4ED8),
+              ),
+              onPressed: () {},
+              child: const Text(
+                "Lihat Detail",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(Icons.more_vert),
           ],
         ),
       ),
@@ -399,40 +571,25 @@ class FormPesananSellerWeb extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius:
-            BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor:
-                color.withValues(alpha: .15),
-            child: Icon(
-              icon,
-              color: color,
-            ),
+            backgroundColor: color.withValues(alpha: .15),
+            child: Icon(icon, color: color),
           ),
-
           const SizedBox(width: 12),
-
           Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
-            mainAxisAlignment:
-                MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.black54,
-                ),
-              ),
+              Text(title, style: const TextStyle(color: Colors.black54)),
               Text(
                 value,
                 style: const TextStyle(
                   fontSize: 26,
-                  fontWeight:
-                      FontWeight.bold,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ],
@@ -442,18 +599,10 @@ class FormPesananSellerWeb extends StatelessWidget {
     );
   }
 
-  Widget _tab(
-    String title,
-    bool active,
-  ) {
+  Widget _tab(String title, bool active) {
     return Container(
-      margin: const EdgeInsets.only(
-        right: 20,
-      ),
-      padding:
-          const EdgeInsets.symmetric(
-        vertical: 12,
-      ),
+      margin: const EdgeInsets.only(right: 20),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
         border: active
             ? const Border(
@@ -470,130 +619,8 @@ class FormPesananSellerWeb extends StatelessWidget {
           color: active
               ? const Color(0xff1D4ED8)
               : Colors.black54,
-          fontWeight: active
-              ? FontWeight.bold
-              : FontWeight.normal,
-        ),
-      ),
-    );
-  }
-
-  Widget _orderItem({
-    required String orderId,
-    required String product,
-    required String customer,
-    required String status,
-    required Color statusColor,
-    required String price,
-    required String button,
-  }) {
-    return ListTile(
-      contentPadding:
-          const EdgeInsets.symmetric(
-        horizontal: 20,
-        vertical: 10,
-      ),
-      leading: Container(
-        width: 55,
-        height: 55,
-        decoration: BoxDecoration(
-          color: Colors.grey.shade300,
-          borderRadius:
-              BorderRadius.circular(10),
-        ),
-      ),
-      title: Row(
-        children: [
-          Text(
-            orderId,
-            style: const TextStyle(
-              color: Color(0xff1D4ED8),
-              fontWeight:
-                  FontWeight.bold,
-            ),
-          ),
-
-          const SizedBox(width: 10),
-
-          Container(
-            padding:
-                const EdgeInsets.symmetric(
-              horizontal: 8,
-              vertical: 4,
-            ),
-            decoration: BoxDecoration(
-              color:
-                  statusColor.withValues(alpha: .15),
-              borderRadius:
-                  BorderRadius.circular(
-                      20),
-            ),
-            child: Text(
-              status,
-              style: TextStyle(
-                color: statusColor,
-                fontSize: 11,
-                fontWeight:
-                    FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-      subtitle: Text(
-        "$product\nPembeli: $customer",
-      ),
-      trailing: SizedBox(
-        width: 170,
-        child: Row(
-          mainAxisAlignment:
-              MainAxisAlignment.end,
-          children: [
-            Column(
-              mainAxisAlignment:
-                  MainAxisAlignment.center,
-              crossAxisAlignment:
-                  CrossAxisAlignment.end,
-              children: [
-                Text(
-                  price,
-                  style:
-                      const TextStyle(
-                    fontWeight:
-                        FontWeight.bold,
-                    color: Color(
-                        0xff1D4ED8),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(width: 12),
-
-            ElevatedButton(
-              style:
-                  ElevatedButton.styleFrom(
-                backgroundColor:
-                    const Color(
-                        0xff1D4ED8),
-              ),
-              onPressed: () {},
-              child: Text(
-                button,
-                style:
-                    const TextStyle(
-                  color:
-                      Colors.white,
-                ),
-              ),
-            ),
-
-            const SizedBox(width: 8),
-
-            const Icon(
-              Icons.more_vert,
-            ),
-          ],
+          fontWeight:
+              active ? FontWeight.bold : FontWeight.normal,
         ),
       ),
     );
@@ -604,30 +631,19 @@ class FormPesananSellerWeb extends StatelessWidget {
     bool active = false,
   }) {
     return Container(
-      margin: const EdgeInsets.only(
-        left: 6,
-      ),
+      margin: const EdgeInsets.only(left: 6),
       width: 36,
       height: 36,
       decoration: BoxDecoration(
-        color: active
-            ? const Color(
-                0xff1D4ED8)
-            : Colors.white,
-        borderRadius:
-            BorderRadius.circular(8),
-        border: Border.all(
-          color:
-              Colors.grey.shade300,
-        ),
+        color: active ? const Color(0xff1D4ED8) : Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
       ),
       child: Center(
         child: Text(
           text,
           style: TextStyle(
-            color: active
-                ? Colors.white
-                : Colors.black,
+            color: active ? Colors.white : Colors.black,
           ),
         ),
       ),

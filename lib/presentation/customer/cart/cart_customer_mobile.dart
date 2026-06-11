@@ -1,6 +1,10 @@
 //lib/presentation/customer/cart/cart_customer_mobile.dart
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../data/models/cart_model.dart';
+import '../../../providers/cart_provider.dart';
+import '../../checkout/checkout_page.dart';
 
 class CartCustomerMobile extends StatelessWidget {
   const CartCustomerMobile({super.key});
@@ -9,245 +13,245 @@ class CartCustomerMobile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xffF5F7FB),
+      body: Consumer<CartProvider>(
+        builder: (context, cart, _) {
+          if (cart.items.isEmpty) {
+            return const Center(child: Text("Keranjang kosong"));
+          }
 
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "Keranjang Saya",
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              const SizedBox(height: 4),
-
-              Row(
+          return SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
                 children: [
-                  const Expanded(
-                    child: Text(
-                      "Anda memiliki 3 item dalam keranjang",
-                      style: TextStyle(
-                        color: Colors.grey,
-                      ),
+                  const Text(
+                    "Keranjang Saya",
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
 
-                  TextButton(
-                    onPressed: () {},
-                    child: const Text(
-                      "Bersihkan Keranjang",
+                  const SizedBox(height: 4),
+
+                  Row(
+                    children: [
+                      Text(
+                        "Anda memiliki ${cart.itemCount} item dalam keranjang",
+                        style: const TextStyle(
+                          color: Colors.grey,
+                        ),
+                      ),
+
+                      const Spacer(),
+
+                      TextButton(
+                        onPressed: cart.clear,
+                        child: const Text(
+                          "Bersihkan Keranjang",
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  ...cart.items.map(
+                    (item) => Padding(
+                      padding: const EdgeInsets.only(
+                          bottom: 12),
+                      child: _cartItem(context, item),
                     ),
                   ),
-                ],
-              ),
 
-              const SizedBox(height: 16),
+                  const SizedBox(height: 20),
 
-              _cartItem(
-                "Baju Kaos Premium",
-                "Size: L | Color: Obsidian Blue",
-                "Rp 250.000",
-                Icons.checkroom,
-              ),
-
-              const SizedBox(height: 12),
-
-              _cartItem(
-                "Celana Jeans Slim Fit",
-                "Size: 32 | Color: Sky Denim",
-                "Rp 100.000",
-                Icons.shopping_bag,
-              ),
-
-              const SizedBox(height: 12),
-
-              _cartItem(
-                "Jacket Bomber Limited",
-                "Size: XL | Color: Midnight Matte",
-                "Rp 450.000",
-                Icons.hiking,
-              ),
-
-              const SizedBox(height: 20),
-
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius:
-                      BorderRadius.circular(16),
-                ),
-                child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Catatan Pesanan",
-                      style: TextStyle(
-                        fontWeight:
-                            FontWeight.bold,
-                      ),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius:
+                          BorderRadius.circular(16),
                     ),
-
-                    const SizedBox(height: 12),
-
-                    TextField(
-                      maxLines: 3,
-                      decoration:
-                          InputDecoration(
-                        hintText:
-                            "Contoh: Titip di satpam ya...",
-                        filled: true,
-                        fillColor:
-                            const Color(
-                                0xffF5F7FB),
-                        border:
-                            OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius.circular(
-                                  12),
-                          borderSide:
-                              BorderSide.none,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color:
-                      const Color(0xffEAF1FF),
-                  borderRadius:
-                      BorderRadius.circular(16),
-                ),
-                child: Column(
-                  children: [
-                    const Align(
-                      alignment:
-                          Alignment.centerLeft,
-                      child: Text(
-                        "Ringkasan Belanja",
-                        style: TextStyle(
-                          fontWeight:
-                              FontWeight.bold,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    _summaryRow(
-                      "Subtotal (3 item)",
-                      "Rp 800.000",
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    _summaryRow(
-                      "Biaya Pengiriman",
-                      "GRATIS",
-                      valueColor:
-                          Colors.green,
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    _summaryRow(
-                      "Biaya Layanan",
-                      "Rp 2.000",
-                    ),
-
-                    const Divider(height: 30),
-
-                    Row(
+                    child: Column(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          "Total",
+                          "Catatan Pesanan",
                           style: TextStyle(
                             fontWeight:
                                 FontWeight.bold,
                           ),
                         ),
 
-                        const Spacer(),
+                        const SizedBox(height: 12),
 
-                        const Text(
-                          "Rp 802.000",
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight:
-                                FontWeight.bold,
-                            color: Color(
-                                0xff2563EB),
+                        TextField(
+                          maxLines: 3,
+                          decoration:
+                              InputDecoration(
+                            hintText:
+                                "Contoh: Titip di satpam ya...",
+                            filled: true,
+                            fillColor:
+                                const Color(0xffF5F7FB),
+                            border:
+                                OutlineInputBorder(
+                              borderRadius:
+                                  BorderRadius.circular(
+                                      12),
+                              borderSide:
+                                  BorderSide.none,
+                            ),
                           ),
                         ),
                       ],
                     ),
+                  ),
 
-                    const SizedBox(height: 18),
+                  const SizedBox(height: 20),
 
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton(
-                        style:
-                            ElevatedButton.styleFrom(
-                          backgroundColor:
-                              const Color(
-                                  0xff2563EB),
-                          shape:
-                              RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(
-                                    12),
-                          ),
-                        ),
-                        onPressed: () {},
-                        child: const Text(
-                          "Checkout Sekarang",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight:
-                                FontWeight.bold,
-                          ),
-                        ),
-                      ),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xffEAF1FF),
+                      borderRadius:
+                          BorderRadius.circular(16),
                     ),
-                  ],
-                ),
-              ),
+                    child: Column(
+                      children: [
+                        const Align(
+                          alignment:
+                              Alignment.centerLeft,
+                          child: Text(
+                            "Ringkasan Belanja",
+                            style: TextStyle(
+                              fontWeight:
+                                  FontWeight.bold,
+                            ),
+                          ),
+                        ),
 
-              const SizedBox(height: 20),
-            ],
-          ),
-        ),
+                        const SizedBox(height: 16),
+
+                        _summaryRow(
+                          "Subtotal (${cart.itemCount} item)",
+                          _formatPrice(cart.totalPrice),
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        _summaryRow(
+                          "Biaya Pengiriman",
+                          "GRATIS",
+                          valueColor: Colors.green,
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        _summaryRow(
+                          "Biaya Layanan",
+                          "Rp 2.000",
+                        ),
+
+                        const Divider(height: 30),
+
+                        Row(
+                          children: [
+                            const Text(
+                              "Total",
+                              style: TextStyle(
+                                fontWeight:
+                                    FontWeight.bold,
+                              ),
+                            ),
+
+                            const Spacer(),
+
+                            Text(
+                              _formatPrice(
+                                  cart.totalPrice + 2000),
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight:
+                                    FontWeight.bold,
+                                color:
+                                    Color(0xff2563EB),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 18),
+
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: ElevatedButton(
+                            style: ElevatedButton
+                                .styleFrom(
+                              backgroundColor:
+                                  const Color(
+                                      0xff2563EB),
+                              shape:
+                                  RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(
+                                        12),
+                              ),
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const CheckoutPage(),
+                                ),
+                              );
+                            },
+                            child: const Text(
+                              "Checkout Sekarang",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight:
+                                    FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 
+  String _formatPrice(int price) {
+    final p = price.toString();
+    final buffer = StringBuffer();
+    for (int i = 0; i < p.length; i++) {
+      if (i > 0 && (p.length - i) % 3 == 0) buffer.write('.');
+      buffer.write(p[i]);
+    }
+    return 'Rp $buffer';
+  }
+
   Widget _cartItem(
-    String title,
-    String variant,
-    String price,
-    IconData icon,
-  ) {
+      BuildContext context, CartModel item) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius:
-            BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         children: [
@@ -259,17 +263,32 @@ class CartCustomerMobile extends StatelessWidget {
                 width: 90,
                 height: 90,
                 decoration: BoxDecoration(
-                  color:
-                      Colors.grey.shade200,
+                  color: Colors.grey.shade200,
                   borderRadius:
-                      BorderRadius.circular(
-                          12),
+                      BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  icon,
-                  size: 40,
-                  color: Colors.black54,
-                ),
+                child: item.imageUrl.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius:
+                            BorderRadius.circular(12),
+                        child: Image.network(
+                          item.imageUrl,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                          errorBuilder: (_, __, ___) =>
+                              const Icon(
+                            Icons.image,
+                            size: 40,
+                            color: Colors.black54,
+                          ),
+                        ),
+                      )
+                    : const Icon(
+                        Icons.image,
+                        size: 40,
+                        color: Colors.black54,
+                      ),
               ),
 
               const SizedBox(width: 14),
@@ -280,36 +299,20 @@ class CartCustomerMobile extends StatelessWidget {
                       CrossAxisAlignment.start,
                   children: [
                     Text(
-                      title,
-                      style:
-                          const TextStyle(
-                        fontWeight:
-                            FontWeight.bold,
+                      item.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
                         fontSize: 18,
-                      ),
-                    ),
-
-                    const SizedBox(height: 4),
-
-                    Text(
-                      variant,
-                      style:
-                          const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 12,
                       ),
                     ),
 
                     const SizedBox(height: 12),
 
                     Text(
-                      price,
-                      style:
-                          const TextStyle(
-                        color:
-                            Color(0xff2563EB),
-                        fontWeight:
-                            FontWeight.bold,
+                      _formatPrice(item.price),
+                      style: const TextStyle(
+                        color: Color(0xff2563EB),
+                        fontWeight: FontWeight.bold,
                         fontSize: 22,
                       ),
                     ),
@@ -327,55 +330,59 @@ class CartCustomerMobile extends StatelessWidget {
             children: [
               Container(
                 decoration: BoxDecoration(
-                  color:
-                      const Color(
-                          0xffEEF3FF),
+                  color: const Color(0xffEEF3FF),
                   borderRadius:
-                      BorderRadius.circular(
-                          30),
+                      BorderRadius.circular(30),
                 ),
                 child: Row(
                   children: [
                     IconButton(
-                      onPressed: () {},
-                      icon: const Icon(
-                          Icons.remove),
+                      onPressed: () => context
+                          .read<CartProvider>()
+                          .updateQuantity(
+                            item.productId,
+                            item.quantity - 1,
+                          ),
+                      icon: const Icon(Icons.remove),
                     ),
 
-                    const Text(
-                      "1",
-                      style: TextStyle(
-                        fontWeight:
-                            FontWeight.bold,
+                    Text(
+                      "${item.quantity}",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
 
                     IconButton(
-                      onPressed: () {},
-                      icon:
-                          const Icon(Icons.add),
+                      onPressed: () => context
+                          .read<CartProvider>()
+                          .updateQuantity(
+                            item.productId,
+                            item.quantity + 1,
+                          ),
+                      icon: const Icon(Icons.add),
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
 
-          const SizedBox(height: 12),
+              const Spacer(),
 
-          TextButton.icon(
-            onPressed: () {},
-            icon: const Icon(
-              Icons.delete_outline,
-              color: Colors.red,
-              size: 18,
-            ),
-            label: const Text(
-              "Hapus",
-              style: TextStyle(
-                color: Colors.red,
+              TextButton.icon(
+                onPressed: () => context
+                    .read<CartProvider>()
+                    .removeItem(item.productId),
+                icon: const Icon(
+                  Icons.delete_outline,
+                  color: Colors.red,
+                  size: 18,
+                ),
+                label: const Text(
+                  "Hapus",
+                  style: TextStyle(color: Colors.red),
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),

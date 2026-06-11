@@ -10,6 +10,22 @@ class ProductServiceAppwrite {
   final Databases databases = AppwriteService.databases;
 
   // =========================
+  // GET ALL PRODUCTS (customer dashboard)
+  // =========================
+
+  Future<List<ProductModel>> getAllProducts() async {
+    final result = await databases.listDocuments(
+      databaseId: AppwriteConfig.databaseId,
+      collectionId: AppwriteConfig.productsCollectionId,
+      queries: [Query.equal('active', true)],
+    );
+
+    return result.documents.map((doc) {
+      return ProductModel.fromMap(doc.$id, doc.data);
+    }).toList();
+  }
+
+  // =========================
   // GET PRODUCT SELLER
   // =========================
 

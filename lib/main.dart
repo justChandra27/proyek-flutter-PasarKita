@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'presentation/auth/login_page.dart';
 import 'core/appwrite/appwrite_test.dart';
 import 'core/controllers/transaksi_controller.dart';
+import 'providers/cart_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,7 +24,9 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => TransaksiController(),
         ),
-        // Tambah provider lain di sini nanti
+        ChangeNotifierProvider(
+          create: (_) => CartProvider(),
+        ),
       ],
       child: const MaterialApp(
         debugShowCheckedModeBanner: false,

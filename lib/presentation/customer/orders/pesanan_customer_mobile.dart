@@ -2,14 +2,65 @@
 
 import 'package:flutter/material.dart';
 
-class PesananCustomerMobile extends StatelessWidget {
+import '../../../core/services/auth_service_appwrite.dart';
+import '../../../core/services/order_service_appwrite.dart';
+import '../../../data/models/order_model.dart';
+
+class PesananCustomerMobile extends StatefulWidget {
   const PesananCustomerMobile({super.key});
+
+  @override
+  State<PesananCustomerMobile> createState() =>
+      _PesananCustomerMobileState();
+}
+
+class _PesananCustomerMobileState
+    extends State<PesananCustomerMobile> {
+  final OrderServiceAppwrite _orderService = OrderServiceAppwrite();
+  late Future<List<OrderModel>> _ordersFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _ordersFuture = _loadOrders();
+  }
+
+  Future<List<OrderModel>> _loadOrders() async {
+    final account = await AuthServiceAppwrite().getCurrentUser();
+    return _orderService.getOrdersByCustomer(account.$id);
+  }
+
+  String _formatPrice(int price) {
+    final p = price.toString();
+    final buffer = StringBuffer();
+    for (int i = 0; i < p.length; i++) {
+      if (i > 0 && (p.length - i) % 3 == 0) buffer.write('.');
+      buffer.write(p[i]);
+    }
+    return 'Rp $buffer';
+  }
+
+  Color _statusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Colors.orange;
+      case 'processing':
+      case 'shipped':
+        return const Color(0xff2563EB);
+      case 'completed':
+      case 'delivered':
+        return Colors.green;
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xffF5F7FB),
-
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -24,106 +75,84 @@ class PesananCustomerMobile extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-
               const SizedBox(height: 4),
-
               const Text(
                 "Lacak dan kelola semua transaksi Anda di sini.",
                 style: TextStyle(
                   color: Colors.grey,
                 ),
               ),
-
               const SizedBox(height: 24),
-
               SizedBox(
                 height: 46,
                 child: ListView(
                   scrollDirection:
                       Axis.horizontal,
                   children: [
-                    _tab(
-                      "Semua",
-                      true,
-                    ),
-                    _tab(
-                      "Berlangsung",
-                      false,
-                    ),
-                    _tab(
-                      "Dikirim",
-                      false,
-                    ),
-                    _tab(
-                      "Selesai",
-                      false,
-                    ),
+                    _tab("Semua", true),
+                    _tab("Berlangsung", false),
+                    _tab("Dikirim", false),
+                    _tab("Selesai", false),
                   ],
                 ),
               ),
-
               const SizedBox(height: 24),
+              FutureBuilder<List<OrderModel>>(
+                future: _ordersFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState ==
+                      ConnectionState.waiting) {
+                    return const SizedBox(
+                      height: 200,
+                      child: Center(
+                        child:
+                            CircularProgressIndicator(),
+                      ),
+                    );
+                  }
 
-              _orderCard(
-                status: "Sedang Dikirim",
-                orderId: "ORD-2891002",
-                productName:
-                    "Premium Denim Jacket - Midnight Blue",
-                detail:
-                    "Ukuran: L • 1 Barang",
-                price: "Rp 450.000",
-                statusColor:
-                    const Color(0xff22C55E),
-                productIcon:
-                    Icons.checkroom,
-                primaryButton:
-                    "Selesaikan",
-                secondaryButton:
-                    "Lacak Pesanan",
+                  if (snapshot.hasError) {
+                    return SizedBox(
+                      height: 200,
+                      child: Center(
+                        child: Text(
+                          "Gagal memuat pesanan: ${snapshot.error}",
+                          style: const TextStyle(
+                            color: Colors.red,
+                          ),
+                          textAlign:
+                              TextAlign.center,
+                        ),
+                      ),
+                    );
+                  }
+
+                  final orders =
+                      snapshot.data ?? [];
+
+                  if (orders.isEmpty) {
+                    return const SizedBox(
+                      height: 200,
+                      child: Center(
+                        child: Text(
+                          "Belum ada pesanan",
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+
+                  return Column(
+                    children: orders
+                        .map((order) =>
+                            _orderCard(order))
+                        .toList(),
+                  );
+                },
               ),
-
-              const SizedBox(height: 16),
-
-              _orderCard(
-                status: "Selesai",
-                orderId: "ORD-2890945",
-                productName:
-                    "UltraBoost Sport Edition - Scarlet",
-                detail:
-                    "Ukuran: 42 • 1 Barang",
-                price: "Rp 1.299.000",
-                statusColor:
-                    Colors.grey,
-                productIcon:
-                    Icons.directions_run,
-                primaryButton:
-                    "Beli Lagi",
-                secondaryButton:
-                    "Beri Ulasan",
-                finished: true,
-              ),
-
-              const SizedBox(height: 16),
-
-              _orderCard(
-                status: "Selesai",
-                orderId: "ORD-2890812",
-                productName:
-                    "Heavy Cotton Tee - Onyx Silver",
-                detail:
-                    "Ukuran: M • 2 Barang",
-                price: "Rp 500.000",
-                statusColor:
-                    Colors.grey,
-                productIcon:
-                    Icons.checkroom,
-                primaryButton:
-                    "Beli Lagi",
-                secondaryButton:
-                    "Lihat Detail",
-                finished: true,
-              ),
-
               const SizedBox(height: 20),
             ],
           ),
@@ -132,15 +161,10 @@ class PesananCustomerMobile extends StatelessWidget {
     );
   }
 
-  Widget _tab(
-    String text,
-    bool active,
-  ) {
+  Widget _tab(String text, bool active) {
     return Container(
-      margin:
-          const EdgeInsets.only(right: 10),
-      padding:
-          const EdgeInsets.symmetric(
+      margin: const EdgeInsets.only(right: 10),
+      padding: const EdgeInsets.symmetric(
         horizontal: 24,
       ),
       decoration: BoxDecoration(
@@ -170,19 +194,12 @@ class PesananCustomerMobile extends StatelessWidget {
     );
   }
 
-  Widget _orderCard({
-    required String status,
-    required String orderId,
-    required String productName,
-    required String detail,
-    required String price,
-    required Color statusColor,
-    required IconData productIcon,
-    required String primaryButton,
-    required String secondaryButton,
-    bool finished = false,
-  }) {
+  Widget _orderCard(OrderModel order) {
+    final color = _statusColor(order.status);
+
     return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -197,28 +214,25 @@ class PesananCustomerMobile extends StatelessWidget {
           Row(
             children: [
               Icon(
-                finished
+                order.status == 'completed' ||
+                        order.status ==
+                            'delivered'
                     ? Icons.check_circle_outline
                     : Icons.local_shipping,
                 size: 18,
-                color: statusColor,
+                color: color,
               ),
-
               const SizedBox(width: 6),
-
               Text(
-                status,
+                order.status,
                 style: TextStyle(
-                  color: statusColor,
-                  fontWeight:
-                      FontWeight.bold,
+                  color: color,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-
               const Spacer(),
-
               Text(
-                orderId,
+                order.orderCode,
                 style: const TextStyle(
                   color: Colors.grey,
                   fontSize: 12,
@@ -226,63 +240,40 @@ class PesananCustomerMobile extends StatelessWidget {
               ),
             ],
           ),
-
           const SizedBox(height: 16),
-
           Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  color:
-                      Colors.grey.shade200,
-                  borderRadius:
-                      BorderRadius.circular(
-                          12),
-                ),
-                child: Icon(
-                  productIcon,
-                  size: 36,
-                  color: Colors.black54,
-                ),
+              const Icon(
+                Icons.receipt_long,
+                size: 36,
+                color: Colors.black54,
               ),
-
               const SizedBox(width: 12),
-
               Expanded(
                 child: Column(
                   crossAxisAlignment:
                       CrossAxisAlignment.start,
                   children: [
                     Text(
-                      productName,
-                      style:
-                          const TextStyle(
+                      order.orderCode,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight:
                             FontWeight.bold,
                       ),
                     ),
-
                     const SizedBox(height: 4),
-
                     Text(
-                      detail,
-                      style:
-                          const TextStyle(
+                      _formatDate(order.createdAt),
+                      style: const TextStyle(
                         color: Colors.grey,
                       ),
                     ),
-
                     const SizedBox(height: 8),
-
                     Text(
-                      price,
-                      style:
-                          const TextStyle(
+                      _formatPrice(
+                          order.totalAmount),
+                      style: const TextStyle(
                         color:
                             Color(0xff2563EB),
                         fontSize: 22,
@@ -295,67 +286,21 @@ class PesananCustomerMobile extends StatelessWidget {
               ),
             ],
           ),
-
-          const SizedBox(height: 18),
-
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () {},
-                  style:
-                      OutlinedButton.styleFrom(
-                    minimumSize:
-                        const Size(0, 50),
-                    shape:
-                        RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(
-                              12),
-                    ),
-                  ),
-                  child: Text(
-                    secondaryButton,
-                  ),
-                ),
-              ),
-
-              const SizedBox(width: 10),
-
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {},
-                  style:
-                      ElevatedButton.styleFrom(
-                    minimumSize:
-                        const Size(0, 50),
-                    backgroundColor:
-                        finished
-                            ? const Color(
-                                0xffDBEAFE)
-                            : const Color(
-                                0xff2563EB),
-                    foregroundColor:
-                        finished
-                            ? const Color(
-                                0xff2563EB)
-                            : Colors.white,
-                    shape:
-                        RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(
-                              12),
-                    ),
-                  ),
-                  child: Text(
-                    primaryButton,
-                  ),
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );
+  }
+
+  String _formatDate(String isoDate) {
+    try {
+      final date = DateTime.parse(isoDate);
+      final months = [
+        '', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+        'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+      ];
+      return '${date.day} ${months[date.month]} ${date.year}';
+    } catch (_) {
+      return isoDate;
+    }
   }
 }

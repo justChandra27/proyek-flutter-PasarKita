@@ -1,9 +1,41 @@
 //lib/presentation/customer/dashboard/dashboard_customer_web.dart
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../core/services/product_service_appwrite.dart';
+import '../../../data/models/product_model.dart';
+import '../../../data/models/cart_model.dart';
+import '../../../providers/cart_provider.dart';
 
-class DashboardCustomerWeb extends StatelessWidget {
+class DashboardCustomerWeb extends StatefulWidget {
   const DashboardCustomerWeb({super.key});
+
+  @override
+  State<DashboardCustomerWeb> createState() =>
+      _DashboardCustomerWebState();
+}
+
+class _DashboardCustomerWebState
+    extends State<DashboardCustomerWeb> {
+  final ProductServiceAppwrite _productService =
+      ProductServiceAppwrite();
+  late Future<List<ProductModel>> _productsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _productsFuture = _productService.getAllProducts();
+  }
+
+  String _formatPrice(double price) {
+    final p = price.toInt().toString();
+    final buffer = StringBuffer();
+    for (int i = 0; i < p.length; i++) {
+      if (i > 0 && (p.length - i) % 3 == 0) buffer.write('.');
+      buffer.write(p[i]);
+    }
+    return 'Rp $buffer';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,33 +101,48 @@ class DashboardCustomerWeb extends StatelessWidget {
             const SizedBox(height: 20),
 
             Expanded(
-              child: GridView.count(
-                crossAxisCount: 4,
-                crossAxisSpacing: 20,
-                mainAxisSpacing: 20,
-                childAspectRatio: 0.75,
-                children: [
-                  _productCard(
-                    "Baju Kaos",
-                    "Rp 250.000",
-                    "Stok: 10",
-                  ),
-                  _productCard(
-                    "Celana Jeans",
-                    "Rp 100.000",
-                    "Stok: 10",
-                  ),
-                  _productCard(
-                    "Jaket Puff",
-                    "Rp 200.000",
-                    "Stok: 10",
-                  ),
-                  _productCard(
-                    "Batik Merah Pria",
-                    "Rp 150.000",
-                    "Stok: 10",
-                  ),
-                ],
+              child: FutureBuilder<List<ProductModel>>(
+                future: _productsFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState ==
+                      ConnectionState.waiting) {
+                    return const Center(
+                      child:
+                          CircularProgressIndicator(),
+                    );
+                  }
+
+                  if (snapshot.hasError) {
+                    return const Center(
+                      child: Text(
+                        "Gagal memuat produk",
+                        style: TextStyle(
+                          color: Colors.red,
+                        ),
+                      ),
+                    );
+                  }
+
+                  final products =
+                      snapshot.data ?? [];
+
+                  if (products.isEmpty) {
+                    return const Center(
+                      child: Text("Belum ada produk"),
+                    );
+                  }
+
+                  return GridView.count(
+                    crossAxisCount: 4,
+                    crossAxisSpacing: 20,
+                    mainAxisSpacing: 20,
+                    childAspectRatio: 0.75,
+                    children: products
+                        .map((product) =>
+                            _productCard(product))
+                        .toList(),
+                  );
+                },
               ),
             ),
           ],
@@ -137,9 +184,7 @@ class DashboardCustomerWeb extends StatelessWidget {
   }
 
   Widget _productCard(
-    String title,
-    String price,
-    String stock,
+    ProductModel product,
   ) {
     return Container(
       decoration: BoxDecoration(
@@ -157,6 +202,22 @@ class DashboardCustomerWeb extends StatelessWidget {
                   top: Radius.circular(16),
                 ),
               ),
+              child: product.imageUrl.isNotEmpty
+                  ? ClipRRect(
+                      borderRadius:
+                          const BorderRadius.vertical(
+                        top: Radius.circular(16),
+                      ),
+                      child: Image.network(
+                        product.imageUrl,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                        errorBuilder: (_, __, ___) =>
+                            const SizedBox(),
+                      ),
+                    )
+                  : const SizedBox(),
             ),
           ),
 
@@ -167,7 +228,7 @@ class DashboardCustomerWeb extends StatelessWidget {
                   CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
+                  product.name,
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -177,7 +238,7 @@ class DashboardCustomerWeb extends StatelessWidget {
                 const SizedBox(height: 8),
 
                 Text(
-                  price,
+                  _formatPrice(product.price),
                   style: const TextStyle(
                     color: Color(0xff2563EB),
                     fontWeight: FontWeight.bold,
@@ -186,7 +247,7 @@ class DashboardCustomerWeb extends StatelessWidget {
 
                 const SizedBox(height: 4),
 
-                Text(stock),
+                Text("Stok: ${product.stock}"),
 
                 const SizedBox(height: 12),
 
@@ -198,9 +259,29 @@ class DashboardCustomerWeb extends StatelessWidget {
                       backgroundColor:
                           const Color(0xff2563EB),
                     ),
-                    onPressed: () {},
+                    onPressed: () {
+                      context
+                          .read<CartProvider>()
+                          .addItem(CartModel(
+                        productId: product.id,
+                        sellerId: product.sellerId,
+                        name: product.name,
+                        price:
+                            product.price.toInt(),
+                        imageUrl: product.imageUrl,
+                      ));
+                      ScaffoldMessenger.of(
+                              context)
+                          .showSnackBar(SnackBar(
+                        content: Text(
+                          '${product.name} ditambahkan ke keranjang',
+                        ),
+                        duration:
+                            Duration(seconds: 2),
+                      ));
+                    },
                     child: const Text(
-                      "Lihat Detail",
+                      "Tambah ke Keranjang",
                       style: TextStyle(
                         color: Colors.white,
                       ),

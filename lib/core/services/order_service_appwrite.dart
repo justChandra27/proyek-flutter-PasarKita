@@ -45,6 +45,30 @@ class OrderServiceAppwrite {
     );
     final now = DateTime.now().toIso8601String();
 
+    final stockBefore = <String, int>{};
+    for (final item in items) {
+      final productId = item['productId'] as String;
+      final quantity = item['quantity'] as int;
+
+      final productDoc = await databases.getDocument(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.productsCollectionId,
+        documentId: productId,
+      );
+      final currentStock = productDoc.data['stock'] as int? ?? 0;
+
+      if (currentStock < quantity) {
+        throw AppwriteException(
+          'Stok ${item['productName']} tidak mencukupi. '
+              'Diminta: $quantity, tersedia: $currentStock',
+          400,
+          'insufficient_stock',
+        );
+      }
+
+      stockBefore[productId] = currentStock;
+    }
+
     final order = await databases.createDocument(
       databaseId: AppwriteConfig.databaseId,
       collectionId: AppwriteConfig.ordersCollectionId,
@@ -79,6 +103,15 @@ class OrderServiceAppwrite {
           'quantity': item['quantity'],
           'subtotal': item['subtotal'],
         },
+      );
+
+      final productId = item['productId'] as String;
+      final quantity = item['quantity'] as int;
+      await databases.updateDocument(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.productsCollectionId,
+        documentId: productId,
+        data: {'stock': stockBefore[productId]! - quantity},
       );
     }
 
@@ -125,6 +158,37 @@ class OrderServiceAppwrite {
     return result.documents.map((doc) {
       return OrderItemModel.fromMap(doc.$id, doc.data);
     }).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getSellerOrdersWithDetails(
+    String sellerId,
+  ) async {
+    final allItems = await getOrdersBySeller(sellerId);
+    final orderIds = allItems.map((i) => i.orderId).toSet().toList();
+
+    final results = <Map<String, dynamic>>[];
+    for (final oid in orderIds) {
+      try {
+        final doc = await databases.getDocument(
+          databaseId: AppwriteConfig.databaseId,
+          collectionId: AppwriteConfig.ordersCollectionId,
+          documentId: oid,
+        );
+        final order = OrderModel.fromMap(doc.$id, doc.data);
+        final sellerItems =
+            allItems.where((i) => i.orderId == oid).toList();
+        results.add({
+          'order': order,
+          'items': sellerItems,
+        });
+      } catch (_) {
+        // skip order if document not found or inaccessible
+      }
+    }
+
+    results.sort((a, b) => (b['order'] as OrderModel).createdAt
+        .compareTo((a['order'] as OrderModel).createdAt));
+    return results;
   }
 
   Future<void> updateOrderStatus({

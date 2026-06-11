@@ -1,9 +1,41 @@
 //lib/cutomer/dashboard/dashboard_customer_mobile.dart
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../core/services/product_service_appwrite.dart';
+import '../../../data/models/product_model.dart';
+import '../../../data/models/cart_model.dart';
+import '../../../providers/cart_provider.dart';
 
-class DashboardCustomerMobile extends StatelessWidget {
+class DashboardCustomerMobile extends StatefulWidget {
   const DashboardCustomerMobile({super.key});
+
+  @override
+  State<DashboardCustomerMobile> createState() =>
+      _DashboardCustomerMobileState();
+}
+
+class _DashboardCustomerMobileState
+    extends State<DashboardCustomerMobile> {
+  final ProductServiceAppwrite _productService =
+      ProductServiceAppwrite();
+  late Future<List<ProductModel>> _productsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _productsFuture = _productService.getAllProducts();
+  }
+
+  String _formatPrice(double price) {
+    final p = price.toInt().toString();
+    final buffer = StringBuffer();
+    for (int i = 0; i < p.length; i++) {
+      if (i > 0 && (p.length - i) % 3 == 0) buffer.write('.');
+      buffer.write(p[i]);
+    }
+    return 'Rp $buffer';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -116,36 +148,62 @@ class DashboardCustomerMobile extends StatelessWidget {
 
               const SizedBox(height: 16),
 
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics:
-                    const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 0.62,
-                children: [
-                  _productCard(
-                    "Baju Kaos",
-                    "Rp 250.000",
-                    Icons.checkroom,
-                  ),
-                  _productCard(
-                    "celana jeans",
-                    "Rp 100.000",
-                    Icons.shopping_bag,
-                  ),
-                  _productCard(
-                    "jaket puff",
-                    "Rp 200.000",
-                    Icons.hiking,
-                  ),
-                  _productCard(
-                    "batik merah pria",
-                    "Rp 150.000",
-                    Icons.person,
-                  ),
-                ],
+              FutureBuilder<List<ProductModel>>(
+                future: _productsFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState ==
+                      ConnectionState.waiting) {
+                    return const SizedBox(
+                      height: 200,
+                      child: Center(
+                        child:
+                            CircularProgressIndicator(),
+                      ),
+                    );
+                  }
+
+                  if (snapshot.hasError) {
+                    return const SizedBox(
+                      height: 200,
+                      child: Center(
+                        child: Text(
+                          "Gagal memuat produk",
+                          style: TextStyle(
+                            color: Colors.red,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+
+                  final products =
+                      snapshot.data ?? [];
+
+                  if (products.isEmpty) {
+                    return const SizedBox(
+                      height: 200,
+                      child: Center(
+                        child: Text(
+                          "Belum ada produk",
+                        ),
+                      ),
+                    );
+                  }
+
+                  return GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    physics:
+                        const NeverScrollableScrollPhysics(),
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 0.62,
+                    children: products
+                        .map((product) =>
+                            _productCard(product))
+                        .toList(),
+                  );
+                },
               ),
             ],
           ),
@@ -265,9 +323,7 @@ class DashboardCustomerMobile extends StatelessWidget {
   }
 
   Widget _productCard(
-    String title,
-    String price,
-    IconData icon,
+    ProductModel product,
   ) {
     return Container(
       decoration: BoxDecoration(
@@ -291,13 +347,32 @@ class DashboardCustomerMobile extends StatelessWidget {
                   top: Radius.circular(20),
                 ),
               ),
-              child: Center(
-                child: Icon(
-                  icon,
-                  size: 60,
-                  color: Colors.black54,
-                ),
-              ),
+              child: product.imageUrl.isNotEmpty
+                  ? ClipRRect(
+                      borderRadius:
+                          const BorderRadius.vertical(
+                        top:
+                            Radius.circular(20),
+                      ),
+                      child: Image.network(
+                        product.imageUrl,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                        errorBuilder: (_, __,
+                                ___) =>
+                            const Icon(
+                          Icons.image,
+                          size: 60,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    )
+                  : const Icon(
+                      Icons.image,
+                      size: 60,
+                      color: Colors.black54,
+                    ),
             ),
           ),
 
@@ -309,7 +384,7 @@ class DashboardCustomerMobile extends StatelessWidget {
                   CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
+                  product.name,
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight:
@@ -320,7 +395,7 @@ class DashboardCustomerMobile extends StatelessWidget {
                 const SizedBox(height: 6),
 
                 Text(
-                  price,
+                  _formatPrice(product.price),
                   style: const TextStyle(
                     color:
                         Color(0xff2563EB),
@@ -332,9 +407,9 @@ class DashboardCustomerMobile extends StatelessWidget {
 
                 const SizedBox(height: 4),
 
-                const Text(
-                  "Stok: 10",
-                  style: TextStyle(
+                Text(
+                  "Stok: ${product.stock}",
+                  style: const TextStyle(
                     color: Colors.grey,
                   ),
                 ),
@@ -358,13 +433,31 @@ class DashboardCustomerMobile extends StatelessWidget {
                                 12),
                       ),
                     ),
-                    onPressed: () {},
+                    onPressed: () {
+                      context
+                          .read<CartProvider>()
+                          .addItem(CartModel(
+                        productId: product.id,
+                        sellerId: product.sellerId,
+                        name: product.name,
+                        price:
+                            product.price.toInt(),
+                        imageUrl: product.imageUrl,
+                      ));
+                      ScaffoldMessenger.of(
+                              context)
+                          .showSnackBar(SnackBar(
+                        content: Text(
+                          '${product.name} ditambahkan ke keranjang',
+                        ),
+                      ));
+                    },
                     icon: const Icon(
                       Icons.shopping_cart,
                       size: 16,
                     ),
                     label: const Text(
-                      "Beli Sekarang",
+                      "Tambah ke Keranjang",
                     ),
                   ),
                 ),
