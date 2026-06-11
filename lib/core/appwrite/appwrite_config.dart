@@ -33,6 +33,4 @@ class AppwriteConfig {
   static const String productBucketId =
       'product_images';
 
-  static const String ordersCollectionId =
-      'orders';
 }

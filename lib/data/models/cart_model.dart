@@ -31,7 +31,7 @@ class CartModel {
     required this.color,
   });
 
-  factory CartModel.fromFirestore(
+  factory CartModel.fromMap(
 
     Map<String, dynamic> data,
 

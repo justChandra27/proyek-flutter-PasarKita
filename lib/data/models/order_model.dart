@@ -1,5 +1,3 @@
-//firebase
-
 class OrderModel {
   final String id;
   final String orderCode;

@@ -447,38 +447,9 @@ class _FormTransaksiWebState extends State<FormTransaksiWeb> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              CircleAvatar(
-                backgroundColor:
-                    iconColor.withValues(alpha: .15),
-                child: Icon(
-                  icon,
-                  color: iconColor,
-                ),
-              ),
-              const Spacer(),
-              if (growth.isNotEmpty)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color:
-                        growthColor.withValues(alpha: .12),
-                    borderRadius:
-                        BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    growth,
-                    style: TextStyle(
-                      color: growthColor,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-            ],
+          CircleAvatar(
+            backgroundColor: iconColor.withOpacity(.15),
+            child: Icon(icon, color: iconColor),
           ),
           const SizedBox(height: 12),
           Text(title,
@@ -505,52 +476,13 @@ class _FormTransaksiWebState extends State<FormTransaksiWeb> {
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: const Color(0xffE5E7EB)),
         ),
-
-        DataCell(
-                backgroundColor:
-                    Colors.blue.withValues(alpha: .15),
-                child: Text(
-                  avatar,
-                  style: const TextStyle(
-                    fontSize: 11,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(customer),
-            ],
-          ),
-        ),
-
-        DataCell(Text(method)),
-
-        DataCell(
-          Text(
-            amount,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-
-        DataCell(Text(date)),
-
-        DataCell(
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 6,
-            ),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: .15),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              status,
+        child: Center(
+          child: Text(text,
               style: TextStyle(
                   color:
                       active ? Colors.white : Colors.black87)),
         ),
       ),
+    );
   }
 }
