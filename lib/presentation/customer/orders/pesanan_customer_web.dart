@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../core/services/auth_service_appwrite.dart';
 import '../../../core/services/order_service_appwrite.dart';
 import '../../../data/models/order_model.dart';
+import 'detail_pesanan_customer.dart';
 
 class PesananCustomerWeb extends StatefulWidget {
   const PesananCustomerWeb({super.key});
@@ -233,16 +234,25 @@ class _OrderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final statusColor = _statusColor(order.status);
 
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Colors.grey.shade200,
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DetailPesananCustomer(orderId: order.id),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: Colors.grey.shade200,
+          ),
         ),
-      ),
-      child: Column(
+        child: Column(
         children: [
           Row(
             children: [
@@ -346,6 +356,7 @@ class _OrderCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

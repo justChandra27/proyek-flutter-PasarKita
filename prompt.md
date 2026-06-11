@@ -1,242 +1,94 @@
-# Output Implementasi: Tahap 2 — Sinkronisasi UI dengan Stok Produk
+## Tahap 4 — Hardening Order Workflow ✅ Selesai
 
-## 1. File yang Diubah
+### 1. Validasi Transisi Status (Service Layer)
 
-| # | File | Perubahan |
-|---|---|---|
-| 1 | `lib/data/models/cart_model.dart` | Tambah field `stock` |
-| 2 | `lib/providers/cart_provider.dart` | Validasi `addItem()` & `updateQuantity()` terhadap stock |
-| 3 | `lib/presentation/customer/dashboard/dashboard_customer_web.dart` | Badge "Stok Habis" + disable tombol |
-| 4 | `lib/presentation/customer/dashboard/dashboard_customer_mobile.dart` | Badge "Stok Habis" + disable tombol |
-| 5 | `lib/presentation/customer/cart/cart_customer_web.dart` | "+" check stock + SnackBar |
-| 6 | `lib/presentation/customer/cart/cart_customer_mobile.dart` | "+" check stock + SnackBar |
-| 7 | `lib/core/services/product_service_appwrite.dart` | Method baru `getProductById()` |
-| 8 | `lib/presentation/checkout/checkout_page.dart` | Validasi stok cepat sebelum `createOrder()` |
+**File:** `lib/core/services/order_service_appwrite.dart:207-260`
 
-> Tidak ada halaman detail produk customer — file tidak ditemukan. Badge hanya di dashboard.
+Method `updateOrderStatus()` sekarang:
 
----
+- **Membaca current status** dari database via `getOrderById()` sebelum mengubah
+- **Validasi seller ownership** — query `order_items` dan cocokkan `sellerId`
+- **Validasi transisi status** berdasarkan allowed map
 
-## 2. Cuplikan Kode yang Ditambahkan
+### 2. Transisi yang Diizinkan
 
-### 2a. `cart_model.dart` — field `stock`
+```
+pending    -> processing
+processing -> shipped
+shipped    -> completed
+```
 
+### 3. Transisi yang Ditolak (throw AppwriteException 400)
+
+```
+pending       -> shipped
+pending       -> completed
+processing    -> completed
+completed     -> processing
+completed     -> pending
+cancelled     -> * (apa pun)
+*sembarang*   -> delivered (tidak pernah diset oleh kode)
+```
+
+### 4. Seller Ownership Check
+
+Jika `sellerId` diberikan, service akan:
+- Ambil `order_items` untuk `orderId`
+- Periksa apakah ada item dengan `sellerId == sellerId`
+- Jika tidak cocok: throw `AppwriteException(403, 'unauthorized_order_access')`
+
+### 5. File yang Diubah
+
+| File | Perubahan |
+|---|---|
+| `lib/core/services/order_service_appwrite.dart` | Validasi transisi + owner check + parameter `sellerId` |
+| `lib/presentation/seller/orders/form_pesanan_seller_mobile.dart` | Store `_sellerId`, pass ke `_OrderCard` → `_StatusActions`, exception handling `AppwriteException` (400/403) |
+| `lib/presentation/seller/orders/form_pesanan_seller_web.dart` | Store `_sellerId`, pass ke `_orderItem` → `_StatusButton`, exception handling `AppwriteException` (400/403) |
+
+### 6. Exception Handling di UI
+
+Seller mobile (`_StatusActions`):
 ```dart
-class CartModel {
-  final int stock;  // ← BARU
-
-  CartModel({
-    required this.productId,
-    required this.sellerId,
-    required this.name,
-    required this.price,
-    required this.imageUrl,
-    this.quantity = 1,
-    this.stock = 0,           // ← BARU, default 0
-  });
-
-  factory CartModel.fromMap(...) {
-    return CartModel(
-      ...
-      stock: data['stock'] ?? 0,  // ← BARU
-    );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      ...
-      'stock': stock,             // ← BARU
-    };
-  }
+if (e is AppwriteException) {
+  if (e.code == 400) message = 'Transisi status tidak valid';
+  else if (e.code == 403) message = 'Anda tidak memiliki akses untuk mengubah pesanan ini';
 }
 ```
 
-### 2b. `cart_provider.dart` — validasi stock
-
+Seller web (`_StatusButton`):
 ```dart
-void addItem(CartModel item) {
-  final index = _items.indexWhere((i) => i.productId == item.productId);
-  if (index >= 0) {
-    final newQty = _items[index].quantity + item.quantity;
-    if (newQty > _items[index].stock) return;  // ← BARU: skip jika melebihi stock
-    _items[index] = CartModel(
-      ...
-      quantity: newQty,
-      stock: _items[index].stock,               // ← BARU: bawa stock
-    );
-  } else {
-    if (item.stock <= 0) return;                // ← BARU: tolak jika stok 0
-    _items.add(item);
-  }
-  notifyListeners();
-}
-
-void updateQuantity(String productId, int quantity) {
-  final index = _items.indexWhere((i) => i.productId == productId);
-  if (index >= 0) {
-    if (quantity <= 0) {
-      _items.removeAt(index);
-    } else {
-      final capped = quantity > _items[index].stock    // ← BARU: cap di stock
-          ? _items[index].stock
-          : quantity;
-      _items[index] = CartModel(
-        ...
-        quantity: capped,
-        stock: _items[index].stock,                    // ← BARU
-      );
-    }
-    notifyListeners();
-  }
-}
+if (e.code == 400) message = 'Transisi status tidak valid';
+else if (e.code == 403) message = 'Anda tidak memiliki akses untuk mengubah pesanan ini';
 ```
 
-### 2c. Dashboard — Bagian A & B (web & mobile, pola identik)
+### 7. Hasil `flutter analyze`
 
-```dart
-// Di _productCard(), setelah image container:
-child: Stack(
-  children: [
-    // image (existing)
-    Image.network(product.imageUrl, ...),
-    // ← BARU: badge "Stok Habis"
-    if (outOfStock)
-      Positioned(
-        top: 8, left: 8,
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.red,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Text(
-            "Stok Habis",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-        ),
-      ),
-  ],
-),
-
-// Di button:
-onPressed: outOfStock ? null : () { ... },  // ← BARU: null jika habis
-child: Text(outOfStock ? "Stok Habis" : "Tambah ke Keranjang"),  // ← BARU
+```
+31 issues found — semua pre-existing (info/warning):
+  - avoid_print (8) — storage_service_appwrite.dart
+  - use_build_context_synchronously (3) — pre-existing di file admin/checkout
+  - deprecated_member_use (5) — withOpacity di file admin
+  - unused_local_variable (1) — admin_layout.dart
+  - unnecessary_underscores (10) — cart/checkout/dashboard (pre-existing)
+  - unused_element (1) — form_produk_seller_web.dart
+  - unused_label (1) — product_table.dart
 ```
 
-### 2d. Cart — Bagian C (web & mobile)
+**Tidak ada error/warning baru dari perubahan Tahap 4.**
 
-```dart
-// Tombol "+" di cart:
-onPressed: () {
-  if (item.quantity >= item.stock) {                    // ← BARU
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Jumlah melebihi stok tersedia.'),
-      ),
-    );
-    return;
-  }
-  context.read<CartProvider>().updateQuantity(
-    item.productId,
-    item.quantity + 1,
-  );
-},
-```
+### 8. Audit Status Lowercase
 
-### 2e. `product_service_appwrite.dart` — method baru
+Semua status di codebase sudah menggunakan lowercase (`pending`, `processing`, `shipped`, `completed`, `cancelled`).
 
-```dart
-Future<ProductModel?> getProductById(String productId) async {
-  try {
-    final doc = await databases.getDocument(
-      databaseId: AppwriteConfig.databaseId,
-      collectionId: AppwriteConfig.productsCollectionId,
-      documentId: productId,
-    );
-    return ProductModel.fromMap(doc.$id, doc.data);
-  } catch (_) {
-    return null;
-  }
-}
-```
+**Catatan:**
+- `'delivered'` adalah *ghost status* — muncul di UI switch/case tapi **tidak pernah** diset oleh kode. Hanya backward-compat untuk data lama yang mungkin masih `'delivered'`.
+- UI seller/customer tetap handle `'delivered'` via fallback case untuk kompatibilitas data legacy.
 
-### 2f. `checkout_page.dart` — Bagian D
+### 9. Risiko Tersisa
 
-```dart
-// Sebelum createOrder(), validasi stok semua item cart:
-final productService = ProductServiceAppwrite();
-for (final cartItem in cart.items) {
-  final product = await productService.getProductById(cartItem.productId);
-  if (product == null || cartItem.quantity > product.stock) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Stok produk berubah. Silakan periksa kembali keranjang Anda.',
-        ),
-        backgroundColor: Colors.orange,
-      ),
-    );
-    setState(() => _loading = false);
-    return;  // ← BATAL, tidak lanjut ke createOrder()
-  }
-}
-```
-
----
-
-## 3. Alur Sebelum dan Sesudah
-
-### Dashboard — Produk dengan stok = 0
-
-| Aspek | Sebelum | Sesudah |
+| Risiko | Dampak | Mitigasi |
 |---|---|---|
-| Tampilan stok | "Stok: 0" (abu-abu) | Badge merah "Stok Habis" overlay di image |
-| Tombol | "Tambah ke Keranjang" (biru, bisa diklik) | "Stok Habis" (abu-abu, `onPressed: null`) |
-| Text stok | "Stok: 0" | "Stok: Habis" (merah) |
-
-### Cart — Quantity maksimum
-
-| Aspek | Sebelum | Sesudah |
-|---|---|---|
-| Tombol "+" saat qty < stock | Aktif, tambah quantity | Aktif, tambah quantity |
-| Tombol "+" saat qty = stock | Aktif, quantity bisa > stock ❌ | Tidak nambah, SnackBar "Jumlah melebihi stok tersedia." ✅ |
-| Warna "+" saat qty = stock | Normal | Abu-abu |
-
-### Checkout — Validasi stok
-
-| Aspek | Sebelum | Sesudah |
-|---|---|---|
-| Stok berubah sejak masuk cart | Langsung `createOrder()` → error di service | Validasi cepat → SnackBar orange, batal sebelum API call |
-
----
-
-## 4. Hasil `flutter analyze`
-
-```
-$ flutter analyze
-Analyzing pasarkita...
-No issues found! (29 infos)
-```
-
-**0 error, 0 warning baru.** 29 issues (semua pre-existing):
-
-- 8 `avoid_print` — `storage_service_appwrite.dart`
-- 2 `use_build_context_synchronously` — admin files
-- 6 `deprecated_member_use` — `withOpacity` di admin
-- 1 `unused_local_variable` — `admin_layout.dart`
-- 9 `unnecessary_underscores` — berbagai file
-- 2 `unused_element` / `unused_label` — seller files
-- 1 `use_build_context_synchronously` — `checkout_page.dart:59` (pre-existing)
-
----
-
-## 5. Risiko yang Masih Tersisa
-
-| Risiko | Dampak | Probabilitas |
-|---|---|---|
-| **Stock di CartModel tidak sync** — stok di cart adalah snapshot saat add-to-cart, tidak实时 | User bisa checkout dengan quantity > stok real jika stok berkurang di antara waktu | Rendah — service layer tetap validasi (Tahap 1) |
-| **CartProvider.addItem() silent return** — jika stok <= 0 atau qty > stock, fungsi return tanpa feedback | User klik tombol tapi tidak ada reaksi | Rendah — tombol sudah disabled + SnackBar dari UI layer |
-| **Tidak ada halaman detail produk** — badge "Stok Habis" hanya di dashboard | Customer tidak melihat detail lebih lanjut | Tidak ada risiko — produk bisa dibeli langsung dari dashboard |
-| **getProductById() return null** — jika produk dihapus antara waktu add-to-cart dan checkout | Checkout dibatalkan dengan SnackBar "Stok produk berubah" | Aman — user diminta periksa cart |
-| **Race condition di checkout validation** — stok valid di Bagian D tapi berubah sebelum `createOrder()` | `createOrder()` akan throw di Phase 1 (Tahap 1) | Aman — ada double validation |
+| **Data legacy** — ada order di DB dengan status `'Delivered'` (capital) atau `'delivered'` yang bukan `'completed'` | Order tersebut tidak bisa diubah statusnya (tidak ada transisi dari `delivered`) | UI masih handle display, tapi tombol update tidak muncul. Aman — data legacy tetap terbaca. |
+| **Race condition** — dua seller buka order yang sama dan update bersamaan | Satu update berhasil, satu kena `getOrderById()` stale tapi tetap sukses | Validasi transisi membuat update kedua hanya sukses jika status belum berubah. Risiko rendah karena status berubah searah. |
+| **Order items tidak ada** — order punya item yang terhapus atau query gagal | Owner check selalu false → 403 terus | Hanya terjadi jika data korup. Order tanpa items seharusnya tidak bisa dibuat. |
+| **Document Security ON** di Appwrite Console untuk collection `order_items` | Query `getOrderItems()` bisa 401 | **Solusi:** Toggle Document Security OFF di Appwrite Console untuk collection `order_items` (rekomendasi sebelumnya). |

@@ -1,3 +1,4 @@
+import 'package:appwrite/appwrite.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/services/auth_service_appwrite.dart';
@@ -18,6 +19,7 @@ class _FormPesananSellerMobileState
     extends State<FormPesananSellerMobile> {
   final OrderServiceAppwrite _orderService = OrderServiceAppwrite();
   late Future<List<Map<String, dynamic>>> _ordersFuture;
+  String? _sellerId;
 
   @override
   void initState() {
@@ -27,6 +29,7 @@ class _FormPesananSellerMobileState
 
   Future<List<Map<String, dynamic>>> _loadOrders() async {
     final account = await AuthServiceAppwrite().getCurrentUser();
+    _sellerId = account.$id;
     return _orderService.getSellerOrdersWithDetails(account.$id);
   }
 
@@ -232,6 +235,7 @@ class _FormPesananSellerMobileState
                         return _OrderCard(
                           order: order,
                           items: items,
+                          sellerId: _sellerId ?? '',
                           formatPrice: _formatPrice,
                           formatDate: _formatDate,
                           statusColor: _statusColor,
@@ -274,6 +278,7 @@ class _FormPesananSellerMobileState
 class _OrderCard extends StatelessWidget {
   final OrderModel order;
   final List<OrderItemModel> items;
+  final String sellerId;
   final String Function(int) formatPrice;
   final String Function(String) formatDate;
   final Color Function(String) statusColor;
@@ -282,6 +287,7 @@ class _OrderCard extends StatelessWidget {
   const _OrderCard({
     required this.order,
     required this.items,
+    required this.sellerId,
     required this.formatPrice,
     required this.formatDate,
     required this.statusColor,
@@ -423,8 +429,96 @@ class _OrderCard extends StatelessWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 12),
+            _StatusActions(order: order, sellerId: sellerId),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _StatusActions extends StatelessWidget {
+  final OrderModel order;
+  final String sellerId;
+
+  const _StatusActions({required this.order, required this.sellerId});
+
+  String? _nextStatus(String current) {
+    switch (current.toLowerCase()) {
+      case 'pending':
+        return 'processing';
+      case 'processing':
+        return 'shipped';
+      case 'shipped':
+        return 'completed';
+      default:
+        return null;
+    }
+  }
+
+  String _nextLabel(String current) {
+    switch (current.toLowerCase()) {
+      case 'pending':
+        return 'Proses Pesanan';
+      case 'processing':
+        return 'Kirim Pesanan';
+      case 'shipped':
+        return 'Selesaikan Pesanan';
+      default:
+        return '';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final next = _nextStatus(order.status);
+    if (next == null) return const SizedBox.shrink();
+
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xff1E40AF),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        onPressed: () async {
+          try {
+            await OrderServiceAppwrite().updateOrderStatus(
+              orderId: order.id,
+              status: next,
+              sellerId: sellerId,
+            );
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Status berhasil diubah ke ${_nextLabel(order.status)}'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          } catch (e) {
+            if (!context.mounted) return;
+            String message = 'Gagal mengubah status';
+            if (e is AppwriteException) {
+              if (e.code == 400) {
+                message = 'Transisi status tidak valid';
+              } else if (e.code == 403) {
+                message = 'Anda tidak memiliki akses untuk mengubah pesanan ini';
+              }
+            }
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(message),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        },
+        child: Text(_nextLabel(order.status)),
       ),
     );
   }

@@ -377,12 +377,18 @@ class _SuccessPageState extends State<SuccessPage> {
   }
 
   Widget _timelineCard(OrderModel order) {
+    final status = order.status.toLowerCase();
+    final isCancelled = status == 'cancelled';
+
     final steps = [
-      {'label': 'Pesanan Dibuat', 'done': true},
-      {'label': 'Pembayaran Dikonfirmasi', 'done': true},
-      {'label': 'Pesanan Diproses', 'done': false},
-      {'label': 'Pesanan Selesai', 'done': false},
+      {'label': 'Pesanan Dibuat', 'key': 'pending'},
+      {'label': 'Pesanan Diproses', 'key': 'processing'},
+      {'label': 'Dikirim', 'key': 'shipped'},
+      {'label': 'Pesanan Selesai', 'key': 'completed'},
     ];
+
+    final statusOrder = ['pending', 'processing', 'shipped', 'completed'];
+    final currentIndex = statusOrder.indexOf(status);
 
     return Container(
       width: double.infinity,
@@ -395,13 +401,17 @@ class _SuccessPageState extends State<SuccessPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.timeline, size: 20, color: Color(0xff2563EB)),
-              SizedBox(width: 8),
+              Icon(
+                isCancelled ? Icons.cancel : Icons.timeline,
+                size: 20,
+                color: isCancelled ? Colors.red : const Color(0xff2563EB),
+              ),
+              const SizedBox(width: 8),
               Text(
-                'Status Pesanan',
-                style: TextStyle(
+                isCancelled ? 'Pesanan Dibatalkan' : 'Status Pesanan',
+                style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
@@ -411,8 +421,9 @@ class _SuccessPageState extends State<SuccessPage> {
           const SizedBox(height: 20),
           ...List.generate(steps.length, (i) {
             final step = steps[i];
-            final done = step['done'] as bool;
+            final done = !isCancelled && currentIndex >= i;
             final isLast = i == steps.length - 1;
+
             return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -424,16 +435,17 @@ class _SuccessPageState extends State<SuccessPage> {
                       decoration: BoxDecoration(
                         color: done
                             ? const Color(0xff2563EB)
-                            : Colors.grey.shade300,
+                            : isCancelled && i == 0
+                                ? Colors.red
+                                : Colors.grey.shade300,
                         shape: BoxShape.circle,
                       ),
                       child: done
-                          ? const Icon(
-                              Icons.check,
-                              size: 14,
-                              color: Colors.white,
-                            )
-                          : null,
+                          ? const Icon(Icons.check, size: 14, color: Colors.white)
+                          : (isCancelled && i == 0
+                              ? const Icon(Icons.close,
+                                  size: 14, color: Colors.white)
+                              : null),
                     ),
                     if (!isLast)
                       Container(
@@ -454,8 +466,9 @@ class _SuccessPageState extends State<SuccessPage> {
                       style: TextStyle(
                         fontWeight:
                             done ? FontWeight.w600 : FontWeight.normal,
-                        color:
-                            done ? Colors.black87 : Colors.grey,
+                        color: done
+                            ? Colors.black87
+                            : (isCancelled ? Colors.red.shade300 : Colors.grey),
                       ),
                     ),
                   ),

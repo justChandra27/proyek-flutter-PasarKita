@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../core/services/auth_service_appwrite.dart';
 import '../../../core/services/order_service_appwrite.dart';
 import '../../../data/models/order_model.dart';
+import 'detail_pesanan_customer.dart';
 
 class PesananCustomerMobile extends StatefulWidget {
   const PesananCustomerMobile({super.key});
@@ -197,96 +198,106 @@ class _PesananCustomerMobileState
   Widget _orderCard(OrderModel order) {
     final color = _statusColor(order.status);
 
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius:
-            BorderRadius.circular(18),
-        border: Border.all(
-          color: Colors.grey.shade200,
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DetailPesananCustomer(orderId: order.id),
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius:
+              BorderRadius.circular(18),
+          border: Border.all(
+            color: Colors.grey.shade200,
+          ),
         ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Icon(
-                order.status == 'completed' ||
-                        order.status ==
-                            'delivered'
-                    ? Icons.check_circle_outline
-                    : Icons.local_shipping,
-                size: 18,
-                color: color,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                order.status,
-                style: TextStyle(
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Icon(
+                  order.status == 'completed' ||
+                          order.status ==
+                              'delivered'
+                      ? Icons.check_circle_outline
+                      : Icons.local_shipping,
+                  size: 18,
                   color: color,
-                  fontWeight: FontWeight.bold,
                 ),
-              ),
-              const Spacer(),
-              Text(
-                order.orderCode,
-                style: const TextStyle(
-                  color: Colors.grey,
-                  fontSize: 12,
+                const SizedBox(width: 6),
+                Text(
+                  order.status,
+                  style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              const Icon(
-                Icons.receipt_long,
-                size: 36,
-                color: Colors.black54,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      order.orderCode,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight:
-                            FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _formatDate(order.createdAt),
-                      style: const TextStyle(
-                        color: Colors.grey,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _formatPrice(
-                          order.totalAmount),
-                      style: const TextStyle(
-                        color:
-                            Color(0xff2563EB),
-                        fontSize: 22,
-                        fontWeight:
-                            FontWeight.bold,
-                      ),
-                    ),
-                  ],
+                const Spacer(),
+                Text(
+                  order.orderCode,
+                  style: const TextStyle(
+                    color: Colors.grey,
+                    fontSize: 12,
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Icon(
+                  Icons.receipt_long,
+                  size: 36,
+                  color: Colors.black54,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        order.orderCode,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight:
+                              FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _formatDate(order.createdAt),
+                        style: const TextStyle(
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _formatPrice(
+                            order.totalAmount),
+                        style: const TextStyle(
+                          color:
+                              Color(0xff2563EB),
+                          fontSize: 22,
+                          fontWeight:
+                              FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

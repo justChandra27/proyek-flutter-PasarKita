@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 
+import 'package:appwrite/appwrite.dart';
 import '../../../core/services/auth_service_appwrite.dart';
 import '../../../core/services/order_service_appwrite.dart';
 import '../../../data/models/order_model.dart';
@@ -19,6 +20,7 @@ class _FormPesananSellerWebState
     extends State<FormPesananSellerWeb> {
   final OrderServiceAppwrite _orderService = OrderServiceAppwrite();
   late Future<List<Map<String, dynamic>>> _ordersFuture;
+  String? _sellerId;
 
   @override
   void initState() {
@@ -28,6 +30,7 @@ class _FormPesananSellerWebState
 
   Future<List<Map<String, dynamic>>> _loadOrders() async {
     final account = await AuthServiceAppwrite().getCurrentUser();
+    _sellerId = account.$id;
     return _orderService.getSellerOrdersWithDetails(account.$id);
   }
 
@@ -407,6 +410,7 @@ class _FormPesananSellerWebState
                               return _orderItem(
                                 order: order,
                                 items: items,
+                                sellerId: _sellerId ?? '',
                               );
                             }).toList(),
                           );
@@ -454,6 +458,7 @@ class _FormPesananSellerWebState
   Widget _orderItem({
     required OrderModel order,
     required List<OrderItemModel> items,
+    required String sellerId,
   }) {
     final statusColor = _statusColor(order.status);
     final sellerSubtotal =
@@ -542,16 +547,7 @@ class _FormPesananSellerWebState
               ],
             ),
             const SizedBox(width: 12),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xff1D4ED8),
-              ),
-              onPressed: () {},
-              child: const Text(
-                "Lihat Detail",
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
+            _StatusButton(order: order, sellerId: sellerId),
             const SizedBox(width: 8),
             const Icon(Icons.more_vert),
           ],
@@ -630,6 +626,7 @@ class _FormPesananSellerWebState
     String text, {
     bool active = false,
   }) {
+
     return Container(
       margin: const EdgeInsets.only(left: 6),
       width: 36,
@@ -646,6 +643,105 @@ class _FormPesananSellerWebState
             color: active ? Colors.white : Colors.black,
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _StatusButton extends StatelessWidget {
+  final OrderModel order;
+  final String sellerId;
+
+  const _StatusButton({required this.order, required this.sellerId});
+
+  String? _nextStatus(String current) {
+    switch (current.toLowerCase()) {
+      case 'pending':
+        return 'processing';
+      case 'processing':
+        return 'shipped';
+      case 'shipped':
+        return 'completed';
+      default:
+        return null;
+    }
+  }
+
+  String _nextLabel(String current) {
+    switch (current.toLowerCase()) {
+      case 'pending':
+        return 'Proses';
+      case 'processing':
+        return 'Kirim';
+      case 'shipped':
+        return 'Selesaikan';
+      default:
+        return '';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final next = _nextStatus(order.status);
+    if (next == null) {
+      return ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.grey,
+        ),
+        onPressed: null,
+        child: const Text(
+          'Selesai',
+          style: TextStyle(color: Colors.white),
+        ),
+      );
+    }
+
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xff1D4ED8),
+      ),
+      onPressed: () async {
+        try {
+          await OrderServiceAppwrite().updateOrderStatus(
+            orderId: order.id,
+            status: next,
+            sellerId: sellerId,
+          );
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Status berhasil diubah'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } on AppwriteException catch (e) {
+          if (!context.mounted) return;
+          String message = 'Gagal mengubah status';
+          if (e.code == 400) {
+            message = 'Transisi status tidak valid';
+          } else if (e.code == 403) {
+            message = 'Anda tidak memiliki akses untuk mengubah pesanan ini';
+          }
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(message),
+              backgroundColor: Colors.red,
+            ),
+          );
+        } catch (e) {
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Gagal: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+      child: Text(
+        _nextLabel(order.status),
+        style: const TextStyle(color: Colors.white),
       ),
     );
   }

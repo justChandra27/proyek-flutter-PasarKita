@@ -79,7 +79,7 @@ class OrderServiceAppwrite {
         'customerName': customerName,
         'customerEmail': customerEmail,
         'totalAmount': totalAmount,
-        'status': 'Pending',
+        'status': 'pending',
         'paymentMethod': paymentMethod,
         'paymentStatus': 'unpaid',
         'address': address,
@@ -191,10 +191,59 @@ class OrderServiceAppwrite {
     return results;
   }
 
+  Future<OrderModel?> getOrderById(String orderId) async {
+    try {
+      final doc = await databases.getDocument(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.ordersCollectionId,
+        documentId: orderId,
+      );
+      return OrderModel.fromMap(doc.$id, doc.data);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> updateOrderStatus({
     required String orderId,
     required String status,
+    String? sellerId,
   }) async {
+    final current = await getOrderById(orderId);
+    if (current == null) {
+      throw AppwriteException('Pesanan tidak ditemukan', 404, 'order_not_found');
+    }
+
+    final currentStatus = current.status.toLowerCase();
+    final newStatus = status.toLowerCase();
+
+    if (sellerId != null) {
+      final items = await getOrderItems(orderId);
+      final isOwner = items.any((item) => item.sellerId == sellerId);
+      if (!isOwner) {
+        throw AppwriteException(
+          'Anda tidak memiliki akses untuk mengubah pesanan ini',
+          403,
+          'unauthorized_order_access',
+        );
+      }
+    }
+
+    const allowed = {
+      'pending': {'processing'},
+      'processing': {'shipped'},
+      'shipped': {'completed'},
+    };
+
+    final allowedNext = allowed[currentStatus];
+    if (allowedNext == null || !allowedNext.contains(newStatus)) {
+      throw AppwriteException(
+        'Transisi status tidak valid: $currentStatus -> $newStatus',
+        400,
+        'invalid_status_transition',
+      );
+    }
+
     await databases.updateDocument(
       databaseId:
           AppwriteConfig.databaseId,
@@ -202,7 +251,7 @@ class OrderServiceAppwrite {
           AppwriteConfig.ordersCollectionId,
       documentId: orderId,
       data: {
-        'status': status,
+        'status': newStatus,
         'updatedAt':
             DateTime.now()
                 .toIso8601String(),

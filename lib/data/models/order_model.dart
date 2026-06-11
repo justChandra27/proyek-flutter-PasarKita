@@ -40,7 +40,7 @@ class OrderModel {
       customerName: data['customerName'] ?? '',
       customerEmail: data['customerEmail'] ?? '',
       totalAmount: data['totalAmount'] ?? 0,
-      status: data['status'] ?? 'Pending',
+      status: data['status'] ?? 'pending',
       paymentMethod: data['paymentMethod'] ?? '',
       paymentStatus: data['paymentStatus'] ?? '',
       address: data['address'] ?? '',
