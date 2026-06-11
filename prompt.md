@@ -1,94 +1,103 @@
-## Tahap 4 — Hardening Order Workflow ✅ Selesai
+## Tahap 5 — Seller Analytics & Sales Report ✅ Selesai
 
-### 1. Validasi Transisi Status (Service Layer)
+### 1. File yang Diubah/Dibuat
 
-**File:** `lib/core/services/order_service_appwrite.dart:207-260`
-
-Method `updateOrderStatus()` sekarang:
-
-- **Membaca current status** dari database via `getOrderById()` sebelum mengubah
-- **Validasi seller ownership** — query `order_items` dan cocokkan `sellerId`
-- **Validasi transisi status** berdasarkan allowed map
-
-### 2. Transisi yang Diizinkan
-
-```
-pending    -> processing
-processing -> shipped
-shipped    -> completed
-```
-
-### 3. Transisi yang Ditolak (throw AppwriteException 400)
-
-```
-pending       -> shipped
-pending       -> completed
-processing    -> completed
-completed     -> processing
-completed     -> pending
-cancelled     -> * (apa pun)
-*sembarang*   -> delivered (tidak pernah diset oleh kode)
-```
-
-### 4. Seller Ownership Check
-
-Jika `sellerId` diberikan, service akan:
-- Ambil `order_items` untuk `orderId`
-- Periksa apakah ada item dengan `sellerId == sellerId`
-- Jika tidak cocok: throw `AppwriteException(403, 'unauthorized_order_access')`
-
-### 5. File yang Diubah
-
-| File | Perubahan |
+| File | Status |
 |---|---|
-| `lib/core/services/order_service_appwrite.dart` | Validasi transisi + owner check + parameter `sellerId` |
-| `lib/presentation/seller/orders/form_pesanan_seller_mobile.dart` | Store `_sellerId`, pass ke `_OrderCard` → `_StatusActions`, exception handling `AppwriteException` (400/403) |
-| `lib/presentation/seller/orders/form_pesanan_seller_web.dart` | Store `_sellerId`, pass ke `_orderItem` → `_StatusButton`, exception handling `AppwriteException` (400/403) |
+| `lib/core/services/seller_analytics_service.dart` | **BARU** — service layer analytics |
+| `lib/presentation/seller/dashboard/dashboard_seller_mobile.dart` | DIUBAH — dari dummy data ke real Appwrite analytics |
+| `lib/presentation/seller/dashboard/dashboard_seller_web.dart` | DIUBAH — dari dummy data ke real Appwrite analytics |
 
-### 6. Exception Handling di UI
+### 2. Struktur Service Analytics
 
-Seller mobile (`_StatusActions`):
+```
+seller_analytics_service.dart
+├── class ProductSales
+│   ├── productName: String
+│   └── totalSold: int
+├── class SellerAnalytics
+│   ├── totalProducts: int
+│   ├── totalOrders: int
+│   ├── completedOrders: int
+│   ├── totalRevenue: int
+│   ├── topProducts: List<ProductSales>
+│   └── orderStatusCounts: Map<String, int>
+└── class SellerAnalyticsService
+    └── getAnalytics(sellerId) → Future<SellerAnalytics>
+```
+
+### 3. Query / Alur Data
+
+```
+getAnalytics(sellerId):
+  ├── ProductServiceAppwrite.getSellerProducts(sellerId)
+  │   └── Query.equal('sellerId', sellerId) on 'products'
+  ├── OrderServiceAppwrite.getOrdersBySeller(sellerId)
+  │   └── Query.equal('sellerId', sellerId) on 'order_items'
+  ├── For each unique orderId:
+  │   └── OrderServiceAppwrite.getOrderById(oid)
+  │       └── getDocument on 'orders'
+  ├── Compute totalProducts = products.length
+  ├── Compute totalOrders = unique orderIds count
+  ├── Compute completedOrders = orders where status == 'completed'
+  ├── Compute totalRevenue = Σ subtotal dari completed order items
+  ├── Compute orderStatusCounts = Map<status, count>
+  └── Compute topProducts = group by productName, Σ quantity, sort DESC, take 5
+```
+
+### 4. Cuplikan Kode Utama
+
+**Service** (`seller_analytics_service.dart:35-80`):
 ```dart
-if (e is AppwriteException) {
-  if (e.code == 400) message = 'Transisi status tidak valid';
-  else if (e.code == 403) message = 'Anda tidak memiliki akses untuk mengubah pesanan ini';
+Future<SellerAnalytics> getAnalytics(String sellerId) async {
+  final products = await _productService.getSellerProducts(sellerId);
+  final items = await _orderService.getOrdersBySeller(sellerId);
+  final orderIds = items.map((i) => i.orderId).toSet().toList();
+  final orders = <OrderModel>[];
+  for (final oid in orderIds) {
+    final order = await _orderService.getOrderById(oid);
+    if (order != null) orders.add(order);
+  }
+  // ... compute stats ...
 }
 ```
 
-Seller web (`_StatusButton`):
+**Mobile Dashboard** — `FutureBuilder` loading dengan empty state:
 ```dart
-if (e.code == 400) message = 'Transisi status tidak valid';
-else if (e.code == 403) message = 'Anda tidak memiliki akses untuk mengubah pesanan ini';
+if (isEmpty) {
+  Icon(Icons.store_outlined, ...)
+  Text('Belum ada data penjualan')
+}
 ```
 
-### 7. Hasil `flutter analyze`
+**Web Dashboard** — stat cards dari `SellerAnalytics`:
+```dart
+_statCard("Total Produk", '${data.totalProducts}', ...)
+_statCard("Total Pesanan", '${data.totalOrders}', ...)
+_statCard("Pesanan Selesai", '${data.completedOrders}', ...)
+_statCard("Total Pendapatan", _formatPrice(data.totalRevenue), ...)
+```
+
+### 5. Hasil `flutter analyze`
 
 ```
-31 issues found — semua pre-existing (info/warning):
+29 issues found — 100% pre-existing (info/warning):
   - avoid_print (8) — storage_service_appwrite.dart
-  - use_build_context_synchronously (3) — pre-existing di file admin/checkout
-  - deprecated_member_use (5) — withOpacity di file admin
+  - use_build_context_synchronously (3) — pre-existing
+  - deprecated_member_use (5) — withOpacity di admin
   - unused_local_variable (1) — admin_layout.dart
-  - unnecessary_underscores (10) — cart/checkout/dashboard (pre-existing)
+  - unnecessary_underscores (10) — cart/checkout/dashboard
   - unused_element (1) — form_produk_seller_web.dart
   - unused_label (1) — product_table.dart
 ```
 
-**Tidak ada error/warning baru dari perubahan Tahap 4.**
+**Tidak ada error/warning baru dari Tahap 5.**
 
-### 8. Audit Status Lowercase
-
-Semua status di codebase sudah menggunakan lowercase (`pending`, `processing`, `shipped`, `completed`, `cancelled`).
-
-**Catatan:**
-- `'delivered'` adalah *ghost status* — muncul di UI switch/case tapi **tidak pernah** diset oleh kode. Hanya backward-compat untuk data lama yang mungkin masih `'delivered'`.
-- UI seller/customer tetap handle `'delivered'` via fallback case untuk kompatibilitas data legacy.
-
-### 9. Risiko Tersisa
+### 6. Risiko Performa
 
 | Risiko | Dampak | Mitigasi |
 |---|---|---|
-| **Data legacy** — ada order di DB dengan status `'Delivered'` (capital) atau `'delivered'` yang bukan `'completed'` | Order tersebut tidak bisa diubah statusnya (tidak ada transisi dari `delivered`) | UI masih handle display, tapi tombol update tidak muncul. Aman — data legacy tetap terbaca. |
-| **Race condition** — dua seller buka order yang sama dan update bersamaan | Satu update berhasil, satu kena `getOrderById()` stale tapi tetap sukses | Validasi transisi membuat update kedua hanya sukses jika status belum berubah. Risiko rendah karena status berubah searah. |
-| **Order items tidak ada** — order punya item yang terhapus atau query gagal | Owner check selalu false → 403 terus | Hanya terjadi jika data korup. Order tanpa items seharusnya tidak bisa dibuat. |
-| **Document Security ON** di Appwrite Console untuk collection `order_items` | Query `getOrderItems()` bisa 401 | **Solusi:** Toggle Document Security OFF di Appwrite Console untuk collection `order_items` (rekomendasi sebelumnya). |
+| **N+1 queries** — `getAnalytics` memanggil `getOrderById` per orderId | Seller dengan 100+ order akan lambat | Untuk MVP acceptable. Optimasi: gunakan `listDocuments` dengan `Query.equal('\$id', orderIds)` di masa depan |
+| **Fetch semua produk** — `getSellerProducts` tanpa limit | Seller dengan 1000+ produk | Tambah `Query.limit()` jika perlu |
+| **Tidak ada caching** — setiap render dashboard fetch ulang | Loading setiap navigasi ke dashboard | Tambah provider/caching jika dashboard sering di-refresh |
+| **Completed items filter** — `completedItems` dihitung ulang dari items list | 2x iterasi data | In-memory, masih O(n) — acceptable |

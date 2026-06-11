@@ -1,9 +1,73 @@
-//lib/presentation/seller/dashboard/dashboard_seller_web.dart
-
 import 'package:flutter/material.dart';
 
-class DashboardSellerWeb extends StatelessWidget {
+import '../../../core/services/auth_service_appwrite.dart';
+import '../../../core/services/seller_analytics_service.dart';
+
+class DashboardSellerWeb extends StatefulWidget {
   const DashboardSellerWeb({super.key});
+
+  @override
+  State<DashboardSellerWeb> createState() => _DashboardSellerWebState();
+}
+
+class _DashboardSellerWebState extends State<DashboardSellerWeb> {
+  final SellerAnalyticsService _analytics = SellerAnalyticsService();
+  late Future<SellerAnalytics> _analyticsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _analyticsFuture = _load();
+  }
+
+  Future<SellerAnalytics> _load() async {
+    final account = await AuthServiceAppwrite().getCurrentUser();
+    return _analytics.getAnalytics(account.$id);
+  }
+
+  String _formatPrice(int price) {
+    final p = price.toString();
+    final buffer = StringBuffer();
+    for (int i = 0; i < p.length; i++) {
+      if (i > 0 && (p.length - i) % 3 == 0) buffer.write('.');
+      buffer.write(p[i]);
+    }
+    return 'Rp $buffer';
+  }
+
+  String _statusLabel(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 'Perlu Diproses';
+      case 'processing':
+        return 'Diproses';
+      case 'shipped':
+        return 'Dikirim';
+      case 'completed':
+        return 'Selesai';
+      case 'cancelled':
+        return 'Dibatalkan';
+      default:
+        return status;
+    }
+  }
+
+  Color _statusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Colors.orange;
+      case 'processing':
+        return Colors.blue;
+      case 'shipped':
+        return const Color(0xff2563EB);
+      case 'completed':
+        return Colors.green;
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -11,105 +75,163 @@ class DashboardSellerWeb extends StatelessWidget {
       backgroundColor: const Color(0xffF5F6FA),
       body: Padding(
         padding: const EdgeInsets.all(24),
-        child: Column(
+        child: FutureBuilder<SellerAnalytics>(
+          future: _analyticsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (snapshot.hasError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Text(
+                    'Gagal memuat data:\n${snapshot.error}',
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              );
+            }
+
+            final data = snapshot.data!;
+            final isEmpty =
+                data.totalProducts == 0 && data.totalOrders == 0;
+
+            if (isEmpty) {
+              return _buildEmptyState();
+            }
+
+            return _buildContent(data);
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.store_outlined, size: 80, color: Colors.grey.shade400),
+          const SizedBox(height: 24),
+          const Text(
+            'Belum ada data penjualan',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Tambahkan produk pertama Anda untuk mulai berjualan.',
+            style: TextStyle(color: Colors.grey.shade600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent(SellerAnalytics data) {
+    return Column(
+      children: [
+        _header(),
+        const SizedBox(height: 30),
+        const Align(
+          alignment: Alignment.centerLeft,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Ringkasan Merchant",
+                style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                "Selamat datang kembali, mari lihat perkembangan toko Anda hari ini.",
+                style: TextStyle(color: Colors.black54),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // STAT CARDS
+        Row(
           children: [
-            _header(),
-
-            const SizedBox(height: 30),
-
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Ringkasan Merchant",
-                    style: TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    "Selamat datang kembali, mari lihat perkembangan toko Anda hari ini.",
-                    style: TextStyle(
-                      color: Colors.black54,
-                    ),
-                  ),
-                ],
+            Expanded(
+              child: _statCard(
+                "Total Produk",
+                '${data.totalProducts}',
+                Icons.inventory_2_outlined,
+                Colors.blue,
               ),
             ),
-
-            const SizedBox(height: 24),
-
-            Row(
-              children: [
-                Expanded(
-                  child: _statCard(
-                    "Total Produk",
-                    "120",
-                    "+5%",
-                    Icons.inventory_2_outlined,
-                    Colors.blue,
-                  ),
-                ),
-                const SizedBox(width: 16),
-
-                Expanded(
-                  child: _statCard(
-                    "Pesanan Baru",
-                    "24",
-                    "URGENT",
-                    Icons.shopping_cart_outlined,
-                    Colors.green,
-                  ),
-                ),
-                const SizedBox(width: 16),
-
-                Expanded(
-                  child: _statCard(
-                    "Produk Terjual",
-                    "87",
-                    "+12%",
-                    Icons.sell_outlined,
-                    Colors.orange,
-                  ),
-                ),
-                const SizedBox(width: 16),
-
-                Expanded(
-                  child: _statCard(
-                    "Total Omzet",
-                    "Rp 12.500.000",
-                    "+8%",
-                    Icons.payments_outlined,
-                    Colors.blue,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
+            const SizedBox(width: 16),
             Expanded(
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: _latestProducts(),
-                  ),
-
-                  const SizedBox(width: 20),
-
-                  Expanded(
-                    child: _quickMenu(),
-                  ),
-                ],
+              child: _statCard(
+                "Total Pesanan",
+                '${data.totalOrders}',
+                Icons.shopping_cart_outlined,
+                Colors.green,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _statCard(
+                "Pesanan Selesai",
+                '${data.completedOrders}',
+                Icons.check_circle_outlined,
+                Colors.orange,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _statCard(
+                "Total Pendapatan",
+                _formatPrice(data.totalRevenue),
+                Icons.payments_outlined,
+                Colors.blue,
               ),
             ),
           ],
         ),
-      ),
+        const SizedBox(height: 24),
+
+        // STATUS PESANAN
+        if (data.orderStatusCounts.isNotEmpty) ...[
+          Row(
+            children: data.orderStatusCounts.entries.map((entry) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: _statusChip(
+                  label: _statusLabel(entry.key),
+                  count: entry.value,
+                  color: _statusColor(entry.key),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 24),
+        ],
+
+        // PRODUK TERLARIS
+        Expanded(
+          child: Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: _topProductsSection(data.topProducts),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: _quickMenu(),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -126,26 +248,19 @@ class DashboardSellerWeb extends StatelessWidget {
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
-                  borderRadius:
-                      BorderRadius.circular(30),
+                  borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide.none,
                 ),
               ),
             ),
           ),
         ),
-
         const SizedBox(width: 20),
-
         const Text(
           "Andi Setiawan",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
-
         const SizedBox(width: 10),
-
         const CircleAvatar(
           radius: 20,
           backgroundImage: NetworkImage(
@@ -159,7 +274,6 @@ class DashboardSellerWeb extends StatelessWidget {
   Widget _statCard(
     String title,
     String value,
-    String growth,
     IconData icon,
     Color color,
   ) {
@@ -168,20 +282,14 @@ class DashboardSellerWeb extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius:
-            BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CircleAvatar(
-            backgroundColor:
-                color.withValues(alpha: .15),
-            child: Icon(
-              icon,
-              color: color,
-            ),
+            backgroundColor: color.withValues(alpha: .15),
+            child: Icon(icon, color: color),
           ),
           const SizedBox(height: 12),
           Text(title),
@@ -193,10 +301,42 @@ class DashboardSellerWeb extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusChip({
+    required String label,
+    required int count,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(label, style: const TextStyle(fontSize: 13)),
+          const SizedBox(width: 6),
           Text(
-            growth,
-            style: const TextStyle(
-              color: Colors.green,
+            '$count',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: color,
             ),
           ),
         ],
@@ -204,69 +344,56 @@ class DashboardSellerWeb extends StatelessWidget {
     );
   }
 
-  Widget _latestProducts() {
+  Widget _topProductsSection(List<ProductSales> topProducts) {
+    if (topProducts.isEmpty) {
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: const Center(
+          child: Text(
+            'Belum ada produk terjual',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ),
+      );
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius:
-            BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
         children: [
           const ListTile(
             title: Text(
-              "Produk Terbaru",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            trailing: Text(
-              "Lihat Semua",
-              style: TextStyle(
-                color: Color(0xff2563EB),
-              ),
+              "Produk Terlaris",
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
-
           const Divider(height: 1),
-
-          _product(
-            "Smart Watch Pro Series 5",
-            "Rp 2.450.000",
-          ),
-
-          _product(
-            "Ultra-Light Runner X",
-            "Rp 899.000",
-          ),
-
-          _product(
-            "PureSound Wireless ANC",
-            "Rp 3.100.000",
-          ),
+          ...topProducts.map((p) => _productRow(p.productName, p.totalSold)),
         ],
       ),
     );
   }
 
-  Widget _product(
-    String title,
-    String price,
-  ) {
+  Widget _productRow(String name, int sold) {
     return ListTile(
       leading: Container(
         width: 45,
         height: 45,
         decoration: BoxDecoration(
           color: Colors.grey.shade300,
-          borderRadius:
-              BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(8),
         ),
+        child: const Icon(Icons.inventory_2_outlined, color: Colors.grey),
       ),
-      title: Text(title),
-      subtitle: const Text("Elektronik"),
+      title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
       trailing: Text(
-        price,
+        '$sold terjual',
         style: const TextStyle(
           color: Color(0xff2563EB),
           fontWeight: FontWeight.bold,
@@ -280,8 +407,7 @@ class DashboardSellerWeb extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius:
-            BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: GridView.count(
         shrinkWrap: true,
@@ -309,25 +435,15 @@ class _QuickItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(
-          color: Colors.grey.shade300,
-        ),
-        borderRadius:
-            BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
-        mainAxisAlignment:
-            MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            icon,
-            color: const Color(0xff2563EB),
-          ),
+          Icon(icon, color: const Color(0xff2563EB)),
           const SizedBox(height: 10),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-          ),
+          Text(title, textAlign: TextAlign.center),
         ],
       ),
     );
