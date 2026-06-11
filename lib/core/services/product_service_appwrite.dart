@@ -26,6 +26,23 @@ class ProductServiceAppwrite {
   }
 
   // =========================
+  // GET PRODUCT BY ID
+  // =========================
+
+  Future<ProductModel?> getProductById(String productId) async {
+    try {
+      final doc = await databases.getDocument(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.productsCollectionId,
+        documentId: productId,
+      );
+      return ProductModel.fromMap(doc.$id, doc.data);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // =========================
   // GET PRODUCT SELLER
   // =========================
 

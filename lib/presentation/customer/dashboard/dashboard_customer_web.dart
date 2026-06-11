@@ -186,6 +186,7 @@ class _DashboardCustomerWebState
   Widget _productCard(
     ProductModel product,
   ) {
+    final outOfStock = product.stock <= 0;
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -195,29 +196,54 @@ class _DashboardCustomerWebState
       child: Column(
         children: [
           Expanded(
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Colors.black12,
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(16),
+            child: Stack(
+              children: [
+                Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.black12,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(16),
+                    ),
+                  ),
+                  child: product.imageUrl.isNotEmpty
+                      ? ClipRRect(
+                          borderRadius:
+                              const BorderRadius.vertical(
+                            top: Radius.circular(16),
+                          ),
+                          child: Image.network(
+                            product.imageUrl,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: double.infinity,
+                            errorBuilder: (_, __, ___) =>
+                                const SizedBox(),
+                          ),
+                        )
+                      : const SizedBox(),
                 ),
-              ),
-              child: product.imageUrl.isNotEmpty
-                  ? ClipRRect(
-                      borderRadius:
-                          const BorderRadius.vertical(
-                        top: Radius.circular(16),
+                if (outOfStock)
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Image.network(
-                        product.imageUrl,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: double.infinity,
-                        errorBuilder: (_, __, ___) =>
-                            const SizedBox(),
+                      child: const Text(
+                        "Stok Habis",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    )
-                  : const SizedBox(),
+                    ),
+                  ),
+              ],
             ),
           ),
 
@@ -247,7 +273,14 @@ class _DashboardCustomerWebState
 
                 const SizedBox(height: 4),
 
-                Text("Stok: ${product.stock}"),
+                Text(outOfStock
+                    ? "Stok: Habis"
+                    : "Stok: ${product.stock}",
+                    style: TextStyle(
+                      color: outOfStock
+                          ? Colors.red
+                          : null,
+                    )),
 
                 const SizedBox(height: 12),
 
@@ -256,10 +289,13 @@ class _DashboardCustomerWebState
                   child: ElevatedButton(
                     style:
                         ElevatedButton.styleFrom(
-                      backgroundColor:
-                          const Color(0xff2563EB),
+                      backgroundColor: outOfStock
+                          ? Colors.grey
+                          : const Color(0xff2563EB),
                     ),
-                    onPressed: () {
+                    onPressed: outOfStock
+                        ? null
+                        : () {
                       context
                           .read<CartProvider>()
                           .addItem(CartModel(
@@ -269,6 +305,7 @@ class _DashboardCustomerWebState
                         price:
                             product.price.toInt(),
                         imageUrl: product.imageUrl,
+                        stock: product.stock,
                       ));
                       ScaffoldMessenger.of(
                               context)
@@ -280,9 +317,11 @@ class _DashboardCustomerWebState
                             Duration(seconds: 2),
                       ));
                     },
-                    child: const Text(
-                      "Tambah ke Keranjang",
-                      style: TextStyle(
+                    child: Text(
+                      outOfStock
+                          ? "Stok Habis"
+                          : "Tambah ke Keranjang",
+                      style: const TextStyle(
                         color: Colors.white,
                       ),
                     ),

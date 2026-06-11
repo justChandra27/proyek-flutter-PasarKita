@@ -333,13 +333,31 @@ class _CartItem extends StatelessWidget {
                       ),
                       Text("${item.quantity}"),
                       GestureDetector(
-                        onTap: () => context
-                            .read<CartProvider>()
-                            .updateQuantity(
-                              item.productId,
-                              item.quantity + 1,
-                            ),
-                        child: const Text("+"),
+                        onTap: () {
+                          if (item.quantity >= item.stock) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Jumlah melebihi stok tersedia.'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                            return;
+                          }
+                          context
+                              .read<CartProvider>()
+                              .updateQuantity(
+                                item.productId,
+                                item.quantity + 1,
+                              );
+                        },
+                        child: Text(
+                          "+",
+                          style: TextStyle(
+                            color: item.quantity >= item.stock
+                                ? Colors.grey
+                                : null,
+                          ),
+                        ),
                       ),
                     ],
                   ),

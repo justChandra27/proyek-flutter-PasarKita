@@ -354,13 +354,29 @@ class CartCustomerMobile extends StatelessWidget {
                     ),
 
                     IconButton(
-                      onPressed: () => context
-                          .read<CartProvider>()
-                          .updateQuantity(
-                            item.productId,
-                            item.quantity + 1,
-                          ),
-                      icon: const Icon(Icons.add),
+                      onPressed: () {
+                        if (item.quantity >= item.stock) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Jumlah melebihi stok tersedia.'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                          return;
+                        }
+                        context
+                            .read<CartProvider>()
+                            .updateQuantity(
+                              item.productId,
+                              item.quantity + 1,
+                            );
+                      },
+                      icon: Icon(
+                        Icons.add,
+                        color: item.quantity >= item.stock
+                            ? Colors.grey
+                            : null,
+                      ),
                     ),
                   ],
                 ),

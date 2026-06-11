@@ -325,6 +325,7 @@ class _DashboardCustomerMobileState
   Widget _productCard(
     ProductModel product,
   ) {
+    final outOfStock = product.stock <= 0;
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -339,40 +340,65 @@ class _DashboardCustomerMobileState
             CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.black12,
-                borderRadius:
-                    const BorderRadius.vertical(
-                  top: Radius.circular(20),
-                ),
-              ),
-              child: product.imageUrl.isNotEmpty
-                  ? ClipRRect(
-                      borderRadius:
-                          const BorderRadius.vertical(
-                        top:
-                            Radius.circular(20),
-                      ),
-                      child: Image.network(
-                        product.imageUrl,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: double.infinity,
-                        errorBuilder: (_, __,
-                                ___) =>
-                            const Icon(
+            child: Stack(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black12,
+                    borderRadius:
+                        const BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                  ),
+                  child: product.imageUrl.isNotEmpty
+                      ? ClipRRect(
+                          borderRadius:
+                              const BorderRadius.vertical(
+                            top:
+                                Radius.circular(20),
+                          ),
+                          child: Image.network(
+                            product.imageUrl,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: double.infinity,
+                            errorBuilder: (_, __,
+                                    ___) =>
+                                const Icon(
+                              Icons.image,
+                              size: 60,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        )
+                      : const Icon(
                           Icons.image,
                           size: 60,
                           color: Colors.black54,
                         ),
+                ),
+                if (outOfStock)
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(6),
                       ),
-                    )
-                  : const Icon(
-                      Icons.image,
-                      size: 60,
-                      color: Colors.black54,
+                      child: const Text(
+                        "Stok Habis",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
+                  ),
+              ],
             ),
           ),
 
@@ -408,9 +434,13 @@ class _DashboardCustomerMobileState
                 const SizedBox(height: 4),
 
                 Text(
-                  "Stok: ${product.stock}",
-                  style: const TextStyle(
-                    color: Colors.grey,
+                  outOfStock
+                      ? "Stok: Habis"
+                      : "Stok: ${product.stock}",
+                  style: TextStyle(
+                    color: outOfStock
+                        ? Colors.red
+                        : Colors.grey,
                   ),
                 ),
 
@@ -418,48 +448,68 @@ class _DashboardCustomerMobileState
 
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton.icon(
-                    style:
-                        ElevatedButton.styleFrom(
-                      backgroundColor:
-                          const Color(
-                              0xff2563EB),
-                      foregroundColor:
-                          Colors.white,
-                      shape:
-                          RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(
-                                12),
-                      ),
-                    ),
-                    onPressed: () {
-                      context
-                          .read<CartProvider>()
-                          .addItem(CartModel(
-                        productId: product.id,
-                        sellerId: product.sellerId,
-                        name: product.name,
-                        price:
-                            product.price.toInt(),
-                        imageUrl: product.imageUrl,
-                      ));
-                      ScaffoldMessenger.of(
-                              context)
-                          .showSnackBar(SnackBar(
-                        content: Text(
-                          '${product.name} ditambahkan ke keranjang',
+                  child: outOfStock
+                      ? ElevatedButton.icon(
+                          style:
+                              ElevatedButton.styleFrom(
+                            backgroundColor:
+                                Colors.grey,
+                            foregroundColor:
+                                Colors.white,
+                            shape:
+                                RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: null,
+                          icon: const Icon(
+                            Icons.shopping_cart,
+                            size: 16,
+                          ),
+                          label: const Text(
+                            "Stok Habis",
+                          ),
+                        )
+                      : ElevatedButton.icon(
+                          style:
+                              ElevatedButton.styleFrom(
+                            backgroundColor:
+                                const Color(0xff2563EB),
+                            foregroundColor:
+                                Colors.white,
+                            shape:
+                                RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: () {
+                            context
+                                .read<CartProvider>()
+                                .addItem(CartModel(
+                              productId: product.id,
+                              sellerId: product.sellerId,
+                              name: product.name,
+                              price: product.price.toInt(),
+                              imageUrl: product.imageUrl,
+                              stock: product.stock,
+                            ));
+                            ScaffoldMessenger.of(context)
+                                .showSnackBar(SnackBar(
+                              content: Text(
+                                '${product.name} ditambahkan ke keranjang',
+                              ),
+                            ));
+                          },
+                          icon: const Icon(
+                            Icons.shopping_cart,
+                            size: 16,
+                          ),
+                          label: const Text(
+                            "Tambah ke Keranjang",
+                          ),
                         ),
-                      ));
-                    },
-                    icon: const Icon(
-                      Icons.shopping_cart,
-                      size: 16,
-                    ),
-                    label: const Text(
-                      "Tambah ke Keranjang",
-                    ),
-                  ),
                 ),
               ],
             ),

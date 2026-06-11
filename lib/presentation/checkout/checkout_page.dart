@@ -6,6 +6,7 @@ import 'success_page.dart';
 import '../../providers/cart_provider.dart';
 import '../../core/services/auth_service_appwrite.dart';
 import '../../core/services/order_service_appwrite.dart';
+import '../../core/services/product_service_appwrite.dart';
 
 class CheckoutPage extends StatefulWidget {
   const CheckoutPage({super.key});
@@ -59,6 +60,24 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
       if (cart.items.isEmpty) {
         throw Exception('Keranjang kosong');
+      }
+
+      final productService = ProductServiceAppwrite();
+      for (final cartItem in cart.items) {
+        final product = await productService.getProductById(cartItem.productId);
+        if (product == null || cartItem.quantity > product.stock) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Stok produk berubah. Silakan periksa kembali keranjang Anda.',
+              ),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          setState(() => _loading = false);
+          return;
+        }
       }
 
       final items = cart.items.map((item) {

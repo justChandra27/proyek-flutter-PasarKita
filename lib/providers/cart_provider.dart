@@ -14,15 +14,19 @@ class CartProvider extends ChangeNotifier {
   void addItem(CartModel item) {
     final index = _items.indexWhere((i) => i.productId == item.productId);
     if (index >= 0) {
+      final newQty = _items[index].quantity + item.quantity;
+      if (newQty > _items[index].stock) return;
       _items[index] = CartModel(
         productId: _items[index].productId,
         sellerId: _items[index].sellerId,
         name: _items[index].name,
         price: _items[index].price,
         imageUrl: _items[index].imageUrl,
-        quantity: _items[index].quantity + item.quantity,
+        quantity: newQty,
+        stock: _items[index].stock,
       );
     } else {
+      if (item.stock <= 0) return;
       _items.add(item);
     }
     notifyListeners();
@@ -39,13 +43,17 @@ class CartProvider extends ChangeNotifier {
       if (quantity <= 0) {
         _items.removeAt(index);
       } else {
+        final capped = quantity > _items[index].stock
+            ? _items[index].stock
+            : quantity;
         _items[index] = CartModel(
           productId: _items[index].productId,
           sellerId: _items[index].sellerId,
           name: _items[index].name,
           price: _items[index].price,
           imageUrl: _items[index].imageUrl,
-          quantity: quantity,
+          quantity: capped,
+          stock: _items[index].stock,
         );
       }
       notifyListeners();

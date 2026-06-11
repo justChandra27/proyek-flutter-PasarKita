@@ -5,6 +5,7 @@ class CartModel {
   final int price;
   final String imageUrl;
   final int quantity;
+  final int stock;
 
   CartModel({
     required this.productId,
@@ -13,6 +14,7 @@ class CartModel {
     required this.price,
     required this.imageUrl,
     this.quantity = 1,
+    this.stock = 0,
   });
 
   factory CartModel.fromMap(
@@ -26,6 +28,7 @@ class CartModel {
       price: data['price'] ?? 0,
       imageUrl: data['imageUrl'] ?? '',
       quantity: data['quantity'] ?? 1,
+      stock: data['stock'] ?? 0,
     );
   }
 
@@ -37,6 +40,7 @@ class CartModel {
       'price': price,
       'imageUrl': imageUrl,
       'quantity': quantity,
+      'stock': stock,
     };
   }
 }
