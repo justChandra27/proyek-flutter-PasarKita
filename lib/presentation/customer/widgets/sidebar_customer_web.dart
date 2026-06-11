@@ -4,12 +4,14 @@ class SidebarCustomerWeb extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onMenuSelected;
   final VoidCallback onLogout;
+  final int unreadNotifCount;
 
   const SidebarCustomerWeb({
     super.key,
     required this.selectedIndex,
     required this.onMenuSelected,
     required this.onLogout,
+    this.unreadNotifCount = 0,
   });
 
   @override
@@ -20,7 +22,6 @@ class SidebarCustomerWeb extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 30),
-
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 20),
             child: Align(
@@ -35,37 +36,30 @@ class SidebarCustomerWeb extends StatelessWidget {
               ),
             ),
           ),
-
           const SizedBox(height: 30),
-
           _menu(
             index: 0,
             icon: Icons.home,
             title: "Home",
           ),
-
           _menu(
             index: 1,
             icon: Icons.shopping_cart_outlined,
             title: "Keranjang",
           ),
-
           _menu(
             index: 2,
             icon: Icons.receipt_long_outlined,
             title: "Pesanan Saya",
           ),
-
+          _notifMenu(),
           _menu(
-            index: 3,
+            index: 4,
             icon: Icons.person_outline,
             title: "Profile",
           ),
-
           const Spacer(),
-
           const Divider(),
-
           ListTile(
             leading: const Icon(
               Icons.logout,
@@ -73,15 +67,61 @@ class SidebarCustomerWeb extends StatelessWidget {
             ),
             title: const Text(
               "Logout",
-              style: TextStyle(
-                color: Colors.red,
-              ),
+              style: TextStyle(color: Colors.red),
             ),
             onTap: onLogout,
           ),
-
           const SizedBox(height: 10),
         ],
+      ),
+    );
+  }
+
+  Widget _notifMenu() {
+    final index = 3;
+    final active = selectedIndex == index;
+    return Container(
+      margin: const EdgeInsets.symmetric(
+        horizontal: 10,
+        vertical: 4,
+      ),
+      decoration: BoxDecoration(
+        color: active
+            ? const Color(0xffDBEAFE)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ListTile(
+        leading: unreadNotifCount > 0
+            ? Badge(
+                label: Text(
+                  unreadNotifCount > 99 ? '99+' : '$unreadNotifCount',
+                  style: const TextStyle(fontSize: 10),
+                ),
+                child: Icon(
+                  Icons.notifications_outlined,
+                  color: active
+                      ? const Color(0xff2563EB)
+                      : Colors.black54,
+                ),
+              )
+            : Icon(
+                Icons.notifications_outlined,
+                color: active
+                    ? const Color(0xff2563EB)
+                    : Colors.black54,
+              ),
+        title: Text(
+          "Notifikasi",
+          style: TextStyle(
+            color: active
+                ? const Color(0xff2563EB)
+                : Colors.black87,
+            fontWeight:
+                active ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+        onTap: () => onMenuSelected(index),
       ),
     );
   }
@@ -92,7 +132,6 @@ class SidebarCustomerWeb extends StatelessWidget {
     required String title,
   }) {
     final active = selectedIndex == index;
-
     return Container(
       margin: const EdgeInsets.symmetric(
         horizontal: 10,

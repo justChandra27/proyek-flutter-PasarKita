@@ -1,5 +1,3 @@
-//lib/presentation/customer/customer_web_page.dart
-
 import 'package:flutter/material.dart';
 
 import '../auth/login_page.dart';
@@ -9,7 +7,9 @@ import 'dashboard/dashboard_customer_web.dart';
 import 'cart/cart_customer_web.dart';
 import 'orders/pesanan_customer_web.dart';
 import 'profile/profile_customer_web.dart';
+import 'notifications/notifikasi_customer_web.dart';
 import '../../core/services/auth_service_appwrite.dart';
+import '../../core/services/notification_service_appwrite.dart';
 
 class CustomerWebPage extends StatefulWidget {
   const CustomerWebPage({super.key});
@@ -20,13 +20,31 @@ class CustomerWebPage extends StatefulWidget {
 
 class _CustomerWebPageState extends State<CustomerWebPage> {
   int selectedIndex = 0;
+  int _unreadCount = 0;
+  final NotificationServiceAppwrite _notifService =
+      NotificationServiceAppwrite();
 
   final List<Widget> pages = const [
     DashboardCustomerWeb(),
     CartCustomerWeb(),
     PesananCustomerWeb(),
+    NotifikasiCustomerWeb(),
     ProfileCustomerWeb(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUnreadCount();
+  }
+
+  Future<void> _loadUnreadCount() async {
+    try {
+      final account = await AuthServiceAppwrite().getCurrentUser();
+      final count = await _notifService.getUnreadCount(account.$id);
+      if (mounted) setState(() => _unreadCount = count);
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,19 +53,17 @@ class _CustomerWebPageState extends State<CustomerWebPage> {
         children: [
           SidebarCustomerWeb(
             selectedIndex: selectedIndex,
-
+            unreadNotifCount: _unreadCount,
             onMenuSelected: (index) {
               setState(() {
                 selectedIndex = index;
               });
+              if (index == 3) _loadUnreadCount();
             },
-
             onLogout: () async {
               try {
                 await AuthServiceAppwrite().logout();
-
                 if (!context.mounted) return;
-
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -60,7 +76,6 @@ class _CustomerWebPageState extends State<CustomerWebPage> {
               }
             },
           ),
-
           Expanded(child: pages[selectedIndex]),
         ],
       ),

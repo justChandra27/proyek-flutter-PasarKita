@@ -7,6 +7,7 @@ import 'presentation/auth/login_page.dart';
 import 'core/appwrite/appwrite_test.dart';
 import 'core/controllers/transaksi_controller.dart';
 import 'providers/cart_provider.dart';
+import 'providers/product_filter_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +27,9 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => CartProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ProductFilterProvider(),
         ),
       ],
       child: const MaterialApp(

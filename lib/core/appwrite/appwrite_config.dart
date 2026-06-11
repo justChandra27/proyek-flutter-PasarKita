@@ -29,6 +29,12 @@ class AppwriteConfig {
   static const String transaksiCollection =
       'transaksi';
 
+  static const String notificationsCollectionId =
+      'notifications';
+
+  static const String reviewsCollectionId =
+      'reviews';
+
   // Storage
   static const String productBucketId =
       'product_images';

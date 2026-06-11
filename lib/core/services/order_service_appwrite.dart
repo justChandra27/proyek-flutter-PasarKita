@@ -6,6 +6,7 @@ import '../../data/models/order_model.dart';
 import '../../data/models/order_item_model.dart';
 import '../appwrite/appwrite_config.dart';
 import '../appwrite/appwrite_service.dart';
+import 'notification_service_appwrite.dart';
 
 
 class OrderServiceAppwrite {
@@ -257,5 +258,43 @@ class OrderServiceAppwrite {
                 .toIso8601String(),
       },
     );
+
+    final notifService = NotificationServiceAppwrite();
+    final customerId = current.customerId;
+    final orderCode = current.orderCode;
+
+    if (newStatus == 'processing') {
+      await notifService.createNotification(
+        userId: customerId,
+        title: 'Pesanan Diproses',
+        message: 'Pesanan #$orderCode sedang diproses oleh penjual.',
+        type: 'status_update',
+        orderId: orderId,
+      );
+    } else if (newStatus == 'shipped') {
+      await notifService.createNotification(
+        userId: customerId,
+        title: 'Pesanan Dikirim',
+        message: 'Pesanan #$orderCode telah dikirim oleh penjual.',
+        type: 'status_update',
+        orderId: orderId,
+      );
+    } else if (newStatus == 'completed') {
+      await notifService.createNotification(
+        userId: customerId,
+        title: 'Pesanan Selesai',
+        message: 'Pesanan #$orderCode telah selesai. Terima kasih telah berbelanja.',
+        type: 'status_update',
+        orderId: orderId,
+      );
+    } else if (newStatus == 'cancelled') {
+      await notifService.createNotification(
+        userId: customerId,
+        title: 'Pesanan Dibatalkan',
+        message: 'Pesanan #$orderCode telah dibatalkan.',
+        type: 'status_update',
+        orderId: orderId,
+      );
+    }
   }
 }

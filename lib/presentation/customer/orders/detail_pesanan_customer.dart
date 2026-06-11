@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/services/order_service_appwrite.dart';
+import '../../../core/services/review_service_appwrite.dart';
 import '../../../data/models/order_model.dart';
 import '../../../data/models/order_item_model.dart';
 
@@ -15,6 +16,7 @@ class DetailPesananCustomer extends StatefulWidget {
 
 class _DetailPesananCustomerState extends State<DetailPesananCustomer> {
   final _orderService = OrderServiceAppwrite();
+  final _reviewService = ReviewServiceAppwrite();
   late Future<Map<String, dynamic>> _detailFuture;
 
   @override
@@ -158,7 +160,7 @@ class _DetailPesananCustomerState extends State<DetailPesananCustomer> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                _productCard(items),
+                _productCard(order, items),
                 const SizedBox(height: 16),
                 _totalCard(order),
                 const SizedBox(height: 16),
@@ -279,7 +281,8 @@ class _DetailPesananCustomerState extends State<DetailPesananCustomer> {
     );
   }
 
-  Widget _productCard(List<OrderItemModel> items) {
+  Widget _productCard(OrderModel order, List<OrderItemModel> items) {
+    final isCompleted = order.status.toLowerCase() == 'completed';
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -309,46 +312,215 @@ class _DetailPesananCustomerState extends State<DetailPesananCustomer> {
           const SizedBox(height: 12),
           ...items.map((item) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.inventory_2_outlined,
-                          color: Colors.grey),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            item.productName,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
+                    Row(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade200,
+                            borderRadius: BorderRadius.circular(10),
                           ),
-                          Text(
-                            '${item.quantity} x ${_formatPrice(item.price)}',
-                            style: const TextStyle(
-                                color: Colors.grey, fontSize: 13),
+                          child: const Icon(Icons.inventory_2_outlined,
+                              color: Colors.grey),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.productName,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600),
+                              ),
+                              Text(
+                                '${item.quantity} x ${_formatPrice(item.price)}',
+                                style: const TextStyle(
+                                    color: Colors.grey, fontSize: 13),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                        Text(
+                          _formatPrice(item.subtotal),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xff2563EB),
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      _formatPrice(item.subtotal),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xff2563EB),
+                    if (isCompleted)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8, left: 60),
+                        child: FutureBuilder<bool>(
+                          future: _reviewService.hasReviewed(
+                            productId: item.productId,
+                            orderId: widget.orderId,
+                            userId: order.customerId,
+                          ),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              );
+                            }
+                            if (snapshot.data == true) {
+                              return const Text(
+                                '✓ Sudah diulas',
+                                style: TextStyle(
+                                  color: Colors.green,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              );
+                            }
+                            return TextButton.icon(
+                              onPressed: () => _showReviewForm(
+                                productId: item.productId,
+                                productName: item.productName,
+                                orderId: widget.orderId,
+                                userId: order.customerId,
+                                userName: order.customerName,
+                              ),
+                              icon: const Icon(Icons.star_border, size: 18),
+                              label: const Text('Beri Ulasan'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: const Color(0xff2563EB),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 4),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                    ),
                   ],
                 ),
               )),
         ],
+      ),
+    );
+  }
+
+  void _showReviewForm({
+    required String productId,
+    required String productName,
+    required String orderId,
+    required String userId,
+    required String userName,
+  }) {
+    int rating = 5;
+    final commentController = TextEditingController();
+    bool submitting = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Beri Ulasan'),
+          content: SizedBox(
+            width: 400,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(productName,
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 16),
+                  const Text('Rating',
+                      style: TextStyle(fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(5, (i) {
+                      final starValue = i + 1;
+                      return IconButton(
+                        icon: Icon(
+                          starValue <= rating
+                              ? Icons.star
+                              : Icons.star_border,
+                          color: Colors.amber,
+                          size: 32,
+                        ),
+                        onPressed: () =>
+                            setDialogState(() => rating = starValue),
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: commentController,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Komentar (opsional)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  if (submitting)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 16),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: submitting ? null : () => Navigator.pop(ctx),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: submitting
+                  ? null
+                  : () async {
+                      setDialogState(() => submitting = true);
+                      try {
+                        await _reviewService.createReview(
+                          productId: productId,
+                          orderId: orderId,
+                          userId: userId,
+                          userName: userName,
+                          rating: rating,
+                          comment: commentController.text.trim().isEmpty
+                              ? null
+                              : commentController.text.trim(),
+                        );
+                        if (ctx.mounted) {
+                          Navigator.pop(ctx);
+                        }
+                        if (mounted) {
+                          setState(() {});
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Ulasan berhasil dikirim')),
+                          );
+                        }
+                      } catch (e) {
+                        if (ctx.mounted) {
+                          setDialogState(() => submitting = false);
+                        }
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Gagal: $e')),
+                          );
+                        }
+                      }
+                    },
+              child: const Text('Kirim'),
+            ),
+          ],
+        ),
       ),
     );
   }
