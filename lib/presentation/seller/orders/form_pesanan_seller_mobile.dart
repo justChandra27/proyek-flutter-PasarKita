@@ -18,19 +18,86 @@ class FormPesananSellerMobile extends StatefulWidget {
 class _FormPesananSellerMobileState
     extends State<FormPesananSellerMobile> {
   final OrderServiceAppwrite _orderService = OrderServiceAppwrite();
-  late Future<List<Map<String, dynamic>>> _ordersFuture;
   String? _sellerId;
+
+  List<Map<String, dynamic>> _allOrders = [];
+  bool _isLoading = true;
+  String? _error;
+
+  String _activeTab = 'semua';
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String _sortBy = 'terbaru';
 
   @override
   void initState() {
     super.initState();
-    _ordersFuture = _loadOrders();
+    _searchController.addListener(() {
+      setState(() { _searchQuery = _searchController.text; });
+    });
+    _loadOrders();
   }
 
-  Future<List<Map<String, dynamic>>> _loadOrders() async {
-    final account = await AuthServiceAppwrite().getCurrentUser();
-    _sellerId = account.$id;
-    return _orderService.getSellerOrdersWithDetails(account.$id);
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadOrders() async {
+    setState(() { _isLoading = true; _error = null; });
+    try {
+      final account = await AuthServiceAppwrite().getCurrentUser();
+      _sellerId = account.$id;
+      final orders = await _orderService.getSellerOrdersWithDetails(account.$id);
+      if (mounted) setState(() { _allOrders = orders; _isLoading = false; });
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString(); _isLoading = false; });
+    }
+  }
+
+  int _subtotal(Map<String, dynamic> entry) {
+    final items = entry['items'] as List<OrderItemModel>;
+    return items.fold<int>(0, (s, i) => s + i.subtotal);
+  }
+
+  List<Map<String, dynamic>> get _filteredOrders {
+    var result = _allOrders.where((entry) {
+      final order = entry['order'] as OrderModel;
+
+      if (_activeTab != 'semua') {
+        if (order.status.toLowerCase() != _activeTab) return false;
+      }
+
+      if (_searchQuery.isNotEmpty) {
+        final q = _searchQuery.toLowerCase();
+        if (order.orderCode.toLowerCase().contains(q)) return true;
+        if (order.customerName.toLowerCase().contains(q)) return true;
+        final items = entry['items'] as List<OrderItemModel>;
+        if (items.any((i) => i.productName.toLowerCase().contains(q))) return true;
+        return false;
+      }
+
+      return true;
+    }).toList();
+
+    switch (_sortBy) {
+      case 'terlama':
+        result.sort((a, b) => (a['order'] as OrderModel).createdAt
+            .compareTo((b['order'] as OrderModel).createdAt));
+        break;
+      case 'total_tertinggi':
+        result.sort((a, b) => _subtotal(b).compareTo(_subtotal(a)));
+        break;
+      case 'total_terendah':
+        result.sort((a, b) => _subtotal(a).compareTo(_subtotal(b)));
+        break;
+      default:
+        result.sort((a, b) => (b['order'] as OrderModel).createdAt
+            .compareTo((a['order'] as OrderModel).createdAt));
+    }
+
+    return result;
   }
 
   String _formatPrice(int price) {
@@ -137,139 +204,388 @@ class _FormPesananSellerMobileState
                     ],
                   ),
                   const SizedBox(height: 24),
-                  const Align(
+                  Align(
                     alignment: Alignment.centerLeft,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        const Text(
                           "Pesanan",
                           style: TextStyle(
                             fontSize: 30,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        SizedBox(height: 4),
-                        Text(
+                        const SizedBox(height: 4),
+                        const Text(
                           "Kelola pesanan dari pelanggan Anda",
                           style: TextStyle(color: Colors.grey),
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        _tab("Semua", true),
-                        const SizedBox(width: 8),
-                        _tab("Perlu Diproses", false),
-                        const SizedBox(width: 8),
-                        _tab("Dikirim", false),
-                        const SizedBox(width: 8),
-                        _tab("Selesai", false),
+                        const SizedBox(height: 12),
+                        // SEARCH FIELD
+                        TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: "Cari pesanan...",
+                            prefixIcon: const Icon(Icons.search),
+                            filled: true,
+                            fillColor: const Color(0xffF5F7FB),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        // TABS + SORT
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              _tab("Semua", _activeTab == 'semua', 'semua'),
+                              const SizedBox(width: 8),
+                              _tab("Perlu Diproses", _activeTab == 'pending', 'pending'),
+                              const SizedBox(width: 8),
+                              _tab("Dikirim", _activeTab == 'shipped', 'shipped'),
+                              const SizedBox(width: 8),
+                              _tab("Selesai", _activeTab == 'completed', 'completed'),
+                              const SizedBox(width: 8),
+                              _tab("Dibatalkan", _activeTab == 'cancelled', 'cancelled'),
+                              const SizedBox(width: 8),
+                              PopupMenuButton<String>(
+                                initialValue: _sortBy,
+                                onSelected: (value) =>
+                                    setState(() { _sortBy = value; }),
+                                itemBuilder: (context) => [
+                                  const PopupMenuItem(value: 'terbaru', child: Text("Terbaru")),
+                                  const PopupMenuItem(value: 'terlama', child: Text("Terlama")),
+                                  const PopupMenuItem(value: 'total_tertinggi', child: Text("Total Tertinggi")),
+                                  const PopupMenuItem(value: 'total_terendah', child: Text("Total Terendah")),
+                                ],
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xffDBEAFE),
+                                    borderRadius: BorderRadius.circular(25),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.sort, size: 18),
+                                      SizedBox(width: 4),
+                                      Text("Urutkan", style: TextStyle(fontSize: 13)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
                 ],
               ),
             ),
-            Expanded(
-              child: FutureBuilder<List<Map<String, dynamic>>>(
-                future: _ordersFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState ==
-                      ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(),
-                    );
-                  }
-
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Text(
-                          "Gagal memuat pesanan:\n${snapshot.error}",
-                          style: const TextStyle(color: Colors.red),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    );
-                  }
-
-                  final orders = snapshot.data ?? [];
-
-                  if (orders.isEmpty) {
-                    return const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.receipt_long_outlined,
-                            size: 64,
-                            color: Colors.grey,
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            "Belum ada pesanan",
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  return ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      ...orders.map((entry) {
-                        final order =
-                            entry['order'] as OrderModel;
-                        final items =
-                            entry['items'] as List<OrderItemModel>;
-                        return _OrderCard(
-                          order: order,
-                          items: items,
-                          sellerId: _sellerId ?? '',
-                          formatPrice: _formatPrice,
-                          formatDate: _formatDate,
-                          statusColor: _statusColor,
-                          statusLabel: _statusLabel,
-                        );
-                      }),
-                      const SizedBox(height: 100),
-                    ],
-                  );
-                },
-              ),
-            ),
+            // CONTENT
+            Expanded(child: _buildContent()),
           ],
         ),
       ),
     );
   }
 
-  static Widget _tab(String title, bool active) {
-    return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-      decoration: BoxDecoration(
-        color: active
-            ? const Color(0xff1E40AF)
-            : const Color(0xffDBEAFE),
-        borderRadius: BorderRadius.circular(25),
-      ),
-      child: Text(
-        title,
-        style: TextStyle(
-          color: active ? Colors.white : Colors.black54,
-          fontWeight: active ? FontWeight.bold : null,
+  Widget _buildContent() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Text(
+            "Gagal memuat pesanan:\n$_error",
+            style: const TextStyle(color: Colors.red),
+            textAlign: TextAlign.center,
+          ),
         ),
+      );
+    }
+
+    final orders = _filteredOrders;
+
+    if (orders.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              _allOrders.isEmpty ? Icons.receipt_long_outlined : Icons.search_off,
+              size: 64,
+              color: Colors.grey,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _allOrders.isEmpty ? "Belum ada pesanan" : "Tidak ada pesanan yang sesuai",
+              style: const TextStyle(
+                color: Colors.grey,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        ...orders.map((entry) {
+          final order = entry['order'] as OrderModel;
+          final items = entry['items'] as List<OrderItemModel>;
+          return _OrderCard(
+            order: order,
+            items: items,
+            sellerId: _sellerId ?? '',
+            formatPrice: _formatPrice,
+            formatDate: _formatDate,
+            statusColor: _statusColor,
+            statusLabel: _statusLabel,
+            onDetail: () => _showDetailBottomSheet(order, items),
+            onContact: () => _showContactBottomSheet(order),
+          );
+        }),
+        const SizedBox(height: 100),
+      ],
+    );
+  }
+
+  Widget _tab(String title, bool active, String tabKey) {
+    return GestureDetector(
+      onTap: () => setState(() { _activeTab = tabKey; }),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+        decoration: BoxDecoration(
+          color: active
+              ? const Color(0xff1E40AF)
+              : const Color(0xffDBEAFE),
+          borderRadius: BorderRadius.circular(25),
+        ),
+        child: Text(
+          title,
+          style: TextStyle(
+            color: active ? Colors.white : Colors.black54,
+            fontWeight: active ? FontWeight.bold : null,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showDetailBottomSheet(OrderModel order, List<OrderItemModel> items) {
+    final total = items.fold<int>(0, (s, i) => s + i.subtotal);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.4,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) {
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: ListView(
+                controller: scrollController,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    "Detail Pesanan",
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 20),
+                  // Order Info
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xffF5F7FB),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        _infoRow("Kode Pesanan", order.orderCode),
+                        _infoRow("Status", order.status),
+                        _infoRow("Tanggal", _formatDate(order.createdAt)),
+                        _infoRow("Customer", order.customerName),
+                        if (order.customerEmail.isNotEmpty)
+                          _infoRow("Email", order.customerEmail),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Items Header
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          "Produk",
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      Text(
+                        _formatPrice(total),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const Divider(),
+                  // Items
+                  ...items.map((item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade200,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.inventory_2_outlined, color: Colors.grey),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(item.productName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 4),
+                              Text("${item.quantity} x ${_formatPrice(item.price)}",
+                                  style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          _formatPrice(item.subtotal),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  )),
+                  const Divider(),
+                  // Total
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text("Total", style: TextStyle(fontSize: 16)),
+                      ),
+                      Text(
+                        _formatPrice(total),
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xff1E40AF),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showContactBottomSheet(OrderModel order) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundColor: Colors.grey.shade300,
+                    child: const Icon(Icons.person, size: 28),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          order.customerName,
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        if (order.customerEmail.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            order.customerEmail,
+                            style: const TextStyle(color: Colors.grey, fontSize: 14),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  static Widget _infoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(label, style: const TextStyle(color: Colors.grey)),
+          ),
+          Expanded(
+            child: Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
+          ),
+        ],
       ),
     );
   }
@@ -283,6 +599,8 @@ class _OrderCard extends StatelessWidget {
   final String Function(String) formatDate;
   final Color Function(String) statusColor;
   final String Function(String) statusLabel;
+  final VoidCallback? onDetail;
+  final VoidCallback? onContact;
 
   const _OrderCard({
     required this.order,
@@ -292,6 +610,8 @@ class _OrderCard extends StatelessWidget {
     required this.formatDate,
     required this.statusColor,
     required this.statusLabel,
+    this.onDetail,
+    this.onContact,
   });
 
   @override
@@ -327,6 +647,27 @@ class _OrderCard extends StatelessWidget {
                       fontSize: 12,
                     ),
                   ),
+                ),
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == 'detail') onDetail?.call();
+                    if (value == 'contact') onContact?.call();
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(value: 'detail', child: ListTile(
+                      leading: Icon(Icons.receipt_long),
+                      title: Text("Lihat Detail"),
+                      contentPadding: EdgeInsets.zero,
+                      visualDensity: VisualDensity.compact,
+                    )),
+                    const PopupMenuItem(value: 'contact', child: ListTile(
+                      leading: Icon(Icons.contact_phone),
+                      title: Text("Hubungi Pembeli"),
+                      contentPadding: EdgeInsets.zero,
+                      visualDensity: VisualDensity.compact,
+                    )),
+                  ],
+                  child: const Icon(Icons.more_vert, color: Colors.grey),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
