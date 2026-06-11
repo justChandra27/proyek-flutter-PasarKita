@@ -53,9 +53,7 @@ class SidebarSellerWeb extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 22,
-                  backgroundImage: NetworkImage(
-                    "https://i.pravatar.cc/150",
-                  ),
+                  child: Icon(Icons.person),
                 ),
                 SizedBox(width: 10),
                 Expanded(

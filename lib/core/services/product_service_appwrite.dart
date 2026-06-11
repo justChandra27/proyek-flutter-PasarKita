@@ -5,12 +5,13 @@ import 'package:appwrite/appwrite.dart';
 import '../../data/models/product_model.dart';
 import '../appwrite/appwrite_config.dart';
 import '../appwrite/appwrite_service.dart';
+import '../models/paginated_response.dart';
 
 class ProductServiceAppwrite {
   final Databases databases = AppwriteService.databases;
 
   // =========================
-  // GET ALL PRODUCTS (customer dashboard)
+  // GET PRODUCTS (customer dashboard, paginated)
   // =========================
 
   Future<List<ProductModel>> getAllProducts() async {
@@ -23,6 +24,36 @@ class ProductServiceAppwrite {
     return result.documents.map((doc) {
       return ProductModel.fromMap(doc.$id, doc.data);
     }).toList();
+  }
+
+  Future<PaginatedResponse<ProductModel>> getProductsPage({
+    String? cursor,
+    int limit = 20,
+  }) async {
+    final queries = <String>[
+      Query.equal('active', true),
+      Query.orderAsc('name'),
+      Query.limit(limit),
+    ];
+    if (cursor != null) {
+      queries.add(Query.cursorAfter(cursor));
+    }
+
+    final result = await databases.listDocuments(
+      databaseId: AppwriteConfig.databaseId,
+      collectionId: AppwriteConfig.productsCollectionId,
+      queries: queries,
+    );
+
+    final items = result.documents
+        .map((doc) => ProductModel.fromMap(doc.$id, doc.data))
+        .toList();
+
+    return PaginatedResponse(
+      items: items,
+      nextCursor: items.isNotEmpty ? items.last.id : null,
+      hasMore: items.length >= limit,
+    );
   }
 
   // =========================

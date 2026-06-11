@@ -263,9 +263,7 @@ class _DashboardSellerWebState extends State<DashboardSellerWeb> {
         const SizedBox(width: 10),
         const CircleAvatar(
           radius: 20,
-          backgroundImage: NetworkImage(
-            "https://i.pravatar.cc/150",
-          ),
+          child: Icon(Icons.person),
         ),
       ],
     );
@@ -278,31 +276,43 @@ class _DashboardSellerWebState extends State<DashboardSellerWeb> {
     Color color,
   ) {
     return Container(
-      height: 120,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CircleAvatar(
-            backgroundColor: color.withValues(alpha: .15),
-            child: Icon(icon, color: color),
-          ),
-          const SizedBox(height: 12),
-          Text(title),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
+      child: 
+      Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  mainAxisSize: MainAxisSize.min,
+  children: [
+    CircleAvatar(
+      child: Icon(icon),
+    ),
+
+    SizedBox(height: 12),
+
+    Text(
+      title,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    ),
+
+    SizedBox(height: 8),
+
+    FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Text(
+        value,
+        style: const TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.bold,
+        ),
       ),
+    ),
+  ],
+)
     );
   }
 

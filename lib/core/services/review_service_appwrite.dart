@@ -3,6 +3,7 @@ import 'package:appwrite/appwrite.dart';
 import '../../data/models/review_model.dart';
 import '../appwrite/appwrite_config.dart';
 import '../appwrite/appwrite_service.dart';
+import '../models/paginated_response.dart';
 
 class ReviewServiceAppwrite {
   final Databases databases = AppwriteService.databases;
@@ -45,6 +46,37 @@ class ReviewServiceAppwrite {
     return result.documents
         .map((doc) => ReviewModel.fromMap(doc.data, doc.$id))
         .toList();
+  }
+
+  Future<PaginatedResponse<ReviewModel>> getProductReviewsPage({
+    required String productId,
+    String? cursor,
+    int limit = 10,
+  }) async {
+    final queries = <String>[
+      Query.equal('productId', productId),
+      Query.orderDesc('createdAt'),
+      Query.limit(limit),
+    ];
+    if (cursor != null) {
+      queries.add(Query.cursorAfter(cursor));
+    }
+
+    final result = await databases.listDocuments(
+      databaseId: AppwriteConfig.databaseId,
+      collectionId: AppwriteConfig.reviewsCollectionId,
+      queries: queries,
+    );
+
+    final items = result.documents
+        .map((doc) => ReviewModel.fromMap(doc.data, doc.$id))
+        .toList();
+
+    return PaginatedResponse(
+      items: items,
+      nextCursor: items.isNotEmpty ? items.last.id : null,
+      hasMore: items.length >= limit,
+    );
   }
 
   Future<ProductReviewStats> getProductStats(String productId) async {

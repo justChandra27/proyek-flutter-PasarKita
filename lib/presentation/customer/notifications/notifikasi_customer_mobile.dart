@@ -16,23 +16,85 @@ class _NotifikasiCustomerMobileState
     extends State<NotifikasiCustomerMobile> {
   final NotificationServiceAppwrite _service =
       NotificationServiceAppwrite();
-  late Future<List<NotificationModel>> _notifsFuture;
+  final ScrollController _scrollController = ScrollController();
+
+  List<NotificationModel> _notifs = [];
+  String? _cursor;
+  bool _hasMore = true;
+  bool _isLoading = true;
+  bool _isLoadingMore = false;
+  String? _userId;
 
   @override
   void initState() {
     super.initState();
-    _notifsFuture = _load();
+    _loadFirst();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_hasMore || _isLoadingMore) return;
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMore();
+    }
+  }
+
+  Future<void> _loadFirst() async {
+    setState(() {
+      _isLoading = true;
+      _cursor = null;
+      _hasMore = true;
+      _notifs = [];
+    });
+
+    try {
+      final account = await AuthServiceAppwrite().getCurrentUser();
+      _userId = account.$id;
+      final response = await _service.getNotificationsPage(
+        userId: account.$id,
+        cursor: null,
+        limit: 20,
+      );
+      _notifs = response.items;
+      _cursor = response.nextCursor;
+      _hasMore = response.hasMore;
+    } catch (_) {}
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_isLoadingMore || !_hasMore || _userId == null) return;
+    setState(() => _isLoadingMore = true);
+
+    try {
+      final response = await _service.getNotificationsPage(
+        userId: _userId!,
+        cursor: _cursor,
+        limit: 20,
+      );
+      _notifs.addAll(response.items);
+      _cursor = response.nextCursor;
+      _hasMore = response.hasMore;
+    } catch (_) {}
+
+    if (mounted) {
+      setState(() => _isLoadingMore = false);
+    }
   }
 
   void _refresh() {
-    setState(() {
-      _notifsFuture = _load();
-    });
-  }
-
-  Future<List<NotificationModel>> _load() async {
-    final account = await AuthServiceAppwrite().getCurrentUser();
-    return _service.getNotifications(account.$id);
+    _loadFirst();
   }
 
   String _formatTime(String iso) {
@@ -62,83 +124,77 @@ class _NotifikasiCustomerMobileState
         elevation: 0,
         foregroundColor: Colors.black,
         actions: [
-          FutureBuilder<List<NotificationModel>>(
-            future: _notifsFuture,
-            builder: (context, snapshot) {
-              final hasUnread = snapshot.data?.any((n) => !n.isRead) ?? false;
-              if (!hasUnread) return const SizedBox.shrink();
-              return TextButton(
-                onPressed: () async {
-                  final account =
-                      await AuthServiceAppwrite().getCurrentUser();
-                  await _service.markAllAsRead(account.$id);
-                  _refresh();
-                },
-                child: const Text('Tandai Semua Dibaca'),
-              );
-            },
-          ),
+          if (_notifs.any((n) => !n.isRead))
+            TextButton(
+              onPressed: () async {
+                if (_userId == null) return;
+                await _service.markAllAsRead(_userId!);
+                _refresh();
+              },
+              child: const Text('Tandai Semua Dibaca'),
+            ),
         ],
       ),
-      body: FutureBuilder<List<NotificationModel>>(
-        future: _notifsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _buildBody(),
+    );
+  }
 
-          if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Text(
-                  'Gagal memuat notifikasi:\n${snapshot.error}',
-                  style: const TextStyle(color: Colors.red),
-                  textAlign: TextAlign.center,
-                ),
+  Widget _buildBody() {
+    if (_notifs.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.notifications_off_outlined,
+                size: 64, color: Colors.grey.shade400),
+            const SizedBox(height: 16),
+            const Text(
+              'Belum ada notifikasi',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
               ),
-            );
-          }
-
-          final notifs = snapshot.data ?? [];
-
-          if (notifs.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.notifications_off_outlined,
-                      size: 64, color: Colors.grey.shade400),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Belum ada notifikasi',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Notifikasi akan muncul di sini ketika ada perubahan status pesanan.',
-                    style: TextStyle(color: Colors.grey.shade600),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return RefreshIndicator(
-            onRefresh: () async => _refresh(),
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: notifs.length,
-              itemBuilder: (context, index) {
-                final notif = notifs[index];
-                return _notifCard(notif);
-              },
             ),
-          );
+            const SizedBox(height: 8),
+            Text(
+              'Notifikasi akan muncul di sini ketika ada perubahan status pesanan.',
+              style: TextStyle(color: Colors.grey.shade600),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async => _refresh(),
+      child: ListView.builder(
+        controller: _scrollController,
+        padding: const EdgeInsets.all(16),
+        itemCount: _notifs.length + (_hasMore || _isLoadingMore ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index == _notifs.length) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: _isLoadingMore
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child:
+                            CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : TextButton.icon(
+                        onPressed: _loadMore,
+                        icon: const Icon(Icons.expand_more, size: 20),
+                        label: const Text('Muat lebih banyak'),
+                      ),
+              ),
+            );
+          }
+          return _notifCard(_notifs[index]);
         },
       ),
     );

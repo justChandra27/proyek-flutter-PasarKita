@@ -17,12 +17,31 @@ class DashboardCustomerWeb extends StatefulWidget {
 
 class _DashboardCustomerWebState
     extends State<DashboardCustomerWeb> {
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ProductFilterProvider>().loadProducts();
     });
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    final filter = context.read<ProductFilterProvider>();
+    if (!filter.hasMore || filter.isLoadingMore) return;
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      filter.loadMore();
+    }
   }
 
   String _formatPrice(double price) {
@@ -109,14 +128,45 @@ class _DashboardCustomerWebState
                     );
                   }
 
-                  return GridView.count(
-                    crossAxisCount: 4,
-                    crossAxisSpacing: 20,
-                    mainAxisSpacing: 20,
-                    childAspectRatio: 0.75,
-                    children: products
-                        .map((product) => _productCard(product))
-                        .toList(),
+                  return Column(
+                    children: [
+                      Expanded(
+                        child: GridView.count(
+                          controller: _scrollController,
+                          crossAxisCount: 4,
+                          crossAxisSpacing: 20,
+                          mainAxisSpacing: 20,
+                          childAspectRatio: 0.75,
+                          children: products
+                              .map((product) => _productCard(product))
+                              .toList(),
+                        ),
+                      ),
+                      if (filter.isLoadingMore)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: Center(
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2),
+                            ),
+                          ),
+                        )
+                      else if (filter.hasMore)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Center(
+                            child: TextButton.icon(
+                              onPressed: () => filter.loadMore(),
+                              icon: const Icon(Icons.expand_more,
+                                  size: 20),
+                              label: const Text('Muat lebih banyak'),
+                            ),
+                          ),
+                        ),
+                    ],
                   );
                 },
               ),
@@ -264,138 +314,18 @@ class _DashboardCustomerWebState
 
   void _showReviews(ProductModel product) async {
     final reviewService = ReviewServiceAppwrite();
-    final reviews = await reviewService.getProductReviews(product.id);
     final stats = await reviewService.getProductStats(product.id);
 
     if (!mounted) return;
 
     showDialog(
       context: context,
-      builder: (ctx) => Dialog(
-        insetPadding: const EdgeInsets.symmetric(horizontal: 200, vertical: 40),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.star, color: Colors.amber, size: 32),
-                  const SizedBox(width: 8),
-                  Text(
-                    stats.averageRating.toStringAsFixed(1),
-                    style: const TextStyle(
-                        fontSize: 28, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '(${stats.reviewCount} ulasan)',
-                    style: const TextStyle(color: Colors.grey, fontSize: 16),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(ctx),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Ulasan ${product.name}',
-                style: const TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              if (reviews.isEmpty)
-                const Expanded(
-                  child: Center(child: Text('Belum ada ulasan')),
-                )
-              else
-                Flexible(
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: reviews.length,
-                    separatorBuilder: (_, __) => const Divider(),
-                    itemBuilder: (_, i) {
-                      final r = reviews[i];
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                CircleAvatar(
-                                  radius: 18,
-                                  child: Text(
-                                    r.userName.isNotEmpty
-                                        ? r.userName[0].toUpperCase()
-                                        : '?',
-                                    style: const TextStyle(fontSize: 14),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(r.userName,
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.w600)),
-                                      Row(
-                                        children: List.generate(5, (j) {
-                                          return Icon(
-                                            j < r.rating
-                                                ? Icons.star
-                                                : Icons.star_border,
-                                            color: Colors.amber,
-                                            size: 16,
-                                          );
-                                        }),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Text(
-                                  _formatDate(r.createdAt),
-                                  style: const TextStyle(
-                                      fontSize: 12, color: Colors.grey),
-                                ),
-                              ],
-                            ),
-                            if (r.comment != null &&
-                                r.comment!.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                    left: 44, top: 6),
-                                child: Text(r.comment!),
-                              ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-            ],
-          ),
-        ),
+      builder: (ctx) => _ReviewDialog(
+        productName: product.name,
+        productId: product.id,
+        initialStats: stats,
       ),
     );
-  }
-
-  String _formatDate(String isoDate) {
-    try {
-      final date = DateTime.parse(isoDate);
-      final months = [
-        '', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-        'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
-      ];
-      return '${date.day} ${months[date.month]} ${date.year}';
-    } catch (_) {
-      return isoDate;
-    }
   }
 
   Widget _productCard(ProductModel product) {
@@ -527,6 +457,236 @@ class _DashboardCustomerWebState
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ReviewDialog extends StatefulWidget {
+  final String productName;
+  final String productId;
+  final ProductReviewStats initialStats;
+
+  const _ReviewDialog({
+    required this.productName,
+    required this.productId,
+    required this.initialStats,
+  });
+
+  @override
+  State<_ReviewDialog> createState() => _ReviewDialogState();
+}
+
+class _ReviewDialogState extends State<_ReviewDialog> {
+  final ReviewServiceAppwrite _reviewService = ReviewServiceAppwrite();
+  final ScrollController _scrollController = ScrollController();
+
+  List<ReviewModel> _reviews = [];
+  String? _cursor;
+  bool _hasMore = true;
+  bool _isLoadingMore = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFirst();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_hasMore || _isLoadingMore) return;
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMore();
+    }
+  }
+
+  Future<void> _loadFirst() async {
+    final response = await _reviewService.getProductReviewsPage(
+      productId: widget.productId,
+      cursor: null,
+      limit: 10,
+    );
+    if (!mounted) return;
+    setState(() {
+      _reviews = response.items;
+      _cursor = response.nextCursor;
+      _hasMore = response.hasMore;
+    });
+  }
+
+  Future<void> _loadMore() async {
+    if (_isLoadingMore || !_hasMore) return;
+    setState(() => _isLoadingMore = true);
+
+    try {
+      final response = await _reviewService.getProductReviewsPage(
+        productId: widget.productId,
+        cursor: _cursor,
+        limit: 10,
+      );
+      _reviews.addAll(response.items);
+      _cursor = response.nextCursor;
+      _hasMore = response.hasMore;
+    } catch (_) {}
+
+    if (mounted) {
+      setState(() => _isLoadingMore = false);
+    }
+  }
+
+  String _formatDate(String isoDate) {
+    try {
+      final date = DateTime.parse(isoDate);
+      final months = [
+        '', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+        'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+      ];
+      return '${date.day} ${months[date.month]} ${date.year}';
+    } catch (_) {
+      return isoDate;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 200, vertical: 40),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.star, color: Colors.amber, size: 32),
+                const SizedBox(width: 8),
+                Text(
+                  widget.initialStats.averageRating.toStringAsFixed(1),
+                  style: const TextStyle(
+                      fontSize: 28, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '(${widget.initialStats.reviewCount} ulasan)',
+                  style: const TextStyle(color: Colors.grey, fontSize: 16),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Ulasan ${widget.productName}',
+              style: const TextStyle(
+                  fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            if (_reviews.isEmpty && !_isLoadingMore)
+              const Expanded(
+                child: Center(child: Text('Belum ada ulasan')),
+              )
+            else
+              Flexible(
+                child: ListView.builder(
+                  controller: _scrollController,
+                  itemCount: _reviews.length +
+                      (_hasMore || _isLoadingMore ? 1 : 0),
+                  itemBuilder: (_, i) {
+                    if (i == _reviews.length) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Center(
+                          child: _isLoadingMore
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2),
+                                )
+                              : TextButton.icon(
+                                  onPressed: _loadMore,
+                                  icon: const Icon(Icons.expand_more,
+                                      size: 20),
+                                  label:
+                                      const Text('Muat lebih banyak'),
+                                ),
+                        ),
+                      );
+                    }
+                    final r = _reviews[i];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 18,
+                                child: Text(
+                                  r.userName.isNotEmpty
+                                      ? r.userName[0].toUpperCase()
+                                      : '?',
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(r.userName,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w600)),
+                                    Row(
+                                      children: List.generate(5, (j) {
+                                        return Icon(
+                                          j < r.rating
+                                              ? Icons.star
+                                              : Icons.star_border,
+                                          color: Colors.amber,
+                                          size: 16,
+                                        );
+                                      }),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Text(
+                                _formatDate(r.createdAt),
+                                style: const TextStyle(
+                                    fontSize: 12, color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                          if (r.comment != null &&
+                              r.comment!.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                  left: 44, top: 6),
+                              child: Text(r.comment!),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

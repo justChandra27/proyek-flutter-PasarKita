@@ -1,185 +1,53 @@
-# Tahap 9 — Rating & Ulasan Produk — Selesai
+# Gap Analysis: Seller Orders Web vs Mobile
 
-## 1. File yang Diubah/Dibuat
+## Tabel Perbandingan
 
-| File | Tindakan | Keterangan |
-|---|---|---|
-| `lib/core/appwrite/appwrite_config.dart` | DIUBAH | Tambah `reviewsCollectionId = 'reviews'` |
-| `lib/data/models/review_model.dart` | DIBUAT | `ReviewModel` + `ProductReviewStats` |
-| `lib/core/services/review_service_appwrite.dart` | DIBUAT | `ReviewServiceAppwrite` (5 method) |
-| `lib/providers/product_filter_provider.dart` | DIUBAH | Integrasi `_loadReviewStats()` batch + `reviewStats` getter |
-| `lib/presentation/customer/orders/detail_pesanan_customer.dart` | DIUBAH | Tombol "Beri Ulasan" + form dialog utk setiap item di completed order |
-| `lib/presentation/customer/dashboard/dashboard_customer_mobile.dart` | DIUBAH | Rating ⭐ pada kartu produk + bottom sheet daftar review |
-| `lib/presentation/customer/dashboard/dashboard_customer_web.dart` | DIUBAH | Rating ⭐ pada kartu produk + dialog daftar review |
+| # | Fitur | Web | Mobile | Gap |
+|---|-------|:---:|:------:|:---:|
+| 1 | **Search** | ✅ `_searchController`, filter by orderCode & customerName | ❌ Tidak ada | Mobile tidak punya search |
+| 2 | **Tab Status** | ✅ 5 tab (Semua/Pending/Shipped/Completed/Cancelled) dengan state | ⚠️ 4 tab hardcoded semua `false`, tidak ada `setState` | Tab mobile statis, tidak menyaring data |
+| 3 | **Sorting** | ✅ PopupMenu: Terbaru/Terlama/Total Tertinggi/Terendah | ❌ Tidak ada | Mobile tidak punya sorting |
+| 4 | **Advanced Filter** | ✅ Dialog: multi-status, date range, min-max total | ❌ Tidak ada | Mobile tidak punya filter |
+| 5 | **Detail Pesanan** | ✅ `_showDetailDialog` (order info + items) | ❌ Tidak ada | Mobile tidak punya detail view |
+| 6 | **Update Status** | ✅ `_StatusButton` + PopupMenu + `_updateOrderStatus` + `_loadOrders` refresh | ✅ `_StatusActions` + `ElevatedButton` + `updateOrderStatus` + SnackBar | ✅ Setara |
+| 7 | **Hubungi Pembeli** | ✅ `_showContactDialog` (WhatsApp/Telepon) | ❌ Tidak ada | Mobile tidak punya contact |
+| 8 | **Export CSV** | ✅ `_exportCsv()` via `dart:html` | ❌ Tidak ada | Mobile tidak punya export (wajar — file-based, not CSV for mobile) |
+| 9 | **Pagination** | ✅ `_pagedOrders`, dynamic footer, page buttons | ❌ Tidak ada | Mobile render semua order dalam satu ListView |
 
-## 2. Struktur Model Review
+## Fitur yang Belum Ada di Mobile (6 fitur)
 
-```dart
-class ReviewModel {
-  final String id;
-  final String productId;
-  final String orderId;
-  final String userId;
-  final String userName;
-  final int rating;
-  final String? comment;
-  final String createdAt;
+| Fitur | Kompleksitas | Risiko | Prioritas |
+|-------|:-----------:|:------:|:--------:|
+| Search | Rendah | Rendah | **P1** |
+| Tab Status (fungsional) | Rendah | Rendah | **P1** |
+| Sorting | Rendah | Rendah | **P2** |
+| Detail Pesanan | Rendah | Rendah | **P2** |
+| Hubungi Pembeli | Rendah | Rendah | **P2** |
+| Advanced Filter | Sedang | Rendah | **P3** |
+| Pagination | Sedang | Rendah | **P3** |
+| Export CSV | — | — | Tidak relevan (CSV khas web) |
 
-  factory ReviewModel.fromMap(Map<String, dynamic> map, String docId);
-  Map<String, dynamic> toMap();
-}
+## Estimasi Effort
 
-class ProductReviewStats {
-  final double averageRating;
-  final int reviewCount;
-  factory ProductReviewStats.empty();
-}
-```
+| Fitur | Jam | Keterangan |
+|-------|:---:|------------|
+| Search + Tab + Sort | 1–2 | State + getter sederhana, reuse pola web |
+| Detail Pesanan + Hubungi | 1–2 | Dialog sederhana |
+| Advanced Filter | 2–3 | Dialog multi-field, date picker |
+| Pagination | 2–3 | State page, getter, footer widget |
 
-## 3. Struktur Service Review
+**Total: ~6–10 jam**
 
-```dart
-class ReviewServiceAppwrite {
-  Future<ReviewModel> createReview({productId, orderId, userId, userName, rating, comment});
+## Rekomendasi Urutan Pengerjaan
 
-  Future<List<ReviewModel>> getProductReviews(String productId);
+1. **Search + Tab Status + Sorting** — state minimal, dampak besar
+2. **Detail Pesanan + Hubungi Pembeli** — reuse `_OrderCard` yang sudah ada
+3. **Advanced Filter** — reuse pola web, butuh dialog
+4. **Pagination** — butuh restrukturisasi dari `FutureBuilder` ke stateful list
 
-  Future<ProductReviewStats> getProductStats(String productId);
+## Catatan
 
-  // Batch — 1 query untuk semua produk di dashboard
-  Future<Map<String, ProductReviewStats>> getProductsStats(List<String> productIds);
-
-  // Cegah review duplikat per productId+orderId+userId
-  Future<bool> hasReviewed({productId, orderId, userId});
-}
-```
-
-## 4. Validasi Hak Review
-
-Lokasi: `detail_pesanan_customer.dart` di dalam `_productCard`
-
-- **Tombol hanya muncul** jika `order.status.toLowerCase() == 'completed'`
-- **Per-item**: setiap `OrderItemModel` dicek via `FutureBuilder` untuk `hasReviewed(productId, orderId, customerId)`:
-  - `true` → tampilkan teks hijau "✓ Sudah diulas"
-  - `false` → tampilkan tombol "Beri Ulasan"
-- **Saat submit**: form memanggil `createReview(...)` — `hasReviewed` sudah dicek sebelumnya jadi duplikat tercegah di UI
-
-## 5. Cuplikan Kode Utama
-
-**ReviewServiceAppwrite — getProductsStats (batch):**
-```dart
-Future<Map<String, ProductReviewStats>> getProductsStats(List<String> productIds) async {
-  final result = await databases.listDocuments(
-    databaseId: AppwriteConfig.databaseId,
-    collectionId: AppwriteConfig.reviewsCollectionId,
-    queries: [Query.equal('productId', productIds)],
-  );
-  // group by productId, compute avg + count
-}
-```
-
-**ProductFilterProvider — loadReviewStats:**
-```dart
-Future<void> _loadReviewStats() async {
-  final productIds = _allProducts.map((p) => p.id).toList();
-  _reviewStats = await _reviewService.getProductsStats(productIds);
-  notifyListeners();
-}
-```
-
-**DetailPesananCustomer — form review (dialog):**
-```dart
-void _showReviewForm({productId, productName, orderId, userId, userName}) {
-  int rating = 5;
-  showDialog(context: context, builder: (ctx) => StatefulBuilder(
-    builder: (ctx, setDialogState) => AlertDialog(
-      title: 'Beri Ulasan',
-      content: Column(
-        // nama produk, rating 5 bintang, komentar TextField
-      ),
-      actions: [TextButton('Batal'), ElevatedButton('Kirim')],
-    ),
-  ));
-}
-```
-
-**Kartu Produk — rating row:**
-```dart
-Widget _ratingRow(ProductModel product, double avg, int count) {
-  return GestureDetector(
-    onTap: () => _showReviews(product),  // bottom sheet / dialog
-    child: Row(children: [
-      Icon(Icons.star, color: Colors.amber, size: 14),
-      Text('${avg.toStringAsFixed(1)}'),
-      Text('($count)'),
-    ]),
-  );
-}
-```
-
-## 6. Hasil flutter analyze
-
-```
-31 issues found (0 error, 2 warning, 29 info)
-```
-
-- **0 error baru** — semuanya pre-existing
-- **2 warning baru** — juga pre-existing:
-  - `lib/presentation/admin/widgets/admin_layout.dart:41` — `unused_local_variable` (sebelum Tahap 9)
-  - `lib/presentation/seller/products/form_produk_seller_web.dart:443` — `unused_element`
-  - `lib/presentation/seller/products/widgets/product_table.dart:135` — `unused_label`
-- **29 info** — pre-existing (`avoid_print`, `use_build_context_synchronously`, `deprecated_member_use`, `unnecessary_underscores`)
-
-## 7. Risiko yang Masih Tersisa
-
-1. **Collection `reviews` belum dibuat di Appwrite Console** — harus dibuat manual di `sgp.cloud.appwrite.io` dengan atribut: `productId` (string), `orderId` (string), `userId` (string), `userName` (string), `rating` (integer), `comment` (string, opsional), `createdAt` (string).
-2. **Document Security** untuk collection `reviews` harus OFF (atau diatur read/write yg sesuai).
-3. **Index** disarankan untuk `productId`, `orderId`, `userId` (masing-masing) agar query batch `getProductsStats` efisien.
-4. **Tidak ada pagination** untuk daftar review — jika satu produk punya >100 review, hanya terbaca batch pertama (Appwrite default limit 25). Perlu ditambah `Query.limit()` dan `Query.offset()` jika dibutuhkan.
-5. **`_loadReviewStats` gagal silent** — jika service error, review stats tidak tampil. Ini sengaja agar produk tetap bisa dimuat walau review error.
-
-## 8. Perubahan Spesifik per File
-
-### `lib/core/appwrite/appwrite_config.dart`
-Tambah `static const String reviewsCollectionId = 'reviews';`
-
-### `lib/data/models/review_model.dart` (BARU)
-- `ReviewModel` — id, productId, orderId, userId, userName, rating, comment (opsional), createdAt
-- `ProductReviewStats` — averageRating, reviewCount, ProductReviewStats.empty()
-
-### `lib/core/services/review_service_appwrite.dart` (BARU)
-- `createReview()` — insert dokumen ke collection `reviews`
-- `getProductReviews(productId)` — list DESC by createdAt
-- `getProductStats(productId)` — avg + count (single product)
-- `getProductsStats(productIds)` — batch stats untuk semua produk di dashboard (1 query, grouping in-memory)
-- `hasReviewed(productId, orderId, userId)` — cek apakah review sudah ada
-
-### `lib/providers/product_filter_provider.dart`
-- Tambah `ReviewServiceAppwrite` sebagai field
-- Tambah `Map<String, ProductReviewStats> _reviewStats`
-- Tambah getter `reviewStats` dan `reviewService`
-- `loadProducts()` → setelah load + filter, panggil `_loadReviewStats()` (async, silent fail)
-
-### `lib/presentation/customer/orders/detail_pesanan_customer.dart`
-- Import `ReviewServiceAppwrite`
-- Tambah `_reviewService` field di State
-- `_productCard(order, items)` — signature berubah (tambah param `order`)
-- Untuk setiap item: jika order completed, `FutureBuilder<bool>` untuk `hasReviewed`:
-  - loading → spinner kecil
-  - false → tombol "Beri Ulasan"
-  - true → teks "✓ Sudah diulas"
-- `_showReviewForm()` — dialog AlertDialog dengan rating 5 bintang + komentar TextField
-  - Submit → `createReview()` → snackbar sukses/gagal → refresh (setState)
-
-### `lib/presentation/customer/dashboard/dashboard_customer_mobile.dart`
-- Tambah `_ratingRow()` — menampilkan ⭐ avg (count), tappable → bottom sheet reviews
-- Tambah `_showReviews()` — bottom sheet `DraggableScrollableSheet`:
-  - Header: avg rating + count
-  - ListView: avatar, nama, rating bintang, komentar, tanggal
-- Tambah `_formatDate()` — helper
-- `_productCard()` — baca `filter.reviewStats[product.id]` → tampilkan `_ratingRow()` jika ada review
-
-### `lib/presentation/customer/dashboard/dashboard_customer_web.dart`
-- Sama seperti mobile, tapi pakai `Dialog` bukan bottom sheet
-- `_ratingRow()` — tappable → `_showReviews()` dialog
-- Sisa sama dengan mobile
+- **Update Status** sudah setara di mobile (`_StatusActions`) — tidak perlu diubah.
+- **Export CSV** tidak relevan untuk mobile — skip.
+- Semua fitur bisa pakai service/models yang sudah ada — tidak perlu backend change.
+- Mobile pakai `FutureBuilder` (tidak seperti web yang pakai `setState` manual) — perlu perhatikan transisi saat tambah pagination.

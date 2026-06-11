@@ -59,9 +59,7 @@ class FormKategoriSellerWeb extends StatelessWidget {
 
                 const CircleAvatar(
                   radius: 20,
-                  backgroundImage: NetworkImage(
-                    "https://i.pravatar.cc/150",
-                  ),
+                  child: Icon(Icons.person),
                 ),
               ],
             ),
@@ -368,7 +366,6 @@ class FormKategoriSellerWeb extends StatelessWidget {
 
   Widget _performanceCard() {
     return Container(
-      height: 130,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -388,6 +385,7 @@ class FormKategoriSellerWeb extends StatelessWidget {
           const SizedBox(height: 20),
 
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: _performanceItem(
@@ -459,7 +457,6 @@ class FormKategoriSellerWeb extends StatelessWidget {
 
   Widget _tipsCard() {
     return Container(
-      height: 130,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: const Color(0xff1D4ED8),

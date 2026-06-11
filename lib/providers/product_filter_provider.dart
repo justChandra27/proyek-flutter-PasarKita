@@ -12,6 +12,7 @@ class ProductFilterProvider extends ChangeNotifier {
   List<ProductModel> _allProducts = [];
   List<ProductModel> _filteredProducts = [];
   bool _isLoading = false;
+  bool _isLoadingMore = false;
   String? _error;
 
   String _searchQuery = '';
@@ -22,12 +23,18 @@ class ProductFilterProvider extends ChangeNotifier {
 
   Map<String, ProductReviewStats> _reviewStats = {};
 
+  String? _cursor;
+  bool _hasMore = true;
+  static const int _pageSize = 20;
+
   List<ProductModel> get products => _filteredProducts;
   List<String> get categories => _categories;
   String get searchQuery => _searchQuery;
   String get selectedCategory => _selectedCategory;
   String get stockFilter => _stockFilter;
   bool get isLoading => _isLoading;
+  bool get isLoadingMore => _isLoadingMore;
+  bool get hasMore => _hasMore;
   String? get error => _error;
   Map<String, ProductReviewStats> get reviewStats => _reviewStats;
   ReviewServiceAppwrite get reviewService => _reviewService;
@@ -35,10 +42,20 @@ class ProductFilterProvider extends ChangeNotifier {
   Future<void> loadProducts() async {
     _isLoading = true;
     _error = null;
+    _cursor = null;
+    _hasMore = true;
+    _allProducts = [];
+    _filteredProducts = [];
     notifyListeners();
 
     try {
-      _allProducts = await _service.getAllProducts();
+      final response = await _service.getProductsPage(
+        cursor: null,
+        limit: _pageSize,
+      );
+      _allProducts = response.items;
+      _cursor = response.nextCursor;
+      _hasMore = response.hasMore;
       _extractCategories();
       _applyFilters();
       _loadReviewStats();
@@ -47,6 +64,29 @@ class ProductFilterProvider extends ChangeNotifier {
     }
 
     _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> loadMore() async {
+    if (_isLoadingMore || !_hasMore) return;
+    _isLoadingMore = true;
+    notifyListeners();
+
+    try {
+      final response = await _service.getProductsPage(
+        cursor: _cursor,
+        limit: _pageSize,
+      );
+      _allProducts.addAll(response.items);
+      _cursor = response.nextCursor;
+      _hasMore = response.hasMore;
+      _extractCategories();
+      _applyFilters();
+    } catch (_) {
+      // silently fail — user can retry by scrolling again
+    }
+
+    _isLoadingMore = false;
     notifyListeners();
   }
 
