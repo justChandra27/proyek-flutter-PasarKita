@@ -70,7 +70,6 @@ class _FormKategoriWebState extends State<FormKategoriWeb> {
   Future<void> showAddCategoryDialog() async {
     final nameController = TextEditingController();
     final descriptionController = TextEditingController();
-    final imageController = TextEditingController();
 
     await showDialog(
       context: context,
@@ -93,13 +92,6 @@ class _FormKategoriWebState extends State<FormKategoriWeb> {
                   controller: descriptionController,
                   decoration: const InputDecoration(labelText: "Deskripsi"),
                 ),
-
-                const SizedBox(height: 12),
-
-                TextField(
-                  controller: imageController,
-                  decoration: const InputDecoration(labelText: "Image URL"),
-                ),
               ],
             ),
           ),
@@ -120,7 +112,6 @@ class _FormKategoriWebState extends State<FormKategoriWeb> {
                   data: {
                     "name": nameController.text,
                     "description": descriptionController.text,
-                    "imageUrl": imageController.text,
                     "productCount": 0,
                     "status": "active",
                   },
