@@ -276,7 +276,7 @@ class CartCustomerMobile extends StatelessWidget {
                           fit: BoxFit.cover,
                           width: double.infinity,
                           height: double.infinity,
-                          errorBuilder: (_, __, ___) =>
+                          errorBuilder: (_, _, _) =>
                               const Icon(
                             Icons.image,
                             size: 40,

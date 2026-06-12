@@ -600,7 +600,7 @@ class _FormPesananSellerWebState
             ],
           ),
           const SizedBox(width: 12),
-          _StatusButton(order: order, sellerId: sellerId),
+          _StatusButton(order: order, sellerId: sellerId, onStatusChanged: _loadOrders),
           const SizedBox(width: 8),
           PopupMenuButton<String>(
             onSelected: (value) => _handleOrderAction(value, order, items, sellerId),
@@ -1242,8 +1242,9 @@ class _FormPesananSellerWebState
 class _StatusButton extends StatelessWidget {
   final OrderModel order;
   final String sellerId;
+  final VoidCallback? onStatusChanged;
 
-  const _StatusButton({required this.order, required this.sellerId});
+  const _StatusButton({required this.order, required this.sellerId, this.onStatusChanged});
 
   String? _nextStatus(String current) {
     switch (current.toLowerCase()) {
@@ -1299,6 +1300,7 @@ class _StatusButton extends StatelessWidget {
             sellerId: sellerId,
           );
           if (!context.mounted) return;
+          onStatusChanged?.call();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Status berhasil diubah'),

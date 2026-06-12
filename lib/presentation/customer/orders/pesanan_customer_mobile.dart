@@ -11,24 +11,50 @@ class PesananCustomerMobile extends StatefulWidget {
   const PesananCustomerMobile({super.key});
 
   @override
-  State<PesananCustomerMobile> createState() =>
-      _PesananCustomerMobileState();
+  State<PesananCustomerMobile> createState() => PesananCustomerMobileState();
 }
 
-class _PesananCustomerMobileState
+class PesananCustomerMobileState
     extends State<PesananCustomerMobile> {
   final OrderServiceAppwrite _orderService = OrderServiceAppwrite();
-  late Future<List<OrderModel>> _ordersFuture;
+  List<OrderModel> _orders = [];
+  bool _isLoading = true;
+  String? _error;
+  String _activeTab = 'semua';
+
+  List<OrderModel> get _filteredOrders {
+    if (_activeTab == 'semua') return _orders;
+    return _orders.where((o) {
+      switch (_activeTab) {
+        case 'berlangsung':
+          return ['pending', 'processing'].contains(o.status.toLowerCase());
+        case 'dikirim':
+          return o.status.toLowerCase() == 'shipped';
+        case 'selesai':
+          return ['completed', 'delivered'].contains(o.status.toLowerCase());
+        default:
+          return true;
+      }
+    }).toList();
+  }
 
   @override
   void initState() {
     super.initState();
-    _ordersFuture = _loadOrders();
+    _loadOrders();
   }
 
-  Future<List<OrderModel>> _loadOrders() async {
-    final account = await AuthServiceAppwrite().getCurrentUser();
-    return _orderService.getOrdersByCustomer(account.$id);
+  void refresh() => _loadOrders();
+
+  Future<void> _loadOrders() async {
+    setState(() { _isLoading = true; _error = null; });
+    try {
+      final account = await AuthServiceAppwrite().getCurrentUser();
+      final orders = await _orderService.getOrdersByCustomer(account.$id);
+      if (mounted) setState(() { _orders = orders; _isLoading = false; });
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString(); _isLoading = false; });
+    }
   }
 
   String _formatPrice(int price) {
@@ -90,70 +116,49 @@ class _PesananCustomerMobileState
                   scrollDirection:
                       Axis.horizontal,
                   children: [
-                    _tab("Semua", true),
-                    _tab("Berlangsung", false),
-                    _tab("Dikirim", false),
-                    _tab("Selesai", false),
+                    _tab("Semua", _activeTab == 'semua', 'semua'),
+                    _tab("Berlangsung", _activeTab == 'berlangsung', 'berlangsung'),
+                    _tab("Dikirim", _activeTab == 'dikirim', 'dikirim'),
+                    _tab("Selesai", _activeTab == 'selesai', 'selesai'),
                   ],
                 ),
               ),
               const SizedBox(height: 24),
-              FutureBuilder<List<OrderModel>>(
-                future: _ordersFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState ==
-                      ConnectionState.waiting) {
-                    return const SizedBox(
+              _isLoading
+                  ? const SizedBox(
                       height: 200,
-                      child: Center(
-                        child:
-                            CircularProgressIndicator(),
-                      ),
-                    );
-                  }
-
-                  if (snapshot.hasError) {
-                    return SizedBox(
-                      height: 200,
-                      child: Center(
-                        child: Text(
-                          "Gagal memuat pesanan: ${snapshot.error}",
-                          style: const TextStyle(
-                            color: Colors.red,
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  : _error != null
+                      ? SizedBox(
+                          height: 200,
+                          child: Center(
+                            child: Text(
+                              "Gagal memuat pesanan: $_error",
+                              style: const TextStyle(color: Colors.red),
+                              textAlign: TextAlign.center,
+                            ),
                           ),
-                          textAlign:
-                              TextAlign.center,
-                        ),
-                      ),
-                    );
-                  }
-
-                  final orders =
-                      snapshot.data ?? [];
-
-                  if (orders.isEmpty) {
-                    return const SizedBox(
-                      height: 200,
-                      child: Center(
-                        child: Text(
-                          "Belum ada pesanan",
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                    );
-                  }
-
-                  return Column(
-                    children: orders
-                        .map((order) =>
-                            _orderCard(order))
-                        .toList(),
-                  );
-                },
-              ),
+                        )
+                      : _filteredOrders.isEmpty
+                          ? const SizedBox(
+                              height: 200,
+                              child: Center(
+                                child: Text(
+                                  "Belum ada pesanan",
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                            )
+                          : Column(
+                              children: _filteredOrders
+                                  .map((order) =>
+                                      _orderCard(order))
+                                  .toList(),
+                            ),
               const SizedBox(height: 20),
             ],
           ),
@@ -162,33 +167,36 @@ class _PesananCustomerMobileState
     );
   }
 
-  Widget _tab(String text, bool active) {
-    return Container(
-      margin: const EdgeInsets.only(right: 10),
-      padding: const EdgeInsets.symmetric(
-        horizontal: 24,
-      ),
-      decoration: BoxDecoration(
-        color: active
-            ? Colors.white
-            : Colors.transparent,
-        borderRadius:
-            BorderRadius.circular(25),
-        border: Border.all(
-          color: active
-              ? const Color(0xff2563EB)
-              : Colors.grey.shade300,
+  Widget _tab(String text, bool active, String tabKey) {
+    return GestureDetector(
+      onTap: () => setState(() => _activeTab = tabKey),
+      child: Container(
+        margin: const EdgeInsets.only(right: 10),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 24,
         ),
-      ),
-      child: Center(
-        child: Text(
-          text,
-          style: TextStyle(
+        decoration: BoxDecoration(
+          color: active
+              ? Colors.white
+              : Colors.transparent,
+          borderRadius:
+              BorderRadius.circular(25),
+          border: Border.all(
             color: active
                 ? const Color(0xff2563EB)
-                : Colors.black54,
-            fontWeight:
-                active ? FontWeight.bold : null,
+                : Colors.grey.shade300,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            text,
+            style: TextStyle(
+              color: active
+                  ? const Color(0xff2563EB)
+                  : Colors.black54,
+              fontWeight:
+                  active ? FontWeight.bold : null,
+            ),
           ),
         ),
       ),
@@ -199,13 +207,14 @@ class _PesananCustomerMobileState
     final color = _statusColor(order.status);
 
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => DetailPesananCustomer(orderId: order.id),
           ),
         );
+        _loadOrders();
       },
       child: Container(
         width: double.infinity,

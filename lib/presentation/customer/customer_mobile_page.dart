@@ -25,18 +25,20 @@ class _CustomerMobilePageState
   int _unreadCount = 0;
   final NotificationServiceAppwrite _notifService =
       NotificationServiceAppwrite();
+  final GlobalKey<PesananCustomerMobileState> _pesananKey = GlobalKey();
 
-  final pages = const [
-    DashboardCustomerMobile(),
-    CartCustomerMobile(),
-    PesananCustomerMobile(),
-    NotifikasiCustomerMobile(),
-    ProfileCustomerMobile(),
-  ];
+  late final List<Widget> pages;
 
   @override
   void initState() {
     super.initState();
+    pages = [
+      const DashboardCustomerMobile(),
+      const CartCustomerMobile(),
+      PesananCustomerMobile(key: _pesananKey),
+      const NotifikasiCustomerMobile(),
+      const ProfileCustomerMobile(),
+    ];
     _loadUnreadCount();
   }
 
@@ -59,6 +61,7 @@ class _CustomerMobilePageState
           setState(() {
             selectedIndex = index;
           });
+          if (index == 2) _pesananKey.currentState?.refresh();
           if (index == 3) _loadUnreadCount();
         },
         unreadNotifCount: _unreadCount,

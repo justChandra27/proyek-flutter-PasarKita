@@ -5,12 +5,12 @@ import '../../../../data/models/product_model.dart';
 import '../../../../core/services/product_service_appwrite.dart';
 import '../product_form_page.dart';
 import '../../../../core/services/storage_service_appwrite.dart';
-import '../form_produk_seller_web.dart';
 
 class ProductTable extends StatelessWidget {
   final List<ProductModel> products;
+  final VoidCallback? onProductChanged;
 
-  const ProductTable({super.key, required this.products});
+  const ProductTable({super.key, required this.products, this.onProductChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -131,25 +131,16 @@ class ProductTable extends StatelessWidget {
                   // EDIT
                   IconButton(
                     tooltip: "Edit Produk",
-                    onPressed: () {
-                      onPressed:
-                      () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ProductFormPage(product: product),
-                          ),
-                        );
-
-                        if (context.mounted) {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const FormProdukSellerWeb(),
-                            ),
-                          );
-                        }
-                      };
+                    onPressed: () async {
+                      final result = await Navigator.push<bool>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ProductFormPage(product: product),
+                        ),
+                      );
+                      if (result == true) {
+                        onProductChanged?.call();
+                      }
                     },
                     icon: const Icon(Icons.edit_outlined),
                   ),
@@ -206,6 +197,7 @@ class ProductTable extends StatelessWidget {
                             ),
                           );
                         }
+                        onProductChanged?.call();
                       } catch (e) {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(

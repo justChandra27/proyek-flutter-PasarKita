@@ -360,7 +360,7 @@ class _DashboardCustomerWebState
                             fit: BoxFit.cover,
                             width: double.infinity,
                             height: double.infinity,
-                            errorBuilder: (_, __, ___) => const SizedBox(),
+                            errorBuilder: (_, _, _) => const SizedBox(),
                           ),
                         )
                       : const SizedBox(),

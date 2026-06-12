@@ -6,9 +6,14 @@ import 'widgets/product_card.dart';
 import 'widgets/seller_product_builder.dart';
 import 'product_form_page.dart';
 
-class FormProdukSellerMobile extends StatelessWidget {
+class FormProdukSellerMobile extends StatefulWidget {
   const FormProdukSellerMobile({super.key});
 
+  @override
+  State<FormProdukSellerMobile> createState() => _FormProdukSellerMobileState();
+}
+
+class _FormProdukSellerMobileState extends State<FormProdukSellerMobile> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -78,13 +83,16 @@ class FormProdukSellerMobile extends StatelessWidget {
                       ),
 
                       ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
+                        onPressed: () async {
+                          final result = await Navigator.push<bool>(
                             context,
                             MaterialPageRoute(
                               builder: (_) => const ProductFormPage(),
                             ),
                           );
+                          if (result == true && mounted) {
+                            setState(() {});
+                          }
                         },
                         icon: const Icon(Icons.add, size: 18),
                         label: const Text("Tambah"),
@@ -132,7 +140,12 @@ class FormProdukSellerMobile extends StatelessWidget {
                     itemCount: products.length,
                     separatorBuilder: (_, _) => const SizedBox(height: 14),
                     itemBuilder: (context, index) {
-                      return ProductCard(product: products[index]);
+                      return ProductCard(
+                        product: products[index],
+                        onProductChanged: () {
+                          if (mounted) setState(() {});
+                        },
+                      );
                     },
                   );
                 },

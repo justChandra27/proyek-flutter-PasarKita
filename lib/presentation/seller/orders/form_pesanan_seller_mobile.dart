@@ -355,6 +355,7 @@ class _FormPesananSellerMobileState
             statusLabel: _statusLabel,
             onDetail: () => _showDetailBottomSheet(order, items),
             onContact: () => _showContactBottomSheet(order),
+            onStatusChanged: () => _loadOrders(),
           );
         }),
         const SizedBox(height: 100),
@@ -601,6 +602,7 @@ class _OrderCard extends StatelessWidget {
   final String Function(String) statusLabel;
   final VoidCallback? onDetail;
   final VoidCallback? onContact;
+  final VoidCallback? onStatusChanged;
 
   const _OrderCard({
     required this.order,
@@ -612,6 +614,7 @@ class _OrderCard extends StatelessWidget {
     required this.statusLabel,
     this.onDetail,
     this.onContact,
+    this.onStatusChanged,
   });
 
   @override
@@ -771,7 +774,7 @@ class _OrderCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            _StatusActions(order: order, sellerId: sellerId),
+            _StatusActions(order: order, sellerId: sellerId, onStatusChanged: onStatusChanged),
           ],
         ),
       ),
@@ -782,8 +785,9 @@ class _OrderCard extends StatelessWidget {
 class _StatusActions extends StatelessWidget {
   final OrderModel order;
   final String sellerId;
+  final VoidCallback? onStatusChanged;
 
-  const _StatusActions({required this.order, required this.sellerId});
+  const _StatusActions({required this.order, required this.sellerId, this.onStatusChanged});
 
   String? _nextStatus(String current) {
     switch (current.toLowerCase()) {
@@ -834,6 +838,7 @@ class _StatusActions extends StatelessWidget {
               sellerId: sellerId,
             );
             if (!context.mounted) return;
+            onStatusChanged?.call();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Status berhasil diubah ke ${_nextLabel(order.status)}'),

@@ -11,24 +11,50 @@ class PesananCustomerWeb extends StatefulWidget {
   const PesananCustomerWeb({super.key});
 
   @override
-  State<PesananCustomerWeb> createState() =>
-      _PesananCustomerWebState();
+  State<PesananCustomerWeb> createState() => PesananCustomerWebState();
 }
 
-class _PesananCustomerWebState
+class PesananCustomerWebState
     extends State<PesananCustomerWeb> {
   final OrderServiceAppwrite _orderService = OrderServiceAppwrite();
-  late Future<List<OrderModel>> _ordersFuture;
+  List<OrderModel> _orders = [];
+  bool _isLoading = true;
+  String? _error;
+  String _activeTab = 'semua';
+
+  List<OrderModel> get _filteredOrders {
+    if (_activeTab == 'semua') return _orders;
+    return _orders.where((o) {
+      switch (_activeTab) {
+        case 'berjalan':
+          return ['pending', 'processing', 'shipped'].contains(o.status.toLowerCase());
+        case 'selesai':
+          return ['completed', 'delivered'].contains(o.status.toLowerCase());
+        case 'dibatalkan':
+          return o.status.toLowerCase() == 'cancelled';
+        default:
+          return true;
+      }
+    }).toList();
+  }
 
   @override
   void initState() {
     super.initState();
-    _ordersFuture = _loadOrders();
+    _loadOrders();
   }
 
-  Future<List<OrderModel>> _loadOrders() async {
-    final account = await AuthServiceAppwrite().getCurrentUser();
-    return _orderService.getOrdersByCustomer(account.$id);
+  void refresh() => _loadOrders();
+
+  Future<void> _loadOrders() async {
+    setState(() { _isLoading = true; _error = null; });
+    try {
+      final account = await AuthServiceAppwrite().getCurrentUser();
+      final orders = await _orderService.getOrdersByCustomer(account.$id);
+      if (mounted) setState(() { _orders = orders; _isLoading = false; });
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString(); _isLoading = false; });
+    }
   }
 
   @override
@@ -89,70 +115,47 @@ class _PesananCustomerWebState
             // TAB FILTER
             Row(
               children: [
-                _tabButton("Semua", true),
+                _tabButton("Semua", _activeTab == 'semua', 'semua'),
                 const SizedBox(width: 10),
-                _tabButton("Berjalan", false),
+                _tabButton("Berjalan", _activeTab == 'berjalan', 'berjalan'),
                 const SizedBox(width: 10),
-                _tabButton("Selesai", false),
+                _tabButton("Selesai", _activeTab == 'selesai', 'selesai'),
                 const SizedBox(width: 10),
-                _tabButton("Dibatalkan", false),
+                _tabButton("Dibatalkan", _activeTab == 'dibatalkan', 'dibatalkan'),
               ],
             ),
             const SizedBox(height: 30),
             Expanded(
-              child: FutureBuilder<List<OrderModel>>(
-                future: _ordersFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState ==
-                      ConnectionState.waiting) {
-                    return const Center(
-                      child:
-                          CircularProgressIndicator(),
-                    );
-                  }
-
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Text(
-                        "Gagal memuat pesanan: ${snapshot.error}",
-                        style: const TextStyle(
-                          color: Colors.red,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    );
-                  }
-
-                  final orders =
-                      snapshot.data ?? [];
-
-                  if (orders.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        "Belum ada pesanan",
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 16,
-                        ),
-                      ),
-                    );
-                  }
-
-                  return ListView(
-                    children: orders
-                        .map(
-                          (order) => Padding(
-                            padding:
-                                const EdgeInsets.only(
-                                    bottom: 16),
-                            child:
-                                _OrderCard(order: order),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                      ? Center(
+                          child: Text(
+                            "Gagal memuat pesanan: $_error",
+                            style: const TextStyle(color: Colors.red),
+                            textAlign: TextAlign.center,
                           ),
                         )
-                        .toList(),
-                  );
-                },
-              ),
+                      : _filteredOrders.isEmpty
+                          ? const Center(
+                              child: Text(
+                                "Belum ada pesanan",
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            )
+                          : ListView(
+                              children: _filteredOrders
+                                  .map(
+                                    (order) => Padding(
+                                      padding: const EdgeInsets.only(bottom: 16),
+                                      child: _OrderCard(order: order, onDetailClosed: refresh),
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
             ),
           ],
         ),
@@ -160,25 +163,28 @@ class _PesananCustomerWebState
     );
   }
 
-  Widget _tabButton(String text, bool active) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 22,
-        vertical: 12,
-      ),
-      decoration: BoxDecoration(
-        color: active
-            ? const Color(0xff2563EB)
-            : const Color(0xffDBEAFE),
-        borderRadius: BorderRadius.circular(25),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
+  Widget _tabButton(String text, bool active, String tabKey) {
+    return GestureDetector(
+      onTap: () => setState(() => _activeTab = tabKey),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 22,
+          vertical: 12,
+        ),
+        decoration: BoxDecoration(
           color: active
-              ? Colors.white
-              : Colors.black54,
-          fontWeight: FontWeight.w600,
+              ? const Color(0xff2563EB)
+              : const Color(0xffDBEAFE),
+          borderRadius: BorderRadius.circular(25),
+        ),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: active
+                ? Colors.white
+                : Colors.black54,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );
@@ -187,8 +193,9 @@ class _PesananCustomerWebState
 
 class _OrderCard extends StatelessWidget {
   final OrderModel order;
+  final VoidCallback? onDetailClosed;
 
-  const _OrderCard({required this.order});
+  const _OrderCard({required this.order, this.onDetailClosed});
 
   Color _statusColor(String status) {
     switch (status.toLowerCase()) {
@@ -235,13 +242,14 @@ class _OrderCard extends StatelessWidget {
     final statusColor = _statusColor(order.status);
 
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => DetailPesananCustomer(orderId: order.id),
           ),
         );
+        onDetailClosed?.call();
       },
       child: Container(
         padding: const EdgeInsets.all(18),

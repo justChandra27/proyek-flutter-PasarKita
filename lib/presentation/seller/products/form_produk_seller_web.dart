@@ -117,14 +117,14 @@ class _FormProdukSellerWebState extends State<FormProdukSellerWeb> {
                     ),
                   ),
                   onPressed: () async {
-                    await Navigator.push(
+                    final result = await Navigator.push<bool>(
                       context,
                       MaterialPageRoute(
                         builder: (_) => const ProductFormPage(),
                       ),
                     );
 
-                    if (mounted) {
+                    if (result == true && mounted) {
                       setState(() {});
                     }
                   },
@@ -380,6 +380,8 @@ class _FormProdukSellerWebState extends State<FormProdukSellerWeb> {
                                           width: double.infinity,
                                           child: ProductTableModern(
                                             products: filteredProducts,
+                                            onProductChanged: () =>
+                                                setState(() {}),
                                           ),
                                         ),
                                       ),

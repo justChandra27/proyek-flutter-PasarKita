@@ -140,7 +140,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
         const SnackBar(content: Text('Produk berhasil ditambahkan')),
       );
 
-      Navigator.pop(context);
+      Navigator.pop(context, true);
     } catch (e) {
       ScaffoldMessenger.of(
         context,

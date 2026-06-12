@@ -3,14 +3,18 @@
 import 'package:flutter/material.dart';
 
 import '../../../../data/models/product_model.dart';
+import '../../../../core/services/product_service_appwrite.dart';
+import '../../../../core/services/storage_service_appwrite.dart';
 import '../product_form_page.dart';
 
 class ProductTableModern extends StatelessWidget {
   final List<ProductModel> products;
+  final VoidCallback? onProductChanged;
 
   const ProductTableModern({
     super.key,
     required this.products,
+    this.onProductChanged,
   });
 
   @override
@@ -272,8 +276,8 @@ class ProductTableModern extends StatelessWidget {
               children: [
                 IconButton(
                   tooltip: "Edit",
-                  onPressed: () {
-                    Navigator.push(
+                  onPressed: () async {
+                    final result = await Navigator.push<bool>(
                       context,
                       MaterialPageRoute(
                         builder: (_) =>
@@ -282,6 +286,9 @@ class ProductTableModern extends StatelessWidget {
                         ),
                       ),
                     );
+                    if (result == true) {
+                      onProductChanged?.call();
+                    }
                   },
                   icon: const Icon(
                     Icons.edit_outlined,
@@ -290,7 +297,44 @@ class ProductTableModern extends StatelessWidget {
 
                 IconButton(
                   tooltip: "Hapus",
-                  onPressed: () {},
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Hapus Produk'),
+                        content: Text('Yakin ingin menghapus ${product.name}?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('Batal'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: const Text('Hapus'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirm != true) return;
+                    try {
+                      final storageService = StorageServiceAppwrite();
+                      final fileId = storageService.extractFileId(product.imageUrl);
+                      await storageService.deleteImage(fileId);
+                      await ProductServiceAppwrite().deleteProduct(product.id);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Produk berhasil dihapus')),
+                        );
+                      }
+                      onProductChanged?.call();
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Gagal menghapus: $e')),
+                        );
+                      }
+                    }
+                  },
                   icon: const Icon(
                     Icons.delete_outline,
                     color: Colors.red,

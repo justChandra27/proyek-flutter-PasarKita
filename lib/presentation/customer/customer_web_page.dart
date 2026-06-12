@@ -23,18 +23,20 @@ class _CustomerWebPageState extends State<CustomerWebPage> {
   int _unreadCount = 0;
   final NotificationServiceAppwrite _notifService =
       NotificationServiceAppwrite();
+  final GlobalKey<PesananCustomerWebState> _pesananKey = GlobalKey();
 
-  final List<Widget> pages = const [
-    DashboardCustomerWeb(),
-    CartCustomerWeb(),
-    PesananCustomerWeb(),
-    NotifikasiCustomerWeb(),
-    ProfileCustomerWeb(),
-  ];
+  late final List<Widget> pages;
 
   @override
   void initState() {
     super.initState();
+    pages = [
+      const DashboardCustomerWeb(),
+      const CartCustomerWeb(),
+      PesananCustomerWeb(key: _pesananKey),
+      const NotifikasiCustomerWeb(),
+      const ProfileCustomerWeb(),
+    ];
     _loadUnreadCount();
   }
 
@@ -58,6 +60,7 @@ class _CustomerWebPageState extends State<CustomerWebPage> {
               setState(() {
                 selectedIndex = index;
               });
+              if (index == 2) _pesananKey.currentState?.refresh();
               if (index == 3) _loadUnreadCount();
             },
             onLogout: () async {

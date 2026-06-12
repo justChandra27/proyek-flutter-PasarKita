@@ -1,72 +1,169 @@
-# Refresh Flow Audit
+# Audit & Rencana Implementasi: Product Form Seller + Product Detail Customer
 
-## ✅ Halaman dengan Refresh Otomatis
+## Ringkasan Temuan
 
-| Module | File | Mekanisme |
-|---|---|---|
-| Seller Orders (Web) — dropdown `_updateOrderStatus` | `form_pesanan_seller_web.dart:701` | `_loadOrders()` setelah `updateOrderStatus` |
-| Admin Kategori — add/delete | `form_kategori_web.dart:64,133` | `loadCategories()` setelah mutasi |
-| Admin Users — edit/delete | `form_pengguna_web.dart:89,107` | `loadUsers()` setelah mutasi |
-| Admin Verifikasi (approve/reject) | `form_verifikasi_web.dart:21-33` | Stream polling 2 detik |
-| Seller Produk (Web) — Tambah | `form_produk_seller_web.dart:128` | `await Navigator.push` + `setState` trigger FutureBuilder refetch |
-| Cart clear setelah checkout | `success_page.dart:266,292,117` | `CartProvider.clear()` via ChangeNotifier |
-| Transaksi Admin | `transaksi_controller.dart` | ChangeNotifier (read-only, tidak ada mutasi) |
+| Area | Status |
+|------|--------|
+| Product Form Seller Web | ✅ Menggunakan Appwrite (`ProductServiceAppwrite`), form shared `product_form_page.dart` |
+| Product Form Seller Mobile | ✅ Menggunakan Appwrite, form shared `product_form_page.dart` |
+| Category Collection Integration | ❌ **Kategori hardcoded / free-text** — tidak baca dari collection `categories` |
+| Customer Product Detail Web | ❌ **TIDAK ADA** — halaman detail produk belum dibuat |
+| Customer Product Detail Mobile | ❌ **TIDAK ADA** — halaman detail produk belum dibuat |
 
-## ❌ Halaman dengan Stale Data (perlu reload manual)
+---
 
-| # | Severity | Module | File:Line | Masalah |
-|---|----------|--------|-----------|---------|
-| 1 | **CRITICAL** | Customer Orders (Web & Mobile) | `pesanan_customer_web.dart:26`, `pesanan_customer_mobile.dart:26` | `_ordersFuture` di `initState` sekali. Pages adalah `const` — tidak pernah dimount ulang. Setelah checkout/status update, data tetap stale. |
-| 2 | **HIGH** | Seller Orders (Mobile) | `form_pesanan_seller_mobile.dart:831` | `updateOrderStatus` dipanggil tapi tidak ada `_loadOrders()` setelahnya |
-| 3 | **HIGH** | Seller Orders (Web) — tombol inline | `form_pesanan_seller_web.dart:1296` | Second inline `updateOrderStatus` tanpa `_loadOrders()` |
-| 4 | **HIGH** | Customer Reviews | `detail_pesanan_customer.dart:503` | `setState` dipanggil tapi `_detailFuture` tidak di-reassign — FutureBuilder tampilkan cached data |
-| 5 | **HIGH** | Product Edit (Web) | `product_table_modern.dart:275` | `Navigator.push` tidak di-await, tidak ada refresh |
-| 6 | **HIGH** | Product Delete (Web modern & legacy) | `product_table_modern.dart:293`, `product_table.dart:160-218` | Delete: empty `onPressed` (modern) / tidak ada refresh setelah delete (legacy) |
-| 7 | **MEDIUM** | Product Form | `product_form_page.dart:143` | `Navigator.pop(context)` tanpa result — caller tidak tahu data berubah |
-| 8 | **MEDIUM** | Seller Dashboard (Web & Mobile) | `dashboard_seller_web.dart:20`, `dashboard_seller_mobile.dart:21` | `_analyticsFuture` sekali di `initState`, tidak pernah refresh |
-| 9 | **MEDIUM** | Admin Dashboard | `dashboard_admin_web.dart:19` | `_analyticsFuture` sekali, tidak pernah refresh |
-| 10 | **MEDIUM** | Checkout — cart clear timing | `checkout_page.dart:95-128` | Cart tidak clear di checkout, hanya di success page saat user klik tombol |
+## Detail Audit
 
-## Rekomendasi Implementasi Refresh (MVP — minimal effort)
+### 1. Product Form Seller Web
 
-### 1. Customer Orders — CRITICAL
-**File:** `lib/presentation/customer/orders/pesanan_customer_web.dart`, `pesanan_customer_mobile.dart`
-**Fix:** Pindahkan dari `initState` ke `didChangeDependencies` (StatefulWidget) + `_refresh()` callback. Saat halaman jadi aktif (tab index), panggil `_refresh()`. Atau, ubah dari `FutureBuilder` ke state manual + `setState` seperti seller mobile saat reload.
+**File:** `lib/presentation/seller/products/form_produk_seller_web.dart`
 
-### 2. Seller Orders (Mobile) — HIGH
-**File:** `form_pesanan_seller_mobile.dart:831`
-**Fix:** Panggil `_loadOrders()` setelah `updateOrderStatus` sukses, sebelum SnackBar.
+**Service:** `ProductServiceAppwrite` (Appwrite connected)
 
-### 3. Seller Orders (Web) tombol inline — HIGH
-**File:** `form_pesanan_seller_web.dart:1296`
-**Fix:** Panggil `_loadOrders()` setelah `updateOrderStatus` sukses.
-
-### 4. Customer Reviews — HIGH
-**File:** `detail_pesanan_customer.dart:503`
-**Fix:** Ganti `_detailFuture` dengan Future baru sebelum `setState`:
+**Category filter (line ~189-200):**
 ```dart
-_detailFuture = _loadDetail();
-setState(() {});
+// HARDCODED categories
+'Semua', 'Pakaian', 'Sepatu', 'Aksesoris'
 ```
+Tidak membaca dari collection `categories`. Filter hanya di web — mobile tidak punya category filter.
 
-### 5. Seller Products — Edit refresh — HIGH
-**File:** `product_table_modern.dart:275`
-**Fix:** `await Navigator.push(...)` dan `setState(() {})` setelahnya.
+### 2. Product Form Seller Mobile
 
-### 6. Seller Dashboard — MEDIUM
-**Fix:** Tambah metode `reload()` dan panggil dari halaman lain setelah mutasi data. Atau gunakan `FutureBuilder` dengan key yang berubah untuk trigger reload.
+**File:** `lib/presentation/seller/products/form_produk_seller_mobile.dart`
 
-### 7. Product Form pop result — MEDIUM
-**File:** `product_form_page.dart:143`
-**Fix:** Ubah `Navigator.pop(context)` → `Navigator.pop(context, true)`. Caller cek result.
+**Service:** `ProductServiceAppwrite` (Appwrite connected)
 
-### 8. Admin Dashboard — MEDIUM
-**Fix:** Sama seperti seller dashboard — tambah reload.
+**Category filter:** **Tidak ada** — hanya filter by status (`Semua`, `Aktif`, `Stok Habis`, `Arsip`).
 
-## Catatan untuk AGENTS.md / Developer
+### 3. Product Form Page (shared web & mobile)
 
-- **Aturan:** Setiap mutasi data (create/update/delete) harus diikuti oleh refresh UI atau `Navigator.pop(context, true)`.
-- **Prioritas MVP:** Customer orders (#1) → Seller mobile refresh (#2) → Customer reviews (#4) → Product edit (#5).
-- **Halaman dummy** (Admin Products, Admin Orders) belum perlu disentuh untuk MVP.
+**File:** `lib/presentation/seller/products/product_form_page.dart`
 
-Tidak ada file yang diubah — hanya audit.
+**Category input:** `TextEditingController` — **free-text**. User mengetik nama kategori manual. Tidak ada dropdown atau autocomplete dari collection `categories`.
+
+### 4. Category Collection Integration
+
+**Collection exists:** ✅ `AppwriteConfig.categoriesCollectionId = 'categories'`
+
+**CategoryModel exists:** ✅ `lib/data/models/category_model.dart`
+
+**CategoryService:** ❌ **TIDAK ADA** — tidak ada service class untuk operasi CRUD categories.
+
+**Category UI:**
+| File | Appwrite? | Kategori |
+|------|-----------|----------|
+| `admin/categories/form_kategori_web.dart` | ✅ Ya | Baca dari Appwrite via `databases.listDocuments()` |
+| `seller/categories/form_kategori_seller_web.dart` | ❌ Tidak | **Hardcoded:** Pakaian, Elektronik, Rumah Tangga, Kecantikan, Kuliner |
+| `seller/categories/form_kategori_seller_mobile.dart` | ❌ Tidak | **Hardcoded:** Fashion, Elektronik, Makanan & Minuman, Peralatan, Kecantikan, Olahraga |
+| `dashboard_customer_web/mobile.dart` | ⚠️ Parsial | Dari `ProductFilterProvider._extractCategories()` — extract dari data produk, bukan dari collection |
+
+### 5. Customer Product Detail
+
+**Halaman detail produk:** ❌ **BELUM ADA**
+
+**Bukti:**
+- `lib/core/widgets/product_card.dart` (commented out, 219 lines) — referensi ke `ProductDetailPage` yang tidak ada
+- `dashboard_customer_web.dart` — tombol "Tambah ke Keranjang" langsung, tanpa navigasi ke detail
+- `dashboard_customer_mobile.dart` — sama, tidak ada navigasi ke detail
+
+**Order detail exists:** ✅ `detail_pesanan_customer.dart` — tapi ini untuk pesanan, bukan produk.
+
+**Service untuk detail:** ✅ `ProductServiceAppwrite.getProductById(String productId)` — sudah ada, tinggal pakai.
+
+---
+
+## Rencana Implementasi
+
+### Item A: CategoryService + ProductFormPage category dropdown
+
+**Tujuan:** Ganti category free-text input dengan dropdown yang membaca dari Appwrite `categories` collection.
+
+**File yang akan dibuat:**
+| File | Isi |
+|------|-----|
+| `lib/core/services/category_service_appwrite.dart` | Service class: `getAllCategories()`, `addCategory()`, `deleteCategory()` |
+
+**File yang akan diubah:**
+| File | Perubahan |
+|------|-----------|
+| `product_form_page.dart` | Ganti `TextFormField` category → `DropdownButtonFormField` yang loaded dari `CategoryServiceAppwrite.getAllCategories()` |
+
+**Alur:**
+1. `ProductFormPage.initState()` → `CategoryServiceAppwrite().getAllCategories()` → simpan di `List<CategoryModel> _categories`
+2. `build()` → `DropdownButtonFormField<String>` dengan items dari `_categories`
+3. `saveProduct()` → ambil selected category name → simpan ke `ProductServiceAppwrite`
+
+**Risiko:** Perubahan di `product_form_page.dart` — file shared oleh web & mobile. Perlu testing di kedua platform.
+
+---
+
+### Item B: Customer Product Detail Page
+
+**Tujuan:** Buat halaman detail produk untuk customer (web + mobile) dengan navigasi dari dashboard card.
+
+**File yang akan dibuat:**
+| File | Isi |
+|------|-----|
+| `lib/presentation/customer/products/detail_produk_customer_web.dart` | Web: tampilan detail produk + tombol "Tambah ke Keranjang" |
+| `lib/presentation/customer/products/detail_produk_customer_mobile.dart` | Mobile: tampilan detail produk + tombol "Tambah ke Keranjang" |
+
+**File yang akan diubah:**
+| File | Perubahan |
+|------|-----------|
+| `dashboard_customer_web.dart` | Tambah navigasi ke `DetailProdukCustomerWeb` dari product card |
+| `dashboard_customer_mobile.dart` | Tambah navigasi ke `DetailProdukCustomerMobile` dari product card |
+
+**Service:** ✅ `ProductServiceAppwrite.getProductById(String productId)` — sudah ada
+
+**Model:** ✅ `ProductModel` — sudah ada
+
+**Isi halaman detail:**
+- Gambar produk (full width)
+- Nama produk
+- Harga
+- Kategori
+- Deskripsi
+- Stok
+- Tombol "Tambah ke Keranjang" (panggil `CartProvider.addToCart(product)`)
+
+---
+
+### Item C: Seller Category Page — Baca dari Appwrite
+
+**Tujuan:** Ganti hardcoded categories di seller category pages dengan data dari Appwrite.
+
+**File yang akan diubah:**
+| File | Perubahan |
+|------|-----------|
+| `form_kategori_seller_web.dart` | Ganti hardcoded list → `FutureBuilder` dari `CategoryServiceAppwrite` |
+| `form_kategori_seller_mobile.dart` | Ganti hardcoded list → `FutureBuilder` dari `CategoryServiceAppwrite` |
+
+---
+
+## Prioritas
+
+| # | Item | Prioritas | Effort | Dependencies |
+|---|------|-----------|--------|-------------|
+| A | CategoryService + dropdown di form | **HIGH** | Medium | None |
+| B | Customer product detail page | **HIGH** | Medium | None |
+| C | Seller category page from Appwrite | **LOW** | Low | Item A (CategoryService) |
+
+---
+
+## File Referensi
+
+| File | Path |
+|------|------|
+| Appwrite config | `lib/core/appwrite/appwrite_config.dart` |
+| Appwrite service | `lib/core/appwrite/appwrite_service.dart` |
+| Product service | `lib/core/services/product_service_appwrite.dart` |
+| Storage service | `lib/core/services/storage_service_appwrite.dart` |
+| Product model | `lib/data/models/product_model.dart` |
+| Category model | `lib/data/models/category_model.dart` |
+| Admin kategori (reference) | `lib/presentation/admin/categories/form_kategori_web.dart` |
+| Shared product form | `lib/presentation/seller/products/product_form_page.dart` |
+| Seller web products | `lib/presentation/seller/products/form_produk_seller_web.dart` |
+| Seller mobile products | `lib/presentation/seller/products/form_produk_seller_mobile.dart` |
+| Customer dashboard web | `lib/presentation/customer/dashboard/dashboard_customer_web.dart` |
+| Customer dashboard mobile | `lib/presentation/customer/dashboard/dashboard_customer_mobile.dart` |
+| Cart provider | `lib/providers/cart_provider.dart` |

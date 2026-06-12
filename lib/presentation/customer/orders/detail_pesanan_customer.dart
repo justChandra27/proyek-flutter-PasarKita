@@ -500,6 +500,7 @@ class _DetailPesananCustomerState extends State<DetailPesananCustomer> {
                           Navigator.pop(ctx);
                         }
                         if (mounted) {
+                          _detailFuture = _loadDetail();
                           setState(() {});
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
