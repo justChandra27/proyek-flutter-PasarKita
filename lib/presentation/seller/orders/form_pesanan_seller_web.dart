@@ -181,7 +181,9 @@ class _FormPesananSellerWebState
   int get _shippedCount => _allOrders.where((e) =>
       (e['order'] as OrderModel).status.toLowerCase() == 'shipped').length;
 
-  int get _totalRevenue => _allOrders.fold<int>(0, (sum, entry) => sum + _subtotal(entry));
+  int get _totalRevenue => _allOrders
+      .where((e) => (e['order'] as OrderModel).status.toLowerCase() == 'completed')
+      .fold<int>(0, (sum, entry) => sum + _subtotal(entry));
 
   String get _sortLabel {
     switch (_sortBy) {
