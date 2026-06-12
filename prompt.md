@@ -1,22 +1,79 @@
-Implementasikan penghapusan imageUrl dari fitur kategori.
+# Implementasi Sinkronisasi Field Baru Database
 
-Tujuan:
-- Hapus input "Image URL" pada dialog Tambah Kategori Admin.
-- Hapus imageController.
-- Hapus field imageUrl dari createDocument categories.
-- Hapus field imageUrl dari CategoryModel.
-- Hapus parsing imageUrl dari fromMap/toMap jika ada.
-- Jangan mengubah fitur kategori lain.
-- Jangan mengubah ProductFormPage.
-- Jangan mengubah CategoryServiceAppwrite.
-- Jangan mengubah collection selain categories.
+Database sudah memiliki field baru:
 
-Setelah implementasi:
-1. Jalankan flutter analyze.
-2. Audit ulang semua referensi imageUrl kategori.
-3. Tulis hasil implementasi ke prompt.md.
+Products:
+
+* weight
+* minPurchase
+* soldCount
+
+Users:
+
+* storeName
+* storeAddress
+* city
+* province
+
+Implementasikan sinkronisasi model dan form produk.
+
+Fokus hanya pada:
+
+1. `lib/data/models/product_model.dart`
+
+   * Tambah field:
+
+     * weight
+     * minPurchase
+     * soldCount
+   * Update constructor
+   * Update fromMap
+   * Update toMap
+
+2. `lib/data/models/user_model.dart`
+
+   * Tambah field:
+
+     * storeName
+     * storeAddress
+     * city
+     * province
+   * Update constructor
+   * Update fromMap
+
+3. `lib/core/services/product_service_appwrite.dart`
+
+   * Tambah parameter weight dan minPurchase pada:
+
+     * addProduct()
+     * updateProduct()
+   * Saat create product:
+
+     * soldCount default 0
+   * Saat update product:
+
+     * jangan overwrite soldCount
+
+4. `lib/presentation/seller/products/product_form_page.dart`
+
+   * Tambah input:
+
+     * Berat Produk (gram)
+     * Minimal Pembelian
+   * Support create dan edit
+   * Validasi:
+
+     * berat > 0
+     * minimal pembelian >= 1
+
+5. Jalankan flutter analyze.
 
 Aturan:
-- Jangan membuat file _v2 atau _new.
-- Jangan melakukan refactor di luar scope.
-- Jangan mengubah file selain yang memang memakai imageUrl kategori.
+
+* Jangan mengubah file selain yang disebutkan.
+* Jangan membuat model baru.
+* Jangan membuat service baru.
+* Jangan mengubah fitur lain.
+* Jangan mengubah prompt.md selain output hasil implementasi.
+
+Output hasil ke prompt.md.
