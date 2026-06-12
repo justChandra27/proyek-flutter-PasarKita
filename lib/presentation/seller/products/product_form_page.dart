@@ -8,6 +8,8 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../core/services/storage_service_appwrite.dart';
 import '../../../data/models/product_model.dart';
+import '../../../core/services/category_service_appwrite.dart';
+import '../../../data/models/category_model.dart';
 
 class ProductFormPage extends StatefulWidget {
   final ProductModel? product;
@@ -22,8 +24,6 @@ class _ProductFormPageState extends State<ProductFormPage> {
   final _formKey = GlobalKey<FormState>();
 
   final nameController = TextEditingController();
-
-  final categoryController = TextEditingController();
 
   final descriptionController = TextEditingController();
 
@@ -41,18 +41,42 @@ class _ProductFormPageState extends State<ProductFormPage> {
 
   final StorageServiceAppwrite _storageService = StorageServiceAppwrite();
 
+  String? _selectedCategory;
+  List<CategoryModel> _categories = [];
+  bool _isLoadingCategories = true;
+
   @override
   void initState() {
     super.initState();
 
     if (widget.product != null) {
       nameController.text = widget.product!.name;
-      categoryController.text = widget.product!.category;
+      _selectedCategory = widget.product!.category;
       descriptionController.text = widget.product!.description;
       priceController.text = widget.product!.price.toString();
       stockController.text = widget.product!.stock.toString();
 
       uploadedImageUrl = widget.product!.imageUrl;
+    }
+
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final categories = await CategoryServiceAppwrite().getAllCategories();
+      if (mounted) {
+        setState(() {
+          _categories = categories;
+          _isLoadingCategories = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isLoadingCategories = false;
+        });
+      }
     }
   }
 
@@ -111,11 +135,13 @@ class _ProductFormPageState extends State<ProductFormPage> {
         imageUrl = widget.product!.imageUrl;
       }
 
+      final category = _selectedCategory ?? '';
+
       if (widget.product == null) {
         await _service.addProduct(
           sellerId: sellerId,
           name: nameController.text.trim(),
-          category: categoryController.text.trim(),
+          category: category,
           description: descriptionController.text.trim(),
           price: double.parse(priceController.text.trim()),
           stock: int.parse(stockController.text.trim()),
@@ -125,7 +151,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
         await _service.updateProduct(
           productId: widget.product!.id,
           name: nameController.text.trim(),
-          category: categoryController.text.trim(),
+          category: category,
           description: descriptionController.text.trim(),
           price: double.parse(priceController.text.trim()),
           stock: int.parse(stockController.text.trim()),
@@ -157,7 +183,6 @@ class _ProductFormPageState extends State<ProductFormPage> {
   @override
   void dispose() {
     nameController.dispose();
-    categoryController.dispose();
     descriptionController.dispose();
     priceController.dispose();
     stockController.dispose();
@@ -246,12 +271,27 @@ class _ProductFormPageState extends State<ProductFormPage> {
 
                   const SizedBox(height: 20),
 
-                  TextFormField(
-                    controller: categoryController,
+                  DropdownButtonFormField<String>(
+                    initialValue: _selectedCategory,
                     decoration: const InputDecoration(
                       labelText: 'Kategori',
                       border: OutlineInputBorder(),
                     ),
+                    items: _isLoadingCategories
+                        ? null
+                        : _categories.map((cat) {
+                            return DropdownMenuItem<String>(
+                              value: cat.name,
+                              child: Text(cat.name),
+                            );
+                          }).toList(),
+                    onChanged: _isLoadingCategories
+                        ? null
+                        : (value) {
+                            setState(() {
+                              _selectedCategory = value;
+                            });
+                          },
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Kategori wajib diisi';

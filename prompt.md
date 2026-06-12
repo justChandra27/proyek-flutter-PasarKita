@@ -1,169 +1,131 @@
-# Audit & Rencana Implementasi: Product Form Seller + Product Detail Customer
+# Implementasi Item A — CategoryService + Dropdown Kategori
 
-## Ringkasan Temuan
+## File yang dibuat
 
-| Area | Status |
-|------|--------|
-| Product Form Seller Web | ✅ Menggunakan Appwrite (`ProductServiceAppwrite`), form shared `product_form_page.dart` |
-| Product Form Seller Mobile | ✅ Menggunakan Appwrite, form shared `product_form_page.dart` |
-| Category Collection Integration | ❌ **Kategori hardcoded / free-text** — tidak baca dari collection `categories` |
-| Customer Product Detail Web | ❌ **TIDAK ADA** — halaman detail produk belum dibuat |
-| Customer Product Detail Mobile | ❌ **TIDAK ADA** — halaman detail produk belum dibuat |
+### `lib/core/services/category_service_appwrite.dart`
 
----
+Service baru untuk baca data kategori dari Appwrite collection `categories`.
 
-## Detail Audit
-
-### 1. Product Form Seller Web
-
-**File:** `lib/presentation/seller/products/form_produk_seller_web.dart`
-
-**Service:** `ProductServiceAppwrite` (Appwrite connected)
-
-**Category filter (line ~189-200):**
 ```dart
-// HARDCODED categories
-'Semua', 'Pakaian', 'Sepatu', 'Aksesoris'
+class CategoryServiceAppwrite {
+  final Databases databases = AppwriteService.databases;
+
+  Future<List<CategoryModel>> getAllCategories() async {
+    final result = await databases.listDocuments(
+      databaseId: AppwriteConfig.databaseId,
+      collectionId: AppwriteConfig.categoriesCollectionId,
+    );
+    return result.documents
+        .map((doc) => CategoryModel.fromMap(doc.data, doc.$id))
+        .toList();
+  }
+}
 ```
-Tidak membaca dari collection `categories`. Filter hanya di web — mobile tidak punya category filter.
 
-### 2. Product Form Seller Mobile
+## File yang diubah
 
-**File:** `lib/presentation/seller/products/form_produk_seller_mobile.dart`
+### `lib/presentation/seller/products/product_form_page.dart`
 
-**Service:** `ProductServiceAppwrite` (Appwrite connected)
+| Perubahan | Detail |
+|-----------|--------|
+| Import baru | `category_service_appwrite.dart`, `category_model.dart` |
+| Hapus `categoryController` | `TextEditingController` untuk kategori diganti |
+| State baru | `String? _selectedCategory`, `List<CategoryModel> _categories`, `bool _isLoadingCategories` |
+| `initState` | Panggil `_loadCategories()` untuk fetch data dari Appwrite |
+| Edit mode | `_selectedCategory = widget.product!.category` (pre-select dropdown) |
+| Widget kategori | `TextFormField` → `DropdownButtonFormField<String>` |
+| `initialValue` | `_selectedCategory` (nilai awal dropdown) |
+| `items` | Map `_categories` → `DropdownMenuItem(name)` |
+| `onChanged` | Update `_selectedCategory` via `setState` |
+| Loading state | `_isLoadingCategories` → disable dropdown + null items |
+| `saveProduct` | `final category = _selectedCategory ?? ''` → pakai selected category |
+| `dispose` | Hapus `categoryController.dispose()` |
 
-**Category filter:** **Tidak ada** — hanya filter by status (`Semua`, `Aktif`, `Stok Habis`, `Arsip`).
+### Potongan kode — Dropdown kategori (line 274-301)
 
-### 3. Product Form Page (shared web & mobile)
+```dart
+DropdownButtonFormField<String>(
+  initialValue: _selectedCategory,
+  decoration: const InputDecoration(
+    labelText: 'Kategori',
+    border: OutlineInputBorder(),
+  ),
+  items: _isLoadingCategories
+      ? null
+      : _categories.map((cat) {
+          return DropdownMenuItem<String>(
+            value: cat.name,
+            child: Text(cat.name),
+          );
+        }).toList(),
+  onChanged: _isLoadingCategories
+      ? null
+      : (value) {
+          setState(() {
+            _selectedCategory = value;
+          });
+        },
+  validator: (value) {
+    if (value == null || value.isEmpty) {
+      return 'Kategori wajib diisi';
+    }
+    return null;
+  },
+),
+```
 
-**File:** `lib/presentation/seller/products/product_form_page.dart`
+### Potongan kode — Load categories (line 65-81)
 
-**Category input:** `TextEditingController` — **free-text**. User mengetik nama kategori manual. Tidak ada dropdown atau autocomplete dari collection `categories`.
+```dart
+Future<void> _loadCategories() async {
+  try {
+    final categories = await CategoryServiceAppwrite().getAllCategories();
+    if (mounted) {
+      setState(() {
+        _categories = categories;
+        _isLoadingCategories = false;
+      });
+    }
+  } catch (_) {
+    if (mounted) {
+      setState(() {
+        _isLoadingCategories = false;
+      });
+    }
+  }
+}
+```
 
-### 4. Category Collection Integration
+## Alur sebelum dan sesudah
 
-**Collection exists:** ✅ `AppwriteConfig.categoriesCollectionId = 'categories'`
+### Sebelum
+```
+Seller → Tambah/Edit Produk → Kategori: [text field] → ketik manual
+```
+Kategori disimpan sebagai string free-text. Tidak ada validasi terhadap collection `categories`.
 
-**CategoryModel exists:** ✅ `lib/data/models/category_model.dart`
+### Sesudah
+```
+Seller → Tambah/Edit Produk → Kategori: [dropdown] → pilih dari daftar
+                          ↑
+              CategoryServiceAppwrite.getAllCategories()
+              → Appwrite collection `categories`
+```
+Kategori hanya bisa dipilih dari yang tersedia di collection. Loading state jika fetch masih berjalan.
 
-**CategoryService:** ❌ **TIDAK ADA** — tidak ada service class untuk operasi CRUD categories.
+## Hasil flutter analyze
 
-**Category UI:**
-| File | Appwrite? | Kategori |
-|------|-----------|----------|
-| `admin/categories/form_kategori_web.dart` | ✅ Ya | Baca dari Appwrite via `databases.listDocuments()` |
-| `seller/categories/form_kategori_seller_web.dart` | ❌ Tidak | **Hardcoded:** Pakaian, Elektronik, Rumah Tangga, Kecantikan, Kuliner |
-| `seller/categories/form_kategori_seller_mobile.dart` | ❌ Tidak | **Hardcoded:** Fashion, Elektronik, Makanan & Minuman, Peralatan, Kecantikan, Olahraga |
-| `dashboard_customer_web/mobile.dart` | ⚠️ Parsial | Dari `ProductFilterProvider._extractCategories()` — extract dari data produk, bukan dari collection |
+```
+20 issues found. (ran in 2.9s)
+```
 
-### 5. Customer Product Detail
+**0 errors, 0 new warnings.** Semua 20 issues pre-existing (`info` + 2 `warning` tidak terkait).
 
-**Halaman detail produk:** ❌ **BELUM ADA**
+## Risiko yang masih tersisa
 
-**Bukti:**
-- `lib/core/widgets/product_card.dart` (commented out, 219 lines) — referensi ke `ProductDetailPage` yang tidak ada
-- `dashboard_customer_web.dart` — tombol "Tambah ke Keranjang" langsung, tanpa navigasi ke detail
-- `dashboard_customer_mobile.dart` — sama, tidak ada navigasi ke detail
-
-**Order detail exists:** ✅ `detail_pesanan_customer.dart` — tapi ini untuk pesanan, bukan produk.
-
-**Service untuk detail:** ✅ `ProductServiceAppwrite.getProductById(String productId)` — sudah ada, tinggal pakai.
-
----
-
-## Rencana Implementasi
-
-### Item A: CategoryService + ProductFormPage category dropdown
-
-**Tujuan:** Ganti category free-text input dengan dropdown yang membaca dari Appwrite `categories` collection.
-
-**File yang akan dibuat:**
-| File | Isi |
-|------|-----|
-| `lib/core/services/category_service_appwrite.dart` | Service class: `getAllCategories()`, `addCategory()`, `deleteCategory()` |
-
-**File yang akan diubah:**
-| File | Perubahan |
-|------|-----------|
-| `product_form_page.dart` | Ganti `TextFormField` category → `DropdownButtonFormField` yang loaded dari `CategoryServiceAppwrite.getAllCategories()` |
-
-**Alur:**
-1. `ProductFormPage.initState()` → `CategoryServiceAppwrite().getAllCategories()` → simpan di `List<CategoryModel> _categories`
-2. `build()` → `DropdownButtonFormField<String>` dengan items dari `_categories`
-3. `saveProduct()` → ambil selected category name → simpan ke `ProductServiceAppwrite`
-
-**Risiko:** Perubahan di `product_form_page.dart` — file shared oleh web & mobile. Perlu testing di kedua platform.
-
----
-
-### Item B: Customer Product Detail Page
-
-**Tujuan:** Buat halaman detail produk untuk customer (web + mobile) dengan navigasi dari dashboard card.
-
-**File yang akan dibuat:**
-| File | Isi |
-|------|-----|
-| `lib/presentation/customer/products/detail_produk_customer_web.dart` | Web: tampilan detail produk + tombol "Tambah ke Keranjang" |
-| `lib/presentation/customer/products/detail_produk_customer_mobile.dart` | Mobile: tampilan detail produk + tombol "Tambah ke Keranjang" |
-
-**File yang akan diubah:**
-| File | Perubahan |
-|------|-----------|
-| `dashboard_customer_web.dart` | Tambah navigasi ke `DetailProdukCustomerWeb` dari product card |
-| `dashboard_customer_mobile.dart` | Tambah navigasi ke `DetailProdukCustomerMobile` dari product card |
-
-**Service:** ✅ `ProductServiceAppwrite.getProductById(String productId)` — sudah ada
-
-**Model:** ✅ `ProductModel` — sudah ada
-
-**Isi halaman detail:**
-- Gambar produk (full width)
-- Nama produk
-- Harga
-- Kategori
-- Deskripsi
-- Stok
-- Tombol "Tambah ke Keranjang" (panggil `CartProvider.addToCart(product)`)
-
----
-
-### Item C: Seller Category Page — Baca dari Appwrite
-
-**Tujuan:** Ganti hardcoded categories di seller category pages dengan data dari Appwrite.
-
-**File yang akan diubah:**
-| File | Perubahan |
-|------|-----------|
-| `form_kategori_seller_web.dart` | Ganti hardcoded list → `FutureBuilder` dari `CategoryServiceAppwrite` |
-| `form_kategori_seller_mobile.dart` | Ganti hardcoded list → `FutureBuilder` dari `CategoryServiceAppwrite` |
-
----
-
-## Prioritas
-
-| # | Item | Prioritas | Effort | Dependencies |
-|---|------|-----------|--------|-------------|
-| A | CategoryService + dropdown di form | **HIGH** | Medium | None |
-| B | Customer product detail page | **HIGH** | Medium | None |
-| C | Seller category page from Appwrite | **LOW** | Low | Item A (CategoryService) |
-
----
-
-## File Referensi
-
-| File | Path |
-|------|------|
-| Appwrite config | `lib/core/appwrite/appwrite_config.dart` |
-| Appwrite service | `lib/core/appwrite/appwrite_service.dart` |
-| Product service | `lib/core/services/product_service_appwrite.dart` |
-| Storage service | `lib/core/services/storage_service_appwrite.dart` |
-| Product model | `lib/data/models/product_model.dart` |
-| Category model | `lib/data/models/category_model.dart` |
-| Admin kategori (reference) | `lib/presentation/admin/categories/form_kategori_web.dart` |
-| Shared product form | `lib/presentation/seller/products/product_form_page.dart` |
-| Seller web products | `lib/presentation/seller/products/form_produk_seller_web.dart` |
-| Seller mobile products | `lib/presentation/seller/products/form_produk_seller_mobile.dart` |
-| Customer dashboard web | `lib/presentation/customer/dashboard/dashboard_customer_web.dart` |
-| Customer dashboard mobile | `lib/presentation/customer/dashboard/dashboard_customer_mobile.dart` |
-| Cart provider | `lib/providers/cart_provider.dart` |
+| Risiko | Status | Catatan |
+|--------|--------|---------|
+| Category collection kosong | ⚠️ LOW | Dropdown akan empty, form tidak bisa submit (validator). Admin harus isi kategori dulu. |
+| Edit mode — kategori sudah tidak ada di collection | ⚠️ LOW | `initialValue: _selectedCategory` tetap menampilkan nama kategori yang disimpan, meskipun tidak ada di items dropdown. |
+| Error fetch categories | ⚠️ LOW | `catch (_)` — dropdown disabled, form tidak bisa submit. User perlu refresh. |
+| Image orphan saat edit ganti gambar | ❌ **Belum diperbaiki** | Out of scope Item A. |
