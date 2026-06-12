@@ -113,7 +113,7 @@ class ProductImageUpload extends StatelessWidget {
                     height: 220,
                     width: double.infinity,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                    errorBuilder: (_, _, _) => Container(
                       height: 220,
                       color: Colors.grey.shade100,
                       child: const Center(child: Icon(Icons.broken_image, size: 48, color: Colors.grey)),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:appwrite/appwrite.dart';
 
 import '../../../core/services/order_service_appwrite.dart';
 import '../../../core/services/review_service_appwrite.dart';
@@ -165,6 +166,23 @@ class _DetailPesananCustomerState extends State<DetailPesananCustomer> {
                 _totalCard(order),
                 const SizedBox(height: 16),
                 _timelineCard(order),
+                if (order.status == 'pending') ...[
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _confirmCancel(order),
+                      icon: const Icon(Icons.cancel_outlined,
+                          color: Colors.red),
+                      label: const Text('Batalkan Pesanan',
+                          style: TextStyle(color: Colors.red)),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.red),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 32),
               ],
             ),
@@ -324,8 +342,21 @@ class _DetailPesananCustomerState extends State<DetailPesananCustomer> {
                             color: Colors.grey.shade200,
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.inventory_2_outlined,
-                              color: Colors.grey),
+                          child: item.imageUrl.isNotEmpty
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Image.network(
+                                    item.imageUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, _, _) =>
+                                        const Icon(
+                                      Icons.inventory_2_outlined,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                )
+                              : const Icon(Icons.inventory_2_outlined,
+                                  color: Colors.grey),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -556,6 +587,55 @@ class _DetailPesananCustomerState extends State<DetailPesananCustomer> {
         ],
       ),
     );
+  }
+
+  Future<void> _confirmCancel(OrderModel order) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Batalkan Pesanan'),
+        content: const Text(
+          'Apakah Anda yakin ingin membatalkan pesanan ini? '
+          'Tindakan ini tidak dapat dibatalkan.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Tidak'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Ya, Batalkan'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await OrderServiceAppwrite().updateOrderStatus(
+        orderId: order.id,
+        status: 'cancelled',
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pesanan berhasil dibatalkan'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      _detailFuture = _loadDetail();
+      setState(() {});
+    } on AppwriteException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal: ${e.message}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Widget _timelineCard(OrderModel order) {

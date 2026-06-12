@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/services/notification_service_appwrite.dart';
 import '../../../core/services/auth_service_appwrite.dart';
 import '../../../data/models/notification_model.dart';
+import '../orders/detail_pesanan_customer.dart';
 
 class NotifikasiCustomerWeb extends StatefulWidget {
   const NotifikasiCustomerWeb({super.key});
@@ -221,10 +222,19 @@ class _NotifikasiCustomerWebState
 
   Widget _notifCard(NotificationModel notif) {
     return GestureDetector(
-      onTap: () async {
+      onTap: () {
+        final orderId = notif.orderId;
         if (!notif.isRead) {
-          await _service.markAsRead(notif.id);
+          _service.markAsRead(notif.id);
           _refresh();
+        }
+        if (orderId.isNotEmpty) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => DetailPesananCustomer(orderId: orderId),
+            ),
+          );
         }
       },
       child: Container(

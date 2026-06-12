@@ -89,6 +89,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
           'price': item.price,
           'quantity': item.quantity,
           'subtotal': subtotal,
+          'imageUrl': item.imageUrl,
         };
       }).toList();
 

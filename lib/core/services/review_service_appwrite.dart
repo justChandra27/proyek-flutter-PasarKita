@@ -16,7 +16,6 @@ class ReviewServiceAppwrite {
     required int rating,
     String? comment,
   }) async {
-    final now = DateTime.now().toIso8601String();
     final doc = await databases.createDocument(
       databaseId: AppwriteConfig.databaseId,
       collectionId: AppwriteConfig.reviewsCollectionId,
@@ -28,10 +27,9 @@ class ReviewServiceAppwrite {
         'userName': userName,
         'rating': rating,
         'comment': comment,
-        'createdAt': now,
       },
     );
-    return ReviewModel.fromMap(doc.data, doc.$id);
+    return ReviewModel.fromMap(doc.data, doc.$id, createdAt: doc.$createdAt);
   }
 
   Future<List<ReviewModel>> getProductReviews(String productId) async {
@@ -40,11 +38,11 @@ class ReviewServiceAppwrite {
       collectionId: AppwriteConfig.reviewsCollectionId,
       queries: [
         Query.equal('productId', productId),
-        Query.orderDesc('createdAt'),
+        Query.orderDesc('\$createdAt'),
       ],
     );
     return result.documents
-        .map((doc) => ReviewModel.fromMap(doc.data, doc.$id))
+        .map((doc) => ReviewModel.fromMap(doc.data, doc.$id, createdAt: doc.$createdAt))
         .toList();
   }
 
@@ -55,7 +53,7 @@ class ReviewServiceAppwrite {
   }) async {
     final queries = <String>[
       Query.equal('productId', productId),
-      Query.orderDesc('createdAt'),
+      Query.orderDesc('\$createdAt'),
       Query.limit(limit),
     ];
     if (cursor != null) {
@@ -69,7 +67,7 @@ class ReviewServiceAppwrite {
     );
 
     final items = result.documents
-        .map((doc) => ReviewModel.fromMap(doc.data, doc.$id))
+        .map((doc) => ReviewModel.fromMap(doc.data, doc.$id, createdAt: doc.$createdAt))
         .toList();
 
     return PaginatedResponse(

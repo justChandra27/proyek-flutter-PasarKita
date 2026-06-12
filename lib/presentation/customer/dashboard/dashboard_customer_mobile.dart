@@ -9,6 +9,8 @@ import '../../../providers/product_filter_provider.dart';
 import '../products/detail_produk_customer_mobile.dart';
 import '../widgets/category_chip.dart';
 import '../widgets/product_card.dart';
+import '../widgets/popular_products_row.dart';
+import '../widgets/promo_banner.dart';
 
 class DashboardCustomerMobile extends StatefulWidget {
   const DashboardCustomerMobile({super.key});
@@ -68,7 +70,7 @@ class _DashboardCustomerMobileState
                 ),
               ),
               const SizedBox(height: 20),
-              _promoBanner(),
+              const PromoBanner(height: 190, borderRadius: 20),
               const SizedBox(height: 18),
               Consumer<ProductFilterProvider>(
                 builder: (context, filter, _) {
@@ -117,6 +119,22 @@ class _DashboardCustomerMobileState
                           activeFontWeight: FontWeight.bold,
                         )),
                       ],
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 24),
+              Consumer<ProductFilterProvider>(
+                builder: (context, filter, _) {
+                  final popular = List<ProductModel>.from(filter.products)
+                    ..sort((a, b) => b.soldCount.compareTo(a.soldCount));
+                  return PopularProductsRow(
+                    products: popular.take(6).toList(),
+                    onProductTap: (p) => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => DetailProdukCustomerMobile(productId: p.id),
+                      ),
                     ),
                   );
                 },
@@ -227,56 +245,6 @@ class _DashboardCustomerMobileState
     );
   }
 
-  Widget _promoBanner() {
-    return Container(
-      height: 190,
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xff0F56B3),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Row(
-        children: [
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  "Premium\nFashion",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 42,
-                    fontWeight: FontWeight.bold,
-                    height: 1,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  "Discover your style",
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 16,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          CircleAvatar(
-            radius: 34,
-            backgroundColor: Colors.white24,
-            child: Icon(
-              Icons.shopping_bag,
-              size: 34,
-              color: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _searchBox(ProductFilterProvider filter) {
     return TextField(
       onChanged: (value) => filter.setSearchQuery(value),
@@ -378,6 +346,14 @@ class _DashboardCustomerMobileState
     return ProductCard(
       product: product,
       reviewStats: stats,
+      showSoldCount: true,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.08),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+        ),
+      ],
       borderRadius: 20,
       addBorder: true,
       contentPadding: const EdgeInsets.all(12),

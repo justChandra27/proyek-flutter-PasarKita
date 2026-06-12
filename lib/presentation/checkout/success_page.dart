@@ -202,6 +202,35 @@ class _SuccessPageState extends State<SuccessPage> {
                               padding: const EdgeInsets.only(bottom: 8),
                               child: Row(
                                 children: [
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade200,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: item.imageUrl.isNotEmpty
+                                        ? ClipRRect(
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            child: Image.network(
+                                              item.imageUrl,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, _, _) =>
+                                                  const Icon(
+                                                Icons.inventory_2,
+                                                color: Colors.grey,
+                                                size: 20,
+                                              ),
+                                            ),
+                                          )
+                                        : const Icon(
+                                            Icons.inventory_2,
+                                            color: Colors.grey,
+                                            size: 20,
+                                          ),
+                                  ),
+                                  const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment:

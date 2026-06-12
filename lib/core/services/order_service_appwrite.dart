@@ -103,6 +103,7 @@ class OrderServiceAppwrite {
           'price': item['price'],
           'quantity': item['quantity'],
           'subtotal': item['subtotal'],
+      'imageUrl': item['imageUrl'] ?? '',
         },
       );
 
@@ -125,7 +126,10 @@ class OrderServiceAppwrite {
     final result = await databases.listDocuments(
       databaseId: AppwriteConfig.databaseId,
       collectionId: AppwriteConfig.ordersCollectionId,
-      queries: [Query.equal('customerId', customerId)],
+      queries: [
+        Query.equal('customerId', customerId),
+        Query.orderDesc('\$createdAt'),
+      ],
     );
 
     return result.documents.map((doc) {
@@ -280,6 +284,21 @@ class OrderServiceAppwrite {
         orderId: orderId,
       );
     } else if (newStatus == 'completed') {
+      final items = await getOrderItems(orderId);
+      for (final item in items) {
+        final productDoc = await databases.getDocument(
+          databaseId: AppwriteConfig.databaseId,
+          collectionId: AppwriteConfig.productsCollectionId,
+          documentId: item.productId,
+        );
+        final currentSold = productDoc.data['soldCount'] as int? ?? 0;
+        await databases.updateDocument(
+          databaseId: AppwriteConfig.databaseId,
+          collectionId: AppwriteConfig.productsCollectionId,
+          documentId: item.productId,
+          data: {'soldCount': currentSold + item.quantity},
+        );
+      }
       await notifService.createNotification(
         userId: customerId,
         title: 'Pesanan Selesai',

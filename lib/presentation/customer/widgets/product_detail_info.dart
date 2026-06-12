@@ -75,7 +75,7 @@ class ProductDetailInfo extends StatelessWidget {
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
-                outOfStock ? 'Stok Habis' : 'Tersedia ($product.stock)',
+                outOfStock ? 'Stok Habis' : 'Tersedia (${product.stock})',
                 style: TextStyle(
                   color: outOfStock ? Colors.red : Colors.green.shade700,
                   fontWeight: FontWeight.w600,

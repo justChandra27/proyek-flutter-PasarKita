@@ -9,6 +9,8 @@ import '../../../providers/product_filter_provider.dart';
 import '../products/detail_produk_customer_web.dart';
 import '../widgets/product_card.dart';
 import '../widgets/category_chip.dart';
+import '../widgets/popular_products_row.dart';
+import '../widgets/promo_banner.dart';
 
 class DashboardCustomerWeb extends StatefulWidget {
   const DashboardCustomerWeb({super.key});
@@ -51,10 +53,13 @@ class _DashboardCustomerWebState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xffF8FAFC),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
+      body: SingleChildScrollView(
+        controller: _scrollController,
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
         child: Column(
           children: [
+            const PromoBanner(height: 220, borderRadius: 20),
+            const SizedBox(height: 24),
             Consumer<ProductFilterProvider>(
               builder: (context, filter, _) {
                 return _searchAndFilterRow(filter);
@@ -81,6 +86,22 @@ class _DashboardCustomerWebState
                 );
               },
             ),
+            const SizedBox(height: 24),
+            Consumer<ProductFilterProvider>(
+              builder: (context, filter, _) {
+                final popular = List<ProductModel>.from(filter.products)
+                  ..sort((a, b) => b.soldCount.compareTo(a.soldCount));
+                return PopularProductsRow(
+                  products: popular.take(8).toList(),
+                  onProductTap: (p) => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => DetailProdukCustomerWeb(productId: p.id),
+                    ),
+                  ),
+                );
+              },
+            ),
             const SizedBox(height: 30),
             Row(
               children: [
@@ -100,8 +121,7 @@ class _DashboardCustomerWebState
               ],
             ),
             const SizedBox(height: 20),
-            Expanded(
-              child: Consumer<ProductFilterProvider>(
+            Consumer<ProductFilterProvider>(
                 builder: (context, filter, _) {
                   if (filter.isLoading) {
                     return const Center(
@@ -128,17 +148,16 @@ class _DashboardCustomerWebState
 
                   return Column(
                     children: [
-                      Expanded(
-                        child: GridView.count(
-                          controller: _scrollController,
-                          crossAxisCount: 4,
-                          crossAxisSpacing: 20,
-                          mainAxisSpacing: 20,
-                          childAspectRatio: 0.75,
-                          children: products
-                              .map((product) => _productCard(product))
-                              .toList(),
-                        ),
+                      GridView.count(
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        crossAxisCount: 4,
+                        crossAxisSpacing: 20,
+                        mainAxisSpacing: 20,
+                        childAspectRatio: 0.75,
+                        children: products
+                            .map((product) => _productCard(product))
+                            .toList(),
                       ),
                       if (filter.isLoadingMore)
                         const Padding(
@@ -168,7 +187,6 @@ class _DashboardCustomerWebState
                   );
                 },
               ),
-            ),
           ],
         ),
       ),
@@ -277,6 +295,14 @@ class _DashboardCustomerWebState
       product: product,
       reviewStats: stats,
       showStockText: false,
+      showSoldCount: true,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.08),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+        ),
+      ],
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(

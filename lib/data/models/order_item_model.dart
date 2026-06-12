@@ -7,6 +7,7 @@ class OrderItemModel {
   final int price;
   final int quantity;
   final int subtotal;
+  final String imageUrl;
 
   OrderItemModel({
     required this.id,
@@ -17,6 +18,7 @@ class OrderItemModel {
     required this.price,
     required this.quantity,
     required this.subtotal,
+    required this.imageUrl,
   });
 
   factory OrderItemModel.fromMap(
@@ -32,6 +34,7 @@ class OrderItemModel {
       price: data['price'] ?? 0,
       quantity: data['quantity'] ?? 1,
       subtotal: data['subtotal'] ?? 0,
+      imageUrl: data['imageUrl'] ?? '',
     );
   }
 
@@ -44,6 +47,7 @@ class OrderItemModel {
       'price': price,
       'quantity': quantity,
       'subtotal': subtotal,
+      'imageUrl': imageUrl,
     };
   }
 }

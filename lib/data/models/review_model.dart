@@ -19,7 +19,7 @@ class ReviewModel {
     required this.createdAt,
   });
 
-  factory ReviewModel.fromMap(Map<String, dynamic> map, String docId) {
+  factory ReviewModel.fromMap(Map<String, dynamic> map, String docId, {String? createdAt}) {
     return ReviewModel(
       id: docId,
       productId: map['productId'] ?? '',
@@ -28,7 +28,7 @@ class ReviewModel {
       userName: map['userName'] ?? '',
       rating: map['rating'] ?? 5,
       comment: map['comment'],
-      createdAt: map['createdAt'] ?? '',
+      createdAt: createdAt ?? map['createdAt'] ?? '',
     );
   }
 

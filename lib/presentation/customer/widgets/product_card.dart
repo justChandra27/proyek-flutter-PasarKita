@@ -24,6 +24,8 @@ class ProductCard extends StatelessWidget {
   final double outOfStockRadius;
   final CrossAxisAlignment crossAxisAlignment;
   final bool showStockText;
+  final bool showSoldCount;
+  final List<BoxShadow>? boxShadow;
   final Widget Function(bool outOfStock, VoidCallback onAddToCart) buttonBuilder;
 
   const ProductCard({
@@ -45,6 +47,8 @@ class ProductCard extends StatelessWidget {
     this.outOfStockRadius = 8,
     this.crossAxisAlignment = CrossAxisAlignment.center,
     this.showStockText = true,
+    this.showSoldCount = false,
+    this.boxShadow,
     required this.buttonBuilder,
   });
 
@@ -60,6 +64,7 @@ class ProductCard extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(borderRadius),
           border: addBorder ? Border.all(color: Colors.black12) : null,
+          boxShadow: boxShadow,
         ),
         child: Column(
           crossAxisAlignment: crossAxisAlignment,
@@ -124,7 +129,7 @@ class ProductCard extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
                     formatRupiah(product.price),
                     style: TextStyle(
@@ -133,6 +138,22 @@ class ProductCard extends StatelessWidget {
                       fontSize: priceFontSize,
                     ),
                   ),
+                  if (showSoldCount && product.soldCount > 0) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.trending_up, size: 13, color: Colors.grey),
+                        const SizedBox(width: 3),
+                        Text(
+                          'Terjual ${product.soldCount}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   if (showStockText) ...[
                     const SizedBox(height: 4),
                     Text(
