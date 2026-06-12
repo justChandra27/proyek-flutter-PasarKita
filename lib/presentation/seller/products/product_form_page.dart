@@ -31,6 +31,10 @@ class _ProductFormPageState extends State<ProductFormPage> {
 
   final stockController = TextEditingController();
 
+  final weightController = TextEditingController();
+
+  final minPurchaseController = TextEditingController();
+
   final ProductServiceAppwrite _service = ProductServiceAppwrite();
 
   bool isLoading = false;
@@ -55,6 +59,8 @@ class _ProductFormPageState extends State<ProductFormPage> {
       descriptionController.text = widget.product!.description;
       priceController.text = widget.product!.price.toString();
       stockController.text = widget.product!.stock.toString();
+      weightController.text = widget.product!.weight.toStringAsFixed(0);
+      minPurchaseController.text = widget.product!.minPurchase.toString();
 
       uploadedImageUrl = widget.product!.imageUrl;
     }
@@ -146,6 +152,8 @@ class _ProductFormPageState extends State<ProductFormPage> {
           price: double.parse(priceController.text.trim()),
           stock: int.parse(stockController.text.trim()),
           imageUrl: imageUrl,
+          weight: double.parse(weightController.text.trim()),
+          minPurchase: int.parse(minPurchaseController.text.trim()),
         );
       } else {
         await _service.updateProduct(
@@ -157,6 +165,8 @@ class _ProductFormPageState extends State<ProductFormPage> {
           stock: int.parse(stockController.text.trim()),
           imageUrl: imageUrl,
           active: widget.product!.active,
+          weight: double.parse(weightController.text.trim()),
+          minPurchase: int.parse(minPurchaseController.text.trim()),
         );
       }
 
@@ -186,6 +196,8 @@ class _ProductFormPageState extends State<ProductFormPage> {
     descriptionController.dispose();
     priceController.dispose();
     stockController.dispose();
+    weightController.dispose();
+    minPurchaseController.dispose();
     super.dispose();
   }
 
@@ -340,6 +352,48 @@ class _ProductFormPageState extends State<ProductFormPage> {
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Stok wajib diisi';
+                      }
+                      return null;
+                    },
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  TextFormField(
+                    controller: weightController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Berat Produk (gram)',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Berat produk wajib diisi';
+                      }
+                      final weight = double.tryParse(value);
+                      if (weight == null || weight <= 0) {
+                        return 'Berat harus lebih dari 0';
+                      }
+                      return null;
+                    },
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  TextFormField(
+                    controller: minPurchaseController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Minimal Pembelian',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Minimal pembelian wajib diisi';
+                      }
+                      final min = int.tryParse(value);
+                      if (min == null || min < 1) {
+                        return 'Minimal pembelian minimal 1';
                       }
                       return null;
                     },

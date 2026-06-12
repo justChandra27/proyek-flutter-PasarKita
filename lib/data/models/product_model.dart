@@ -10,6 +10,9 @@ class ProductModel {
   final int stock;
   final String imageUrl;
   final bool active;
+  final double weight;
+  final int minPurchase;
+  final int soldCount;
 
   ProductModel({
     required this.id,
@@ -21,6 +24,9 @@ class ProductModel {
     required this.stock,
     required this.imageUrl,
     required this.active,
+    required this.weight,
+    required this.minPurchase,
+    required this.soldCount,
   });
 
   factory ProductModel.fromMap(
@@ -37,6 +43,9 @@ class ProductModel {
       stock: data['stock'] ?? 0,
       imageUrl: data['imageUrl'] ?? '',
       active: data['active'] ?? true,
+      weight: (data['weight'] ?? 0).toDouble(),
+      minPurchase: data['minPurchase'] ?? 1,
+      soldCount: data['soldCount'] ?? 0,
     );
   }
 
@@ -50,6 +59,9 @@ class ProductModel {
       'stock': stock,
       'imageUrl': imageUrl,
       'active': active,
+      'weight': weight,
+      'minPurchase': minPurchase,
+      'soldCount': soldCount,
     };
   }
 }

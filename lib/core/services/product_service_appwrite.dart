@@ -101,6 +101,8 @@ class ProductServiceAppwrite {
     required double price,
     required int stock,
     required String imageUrl,
+    required double weight,
+    required int minPurchase,
   }) async {
     await databases.createDocument(
       databaseId: AppwriteConfig.databaseId,
@@ -115,6 +117,9 @@ class ProductServiceAppwrite {
         'stock': stock,
         'imageUrl': imageUrl,
         'active': true,
+        'weight': weight,
+        'minPurchase': minPurchase,
+        'soldCount': 0,
       },
     );
   }
@@ -132,6 +137,8 @@ class ProductServiceAppwrite {
     required int stock,
     required String imageUrl,
     required bool active,
+    required double weight,
+    required int minPurchase,
   }) async {
     await databases.updateDocument(
       databaseId: AppwriteConfig.databaseId,
@@ -145,6 +152,8 @@ class ProductServiceAppwrite {
         'stock': stock,
         'imageUrl': imageUrl,
         'active': active,
+        'weight': weight,
+        'minPurchase': minPurchase,
       },
     );
   }
