@@ -1,131 +1,102 @@
-# Implementasi Item A — CategoryService + Dropdown Kategori
+# Audit Image URL — Admin Kategori
 
-## File yang dibuat
+## Ringkasan
 
-### `lib/core/services/category_service_appwrite.dart`
+| Item | Status | Detail |
+|------|--------|--------|
+| File dialog "Tambah Kategori" | ✅ | `form_kategori_web.dart:70-141` — `showAddCategoryDialog()` |
+| Method submit | ✅ | `databases.createDocument()` di dialog onPressed |
+| Attribute dikirim | ✅ | `name`, `description`, `imageUrl`, `productCount`, `status` |
+| imageUrl wajib di schema? | ⚠️ **Tidak diketahui** | Tidak ada info schema Appwrite; di kode opsional (bisa kosong) |
+| imageUrl digunakan di UI? | ❌ **TIDAK** | Tidak ada UI yang membaca `category.imageUrl` |
+| Aman hapus? | ✅ **Ya** | Tidak ada dependensi ke field `imageUrl` |
 
-Service baru untuk baca data kategori dari Appwrite collection `categories`.
+---
+
+## Detail per Item
+
+### 1. File yang membuat dialog "Tambah Kategori"
+
+**File:** `lib/presentation/admin/categories/form_kategori_web.dart`
+
+**Method:** `showAddCategoryDialog()` (line 70-141)
+
+Membuat `AlertDialog` dengan 3 field input:
+- `nameController` — Nama Kategori
+- `descriptionController` — Deskripsi
+- `imageController` — Image URL
+
+### 2. Method submit kategori
+
+**File:** `form_kategori_web.dart:115-134` — `onPressed` tombol "Simpan" di dialog:
 
 ```dart
-class CategoryServiceAppwrite {
-  final Databases databases = AppwriteService.databases;
-
-  Future<List<CategoryModel>> getAllCategories() async {
-    final result = await databases.listDocuments(
-      databaseId: AppwriteConfig.databaseId,
-      collectionId: AppwriteConfig.categoriesCollectionId,
-    );
-    return result.documents
-        .map((doc) => CategoryModel.fromMap(doc.data, doc.$id))
-        .toList();
-  }
-}
+await databases.createDocument(
+  databaseId: AppwriteConfig.databaseId,
+  collectionId: AppwriteConfig.categoriesCollectionId,
+  documentId: ID.unique(),
+  data: {
+    "name": nameController.text,
+    "description": descriptionController.text,
+    "imageUrl": imageController.text,
+    "productCount": 0,
+    "status": "active",
+  },
+);
 ```
 
-## File yang diubah
+### 3. Attribute yang dikirim ke collection categories
 
-### `lib/presentation/seller/products/product_form_page.dart`
+| Attribute | Nilai | Sumber |
+|-----------|-------|--------|
+| `name` | `nameController.text` | Input user (wajib) |
+| `description` | `descriptionController.text` | Input user (opsional) |
+| `imageUrl` | `imageController.text` | Input user (opsional, bisa kosong) |
+| `productCount` | `0` | Hardcoded |
+| `status` | `"active"` | Hardcoded |
 
-| Perubahan | Detail |
-|-----------|--------|
-| Import baru | `category_service_appwrite.dart`, `category_model.dart` |
-| Hapus `categoryController` | `TextEditingController` untuk kategori diganti |
-| State baru | `String? _selectedCategory`, `List<CategoryModel> _categories`, `bool _isLoadingCategories` |
-| `initState` | Panggil `_loadCategories()` untuk fetch data dari Appwrite |
-| Edit mode | `_selectedCategory = widget.product!.category` (pre-select dropdown) |
-| Widget kategori | `TextFormField` → `DropdownButtonFormField<String>` |
-| `initialValue` | `_selectedCategory` (nilai awal dropdown) |
-| `items` | Map `_categories` → `DropdownMenuItem(name)` |
-| `onChanged` | Update `_selectedCategory` via `setState` |
-| Loading state | `_isLoadingCategories` → disable dropdown + null items |
-| `saveProduct` | `final category = _selectedCategory ?? ''` → pakai selected category |
-| `dispose` | Hapus `categoryController.dispose()` |
+### 4. Apakah imageUrl wajib di schema Appwrite?
 
-### Potongan kode — Dropdown kategori (line 274-301)
+**Tidak diketahui secara pasti.** Tidak ada definisi schema collection `categories` di codebase. Namun:
 
+- Di kode, `imageController.text` bisa kosong — tidak ada validasi
+- `CategoryModel.fromMap` menggunakan `map['imageUrl'] ?? ''` — default string kosong
+- Jika schema Appwrite mewajibkan `imageUrl`, create akan throw error saat `imageController.text` kosong
+
+**Rekomendasi:** Cek schema `categories` di Appwrite Console → jika required, ubah jadi optional.
+
+### 5. Apakah imageUrl digunakan di halaman kategori mana pun?
+
+**Tidak.** `category.imageUrl` tidak pernah dibaca untuk ditampilkan.
+
+Semua penggunaan `CategoryModel` di UI:
+
+| File | Line | Penggunaan |
+|------|------|------------|
+| `form_kategori_web.dart` | 342-344 | `category.name`, `category.productCount`, `category.description` — **tidak pakai imageUrl** |
+| `product_form_page.dart` | 282-286 | `cat.name` — hanya nama untuk dropdown |
+
+**CategoryCard** (line 411-535) menampilkan area gambar sebagai grey placeholder:
 ```dart
-DropdownButtonFormField<String>(
-  initialValue: _selectedCategory,
-  decoration: const InputDecoration(
-    labelText: 'Kategori',
-    border: OutlineInputBorder(),
+Container(
+  height: 120,
+  decoration: BoxDecoration(
+    color: Colors.grey.shade300,  // hanya grey — tidak ada gambar
+    borderRadius: BorderRadius.only(...),
   ),
-  items: _isLoadingCategories
-      ? null
-      : _categories.map((cat) {
-          return DropdownMenuItem<String>(
-            value: cat.name,
-            child: Text(cat.name),
-          );
-        }).toList(),
-  onChanged: _isLoadingCategories
-      ? null
-      : (value) {
-          setState(() {
-            _selectedCategory = value;
-          });
-        },
-  validator: (value) {
-    if (value == null || value.isEmpty) {
-      return 'Kategori wajib diisi';
-    }
-    return null;
-  },
 ),
 ```
 
-### Potongan kode — Load categories (line 65-81)
+### 6. Rencana penghapusan imageUrl
 
-```dart
-Future<void> _loadCategories() async {
-  try {
-    final categories = await CategoryServiceAppwrite().getAllCategories();
-    if (mounted) {
-      setState(() {
-        _categories = categories;
-        _isLoadingCategories = false;
-      });
-    }
-  } catch (_) {
-    if (mounted) {
-      setState(() {
-        _isLoadingCategories = false;
-      });
-    }
-  }
-}
-```
+**Aman dilakukan.** Tidak ada dependensi ke field `imageUrl` di UI mana pun.
 
-## Alur sebelum dan sesudah
+| Langkah | File | Perubahan |
+|---------|------|-----------|
+| 1 | `CategoryModel` | Hapus field `imageUrl` dari constructor & `fromMap` |
+| 2 | `form_kategori_web.dart` | Hapus `imageController` + `TextField` dari dialog; hapus `"imageUrl"` dari `createDocument` data |
+| 3 | Appwrite Console | Hapus attribute `imageUrl` dari collection `categories` (atau biarkan — tidak dipakai) |
 
-### Sebelum
-```
-Seller → Tambah/Edit Produk → Kategori: [text field] → ketik manual
-```
-Kategori disimpan sebagai string free-text. Tidak ada validasi terhadap collection `categories`.
+**Tidak ada file lain yang perlu diubah.** `category_service_appwrite.dart` dan `product_form_page.dart` tidak menyentuh `imageUrl`.
 
-### Sesudah
-```
-Seller → Tambah/Edit Produk → Kategori: [dropdown] → pilih dari daftar
-                          ↑
-              CategoryServiceAppwrite.getAllCategories()
-              → Appwrite collection `categories`
-```
-Kategori hanya bisa dipilih dari yang tersedia di collection. Loading state jika fetch masih berjalan.
-
-## Hasil flutter analyze
-
-```
-20 issues found. (ran in 2.9s)
-```
-
-**0 errors, 0 new warnings.** Semua 20 issues pre-existing (`info` + 2 `warning` tidak terkait).
-
-## Risiko yang masih tersisa
-
-| Risiko | Status | Catatan |
-|--------|--------|---------|
-| Category collection kosong | ⚠️ LOW | Dropdown akan empty, form tidak bisa submit (validator). Admin harus isi kategori dulu. |
-| Edit mode — kategori sudah tidak ada di collection | ⚠️ LOW | `initialValue: _selectedCategory` tetap menampilkan nama kategori yang disimpan, meskipun tidak ada di items dropdown. |
-| Error fetch categories | ⚠️ LOW | `catch (_)` — dropdown disabled, form tidak bisa submit. User perlu refresh. |
-| Image orphan saat edit ganti gambar | ❌ **Belum diperbaiki** | Out of scope Item A. |
+**Risiko:** Rendah. Field tidak dipakai di mana pun. Hapus dari model dan UI tanpa dampak ke fungsionalitas lain.
