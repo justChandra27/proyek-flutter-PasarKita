@@ -1,157 +1,94 @@
-# Implementasi Sinkronisasi Field Baru Database
+# Hasil Implementasi — Perbaikan Notification Timestamp
 
-## File yang diubah
+## Root Cause (Verified)
 
-| # | File | Perubahan |
-|---|------|-----------|
-| 1 | `lib/data/models/product_model.dart` | Tambah `weight`, `minPurchase`, `soldCount` |
-| 2 | `lib/data/models/user_model.dart` | Tambah `storeName`, `storeAddress`, `city`, `province` |
-| 3 | `lib/core/services/product_service_appwrite.dart` | Tambah parameter `weight`, `minPurchase` di `addProduct` & `updateProduct` |
-| 4 | `lib/presentation/seller/products/product_form_page.dart` | Tambah input `Berat Produk (gram)` & `Minimal Pembelian` |
+**Log Flutter:**
+```
+AppwriteException:
+code=400
+type=document_invalid_structure
+message=Invalid document structure: Unknown attribute: "createdAt"
+```
 
-## Detail perubahan
+Collection `notifications` tidak memiliki attribute `createdAt`. Kode mengirim `'createdAt': DateTime.now().toIso8601String()` yang ditolak Appwrite → error 400 → dokumen tidak pernah terbuat.
 
-### 1. ProductModel (`product_model.dart`)
+## Perubahan yang Dilakukan
 
-**Field baru:**
+### 1. `lib/core/services/notification_service_appwrite.dart` (3 perubahan)
+
+**a) createNotification() — Hapus field `createdAt` dari data (line 29)**
+
+Sebelum:
 ```dart
-final double weight;      // Baris 13
-final int minPurchase;    // Baris 14
-final int soldCount;      // Baris 15
+'isRead': false,
+'createdAt': DateTime.now().toIso8601String(),  // ← dihapus
+},
 ```
-
-**fromMap — default value:**
+Sesudah:
 ```dart
-weight: (data['weight'] ?? 0).toDouble(),       // 0 jika tidak ada
-minPurchase: data['minPurchase'] ?? 1,           // 1 jika tidak ada
-soldCount: data['soldCount'] ?? 0,               // 0 jika tidak ada
+'isRead': false,
+},
 ```
 
-**toMap:**
+**b) getNotifications() — Ganti query sort ke `$createdAt` (line 42)**
+
+Sebelum:
 ```dart
-'weight': weight,
-'minPurchase': minPurchase,
-'soldCount': soldCount,
+Query.orderDesc('createdAt'),
 ```
-
-### 2. UserModel (`user_model.dart`)
-
-**Field baru:**
+Sesudah:
 ```dart
-final String storeName;     // Baris 10
-final String storeAddress;  // Baris 11
-final String city;          // Baris 12
-final String province;      // Baris 13
+Query.orderDesc('\$createdAt'),
 ```
 
-**fromMap — semua default `''`:**
+**c) getNotificationsPage() — Ganti query sort ke `$createdAt` (line 58)**
+
+Sebelum:
 ```dart
-storeName: map['storeName'] ?? '',
-storeAddress: map['storeAddress'] ?? '',
-city: map['city'] ?? '',
-province: map['province'] ?? '',
+Query.orderDesc('createdAt'),
 ```
-
-### 3. ProductServiceAppwrite (`product_service_appwrite.dart`)
-
-**`addProduct()` — parameter baru (baris 104-105):**
+Sesudah:
 ```dart
-required double weight,
-required int minPurchase,
+Query.orderDesc('\$createdAt'),
 ```
 
-**Data create:**
+### 2. `lib/data/models/notification_model.dart` (1 perubahan)
+
+**fromMap() — Baca `$createdAt` dari response Appwrite (line 34)**
+
+Sebelum:
 ```dart
-'weight': weight,
-'minPurchase': minPurchase,
-'soldCount': 0,       // default 0 untuk produk baru
+createdAt: data['createdAt'] ?? '',
 ```
-
-**`updateProduct()` — parameter baru (baris 140-141):**
+Sesudah:
 ```dart
-required double weight,
-required int minPurchase,
+createdAt: data['\$createdAt'] ?? '',
 ```
 
-**Data update — tidak overwrite `soldCount`:**
-```dart
-'weight': weight,
-'minPurchase': minPurchase,
-// soldCount tidak di-sentuh saat update
-```
+### 3. File yang tidak perlu diubah
 
-### 4. ProductFormPage (`product_form_page.dart`)
+| File | Alasan |
+|------|--------|
+| `notifikasi_customer_mobile.dart` | Menggunakan `notif.createdAt` (Dart model field), bukan field Appwrite langsung |
+| `notifikasi_customer_web.dart` | Menggunakan `notif.createdAt` (Dart model field), bukan field Appwrite langsung |
+| `notification_model.dart` (toMap) | `'createdAt': createdAt` — tidak dipakai oleh kode manapun (dead code) |
 
-**Controller baru (baris 34-36):**
-```dart
-final weightController = TextEditingController();
-final minPurchaseController = TextEditingController();
-```
+## Verifikasi
 
-**Edit mode — pre-fill (baris 60-61):**
-```dart
-weightController.text = widget.product!.weight.toStringAsFixed(0);
-minPurchaseController.text = widget.product!.minPurchase.toString();
-```
+**flutter analyze:** ✅ Lolos — 0 error terkait perubahan. Hanya pre-existing info/warnings yang tidak relevan.
 
-**Input fields (setelah Stok, sebelum tombol Simpan):**
-
-```dart
-TextFormField(
-  controller: weightController,
-  keyboardType: TextInputType.number,
-  decoration: const InputDecoration(
-    labelText: 'Berat Produk (gram)',
-    border: OutlineInputBorder(),
-  ),
-  validator: (value) {
-    if (value == null || value.isEmpty) return 'Berat produk wajib diisi';
-    final weight = double.tryParse(value);
-    if (weight == null || weight <= 0) return 'Berat harus lebih dari 0';
-    return null;
-  },
-),
-
-TextFormField(
-  controller: minPurchaseController,
-  keyboardType: TextInputType.number,
-  decoration: const InputDecoration(
-    labelText: 'Minimal Pembelian',
-    border: OutlineInputBorder(),
-  ),
-  validator: (value) {
-    if (value == null || value.isEmpty) return 'Minimal pembelian wajib diisi';
-    final min = int.tryParse(value);
-    if (min == null || min < 1) return 'Minimal pembelian minimal 1';
-    return null;
-  },
-),
-```
-
-**saveProduct — pass weight & minPurchase (baris 166-167, 177-178):**
-```dart
-weight: double.parse(weightController.text.trim()),
-minPurchase: int.parse(minPurchaseController.text.trim()),
-```
-
-## Hasil flutter analyze
+## Alur Setelah Perbaikan
 
 ```
-20 issues found. (ran in 5.9s)
+updateOrderStatus('cancelled')
+  ├─ 1. Update order status → 'cancelled'         ✅ BERHASIL
+  ├─ 2. Stock restoration                          ✅ BERHASIL
+  ├─ 3. createNotification()                       ✅ BERHASIL
+  │     └─ createDocument(data: {userId, title, ..., isRead})
+  │           └─ Appwrite: semua field dikenal → dokumen terbuat
+  │                 └─ $createdAt diisi otomatis oleh Appwrite
+  └─ 4. Customer query:
+        └─ getNotificationsPage()
+              └─ Query.orderDesc('\$createdAt') ✅ sort by system timestamp
+              └─ NotificationModel.fromMap(data['\$createdAt']) ✅ timestamp terbaca
 ```
-
-**0 errors, 0 new warnings.** Semua 20 issues pre-existing.
-
-## Audit referensi field baru
-
-| Field | Tersisa referensi? |
-|-------|-------------------|
-| `ProductModel.weight` | ❌ 0 — hanya di model & service |
-| `ProductModel.minPurchase` | ❌ 0 — hanya di model & service |
-| `ProductModel.soldCount` | ❌ 0 — hanya di model |
-| `UserModel.storeName` | ❌ 0 — hanya di model |
-| `UserModel.storeAddress` | ❌ 0 — hanya di model |
-| `UserModel.city` | ❌ 0 — hanya di model |
-| `UserModel.province` | ❌ 0 — hanya di model |
-
-Semua field baru sudah tersinkronisasi. Produk lama/user lama tetap berfungsi dengan default value via `??`.

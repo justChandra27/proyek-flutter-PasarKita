@@ -26,7 +26,6 @@ class NotificationServiceAppwrite {
         'type': type,
         'orderId': orderId,
         'isRead': false,
-        'createdAt': DateTime.now().toIso8601String(),
       },
     );
   }
@@ -39,7 +38,7 @@ class NotificationServiceAppwrite {
       collectionId: AppwriteConfig.notificationsCollectionId,
       queries: [
         Query.equal('userId', userId),
-        Query.orderDesc('createdAt'),
+        Query.orderDesc('\$createdAt'),
       ],
     );
 
@@ -55,7 +54,7 @@ class NotificationServiceAppwrite {
   }) async {
     final queries = <String>[
       Query.equal('userId', userId),
-      Query.orderDesc('createdAt'),
+      Query.orderDesc('\$createdAt'),
       Query.limit(limit),
     ];
     if (cursor != null) {

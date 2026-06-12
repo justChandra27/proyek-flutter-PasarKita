@@ -31,7 +31,7 @@ class NotificationModel {
       type: data['type'] ?? '',
       orderId: data['orderId'] ?? '',
       isRead: data['isRead'] ?? false,
-      createdAt: data['createdAt'] ?? '',
+      createdAt: data['\$createdAt'] ?? '',
     );
   }
 

@@ -231,8 +231,8 @@ class OrderServiceAppwrite {
     }
 
     const allowed = {
-      'pending': {'processing'},
-      'processing': {'shipped'},
+      'pending': {'processing', 'cancelled'},
+      'processing': {'shipped', 'cancelled'},
       'shipped': {'completed'},
     };
 
@@ -288,6 +288,22 @@ class OrderServiceAppwrite {
         orderId: orderId,
       );
     } else if (newStatus == 'cancelled') {
+      final items = await getOrderItems(orderId);
+      for (final item in items) {
+        final productDoc = await databases.getDocument(
+          databaseId: AppwriteConfig.databaseId,
+          collectionId: AppwriteConfig.productsCollectionId,
+          documentId: item.productId,
+        );
+        final currentStock = productDoc.data['stock'] as int? ?? 0;
+        await databases.updateDocument(
+          databaseId: AppwriteConfig.databaseId,
+          collectionId: AppwriteConfig.productsCollectionId,
+          documentId: item.productId,
+          data: {'stock': currentStock + item.quantity},
+        );
+      }
+
       await notifService.createNotification(
         userId: customerId,
         title: 'Pesanan Dibatalkan',
