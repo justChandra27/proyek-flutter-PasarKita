@@ -6,6 +6,9 @@ import '../../../data/models/product_model.dart';
 import '../../../data/models/review_model.dart';
 import '../../../providers/cart_provider.dart';
 import '../../../providers/product_filter_provider.dart';
+import '../products/detail_produk_customer_web.dart';
+import '../widgets/product_card.dart';
+import '../widgets/category_chip.dart';
 
 class DashboardCustomerWeb extends StatefulWidget {
   const DashboardCustomerWeb({super.key});
@@ -44,16 +47,6 @@ class _DashboardCustomerWebState
     }
   }
 
-  String _formatPrice(double price) {
-    final p = price.toInt().toString();
-    final buffer = StringBuffer();
-    for (int i = 0; i < p.length; i++) {
-      if (i > 0 && (p.length - i) % 3 == 0) buffer.write('.');
-      buffer.write(p[i]);
-    }
-    return 'Rp $buffer';
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -76,8 +69,13 @@ class _DashboardCustomerWebState
                     scrollDirection: Axis.horizontal,
                     children: [
                       _stockFilterChip(filter),
-                      ...filter.categories
-                          .map((cat) => _categoryChip(filter, cat)),
+                      ...filter.categories.map((cat) => CategoryChip(
+                        label: cat,
+                        isActive: filter.selectedCategory == cat,
+                        onTap: () => filter.setCategory(
+                          filter.selectedCategory == cat ? 'Semua' : cat,
+                        ),
+                      )),
                     ],
                   ),
                 );
@@ -256,62 +254,6 @@ class _DashboardCustomerWebState
     );
   }
 
-  Widget _categoryChip(ProductFilterProvider filter, String category) {
-    final active = filter.selectedCategory == category;
-    return GestureDetector(
-      onTap: () => filter.setCategory(active ? 'Semua' : category),
-      child: Padding(
-        padding: const EdgeInsets.only(right: 10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 18,
-            vertical: 10,
-          ),
-          decoration: BoxDecoration(
-            color: active ? const Color(0xffDBEAFE) : Colors.white,
-            border: Border.all(
-              color: const Color(0xffCBD5E1),
-            ),
-            borderRadius: BorderRadius.circular(30),
-          ),
-          child: Text(
-            category,
-            style: TextStyle(
-              color: active ? const Color(0xff2563EB) : Colors.black87,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _ratingRow(ProductModel product, double avg, int count) {
-    if (count == 0) return const SizedBox.shrink();
-    return GestureDetector(
-      onTap: () => _showReviews(product),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.star, color: Colors.amber, size: 16),
-          const SizedBox(width: 2),
-          Text(
-            avg.toStringAsFixed(1),
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.amber,
-            ),
-          ),
-          const SizedBox(width: 2),
-          Text(
-            '($count)',
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showReviews(ProductModel product) async {
     final reviewService = ReviewServiceAppwrite();
     final stats = await reviewService.getProductStats(product.id);
@@ -329,134 +271,46 @@ class _DashboardCustomerWebState
   }
 
   Widget _productCard(ProductModel product) {
-    final outOfStock = product.stock <= 0;
     final filter = context.read<ProductFilterProvider>();
-    final stats = filter.reviewStats[product.id] ??
-        ProductReviewStats.empty();
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+    final stats = filter.reviewStats[product.id];
+    return ProductCard(
+      product: product,
+      reviewStats: stats,
+      showStockText: false,
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => DetailProdukCustomerWeb(productId: product.id),
+        ),
       ),
-      child: Column(
-        children: [
-          Expanded(
-            child: Stack(
-              children: [
-                Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.black12,
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(16),
-                    ),
-                  ),
-                  child: product.imageUrl.isNotEmpty
-                      ? ClipRRect(
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(16),
-                          ),
-                          child: Image.network(
-                            product.imageUrl,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            height: double.infinity,
-                            errorBuilder: (_, _, _) => const SizedBox(),
-                          ),
-                        )
-                      : const SizedBox(),
-                ),
-                if (outOfStock)
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text(
-                        "Stok Habis",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+      onRatingTap: () => _showReviews(product),
+      onAddToCart: () {
+        context.read<CartProvider>().addItem(CartModel(
+          productId: product.id,
+          sellerId: product.sellerId,
+          name: product.name,
+          price: product.price.toInt(),
+          imageUrl: product.imageUrl,
+          stock: product.stock,
+        ));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('${product.name} ditambahkan ke keranjang'),
+          duration: const Duration(seconds: 2),
+        ));
+      },
+      buttonBuilder: (outOfStock, onAddToCart) => SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor:
+                outOfStock ? Colors.grey : const Color(0xff2563EB),
           ),
-          Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product.name,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _formatPrice(product.price),
-                  style: const TextStyle(
-                    color: Color(0xff2563EB),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(outOfStock ? "Stok: Habis" : "Stok: ${product.stock}",
-                    style: TextStyle(
-                        color: outOfStock ? Colors.red : null)),
-                if (stats.reviewCount > 0) ...[
-                  const SizedBox(height: 4),
-                  _ratingRow(product, stats.averageRating, stats.reviewCount),
-                ],
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: outOfStock
-                          ? Colors.grey
-                          : const Color(0xff2563EB),
-                    ),
-                    onPressed: outOfStock
-                        ? null
-                        : () {
-                            context
-                                .read<CartProvider>()
-                                .addItem(CartModel(
-                                  productId: product.id,
-                                  sellerId: product.sellerId,
-                                  name: product.name,
-                                  price: product.price.toInt(),
-                                  imageUrl: product.imageUrl,
-                                  stock: product.stock,
-                                ));
-                            ScaffoldMessenger.of(context)
-                                .showSnackBar(SnackBar(
-                              content: Text(
-                                '${product.name} ditambahkan ke keranjang',
-                              ),
-                              duration: Duration(seconds: 2),
-                            ));
-                          },
-                    child: Text(
-                      outOfStock ? "Stok Habis" : "Tambah ke Keranjang",
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          onPressed: outOfStock ? null : onAddToCart,
+          child: Text(
+            outOfStock ? 'Stok Habis' : 'Tambah ke Keranjang',
+            style: const TextStyle(color: Colors.white),
           ),
-        ],
+        ),
       ),
     );
   }

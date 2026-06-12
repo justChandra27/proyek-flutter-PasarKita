@@ -6,6 +6,9 @@ import '../../../data/models/product_model.dart';
 import '../../../data/models/review_model.dart';
 import '../../../providers/cart_provider.dart';
 import '../../../providers/product_filter_provider.dart';
+import '../products/detail_produk_customer_mobile.dart';
+import '../widgets/category_chip.dart';
+import '../widgets/product_card.dart';
 
 class DashboardCustomerMobile extends StatefulWidget {
   const DashboardCustomerMobile({super.key});
@@ -42,16 +45,6 @@ class _DashboardCustomerMobileState
         _scrollController.position.maxScrollExtent - 200) {
       filter.loadMore();
     }
-  }
-
-  String _formatPrice(double price) {
-    final p = price.toInt().toString();
-    final buffer = StringBuffer();
-    for (int i = 0; i < p.length; i++) {
-      if (i > 0 && (p.length - i) % 3 == 0) buffer.write('.');
-      buffer.write(p[i]);
-    }
-    return 'Rp $buffer';
   }
 
   @override
@@ -108,8 +101,21 @@ class _DashboardCustomerMobileState
                       scrollDirection: Axis.horizontal,
                       children: [
                         _stockFilterChip(filter),
-                        ...filter.categories.map((cat) =>
-                            _categoryChip(filter, cat)),
+                        ...filter.categories.map((cat) => CategoryChip(
+                          label: cat,
+                          isActive: filter.selectedCategory == cat,
+                          onTap: () => filter.setCategory(
+                            filter.selectedCategory == cat ? 'Semua' : cat,
+                          ),
+                          activeBgColor: const Color(0xff2563EB),
+                          inactiveBgColor: Colors.white,
+                          activeTextColor: Colors.white,
+                          inactiveTextColor: Colors.black87,
+                          borderColor: Colors.black12,
+                          borderRadius: 25,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          activeFontWeight: FontWeight.bold,
+                        )),
                       ],
                     ),
                   );
@@ -345,58 +351,6 @@ class _DashboardCustomerMobileState
     );
   }
 
-  Widget _categoryChip(ProductFilterProvider filter, String category) {
-    final active = filter.selectedCategory == category;
-    return GestureDetector(
-      onTap: () => filter.setCategory(active ? 'Semua' : category),
-      child: Container(
-        margin: const EdgeInsets.only(right: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        decoration: BoxDecoration(
-          color: active ? const Color(0xff2563EB) : Colors.white,
-          borderRadius: BorderRadius.circular(25),
-          border: Border.all(color: Colors.black12),
-        ),
-        child: Center(
-          child: Text(
-            category,
-            style: TextStyle(
-              color: active ? Colors.white : Colors.black87,
-              fontWeight: active ? FontWeight.bold : null,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _ratingRow(ProductModel product, double avg, int count) {
-    if (count == 0) return const SizedBox.shrink();
-    return GestureDetector(
-      onTap: () => _showReviews(product),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.star, color: Colors.amber, size: 14),
-          const SizedBox(width: 2),
-          Text(
-            avg.toStringAsFixed(1),
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: Colors.amber,
-            ),
-          ),
-          const SizedBox(width: 2),
-          Text(
-            '($count)',
-            style: const TextStyle(fontSize: 11, color: Colors.grey),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showReviews(ProductModel product) async {
     final reviewService = ReviewServiceAppwrite();
     final stats = await reviewService.getProductStats(product.id);
@@ -418,155 +372,58 @@ class _DashboardCustomerMobileState
   }
 
   Widget _productCard(ProductModel product) {
-    final outOfStock = product.stock <= 0;
     final filter = context.read<ProductFilterProvider>();
     final stats = filter.reviewStats[product.id] ??
         ProductReviewStats.empty();
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.black12),
+    return ProductCard(
+      product: product,
+      reviewStats: stats,
+      borderRadius: 20,
+      addBorder: true,
+      contentPadding: const EdgeInsets.all(12),
+      nameFontSize: 18,
+      priceFontSize: 16,
+      stockInStockColor: Colors.grey,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      outOfStockPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      outOfStockFontSize: 12,
+      outOfStockRadius: 6,
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => DetailProdukCustomerMobile(productId: product.id),
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Stack(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.black12,
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(20),
-                    ),
-                  ),
-                  child: product.imageUrl.isNotEmpty
-                      ? ClipRRect(
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(20),
-                          ),
-                          child: Image.network(
-                            product.imageUrl,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            height: double.infinity,
-                            errorBuilder: (_, _, _) => const Icon(
-                              Icons.image,
-                              size: 60,
-                              color: Colors.black54,
-                            ),
-                          ),
-                        )
-                      : const Icon(
-                          Icons.image,
-                          size: 60,
-                          color: Colors.black54,
-                        ),
-                ),
-                if (outOfStock)
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Text(
-                        "Stok Habis",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
+      onRatingTap: () => _showReviews(product),
+      onAddToCart: () {
+        context.read<CartProvider>().addItem(CartModel(
+          productId: product.id,
+          sellerId: product.sellerId,
+          name: product.name,
+          price: product.price.toInt(),
+          imageUrl: product.imageUrl,
+          stock: product.stock,
+        ));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('${product.name} ditambahkan ke keranjang'),
+        ));
+      },
+      buttonBuilder: (outOfStock, onAddToCart) => SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            backgroundColor:
+                outOfStock ? Colors.grey : const Color(0xff2563EB),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product.name,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  _formatPrice(product.price),
-                  style: const TextStyle(
-                    color: Color(0xff2563EB),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  outOfStock ? "Stok: Habis" : "Stok: ${product.stock}",
-                  style: TextStyle(
-                    color: outOfStock ? Colors.red : Colors.grey,
-                  ),
-                ),
-                if (stats.reviewCount > 0) ...[
-                  const SizedBox(height: 4),
-                  _ratingRow(product, stats.averageRating, stats.reviewCount),
-                ],
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: outOfStock
-                      ? ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.grey,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          onPressed: null,
-                          icon: const Icon(Icons.shopping_cart, size: 16),
-                          label: const Text("Stok Habis"),
-                        )
-                      : ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xff2563EB),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          onPressed: () {
-                            context.read<CartProvider>().addItem(CartModel(
-                              productId: product.id,
-                              sellerId: product.sellerId,
-                              name: product.name,
-                              price: product.price.toInt(),
-                              imageUrl: product.imageUrl,
-                              stock: product.stock,
-                            ));
-                            ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content: Text(
-                                        '${product.name} ditambahkan ke keranjang')));
-                          },
-                          icon: const Icon(Icons.shopping_cart, size: 16),
-                          label: const Text("Tambah ke Keranjang"),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          onPressed: outOfStock ? null : onAddToCart,
+          icon: const Icon(Icons.shopping_cart, size: 16),
+          label: Text(outOfStock ? 'Stok Habis' : 'Tambah ke Keranjang'),
         ),
+      ),
     );
   }
 }
