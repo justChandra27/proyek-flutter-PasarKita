@@ -7,6 +7,8 @@ class OrderItemModel {
   final int price;
   final int quantity;
   final int subtotal;
+  final int platformFee;
+  final int sellerAmount;
   final String imageUrl;
   final String color;
   final String size;
@@ -20,6 +22,8 @@ class OrderItemModel {
     required this.price,
     required this.quantity,
     required this.subtotal,
+    this.platformFee = 0,
+    this.sellerAmount = 0,
     required this.imageUrl,
     this.color = '',
     this.size = '',
@@ -38,6 +42,8 @@ class OrderItemModel {
       price: data['price'] ?? 0,
       quantity: data['quantity'] ?? 1,
       subtotal: data['subtotal'] ?? 0,
+      platformFee: data['platformFee'] ?? 0,
+      sellerAmount: data['sellerAmount'] ?? 0,
       imageUrl: data['imageUrl'] ?? '',
       color: data['color'] ?? '',
       size: data['size'] ?? '',
@@ -53,6 +59,8 @@ class OrderItemModel {
       'price': price,
       'quantity': quantity,
       'subtotal': subtotal,
+      'platformFee': platformFee,
+      'sellerAmount': sellerAmount,
       'imageUrl': imageUrl,
       'color': color,
       'size': size,

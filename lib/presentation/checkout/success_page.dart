@@ -279,7 +279,7 @@ class _SuccessPageState extends State<SuccessPage> {
                               style: TextStyle(fontWeight: FontWeight.bold),
                             ),
                             Text(
-                              _formatPrice(widget.totalAmount),
+                              _formatPrice(order.totalAmount),
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 20,

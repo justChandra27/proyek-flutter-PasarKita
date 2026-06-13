@@ -6,6 +6,7 @@ import '../../data/models/order_model.dart';
 import '../../data/models/order_item_model.dart';
 import '../appwrite/appwrite_config.dart';
 import '../appwrite/appwrite_service.dart';
+import '../constants/fee_config.dart';
 import 'notification_service_appwrite.dart';
 
 
@@ -40,10 +41,12 @@ class OrderServiceAppwrite {
     String notes = '',
   }) async {
     final orderCode = 'ORD-${DateTime.now().millisecondsSinceEpoch}';
-    final totalAmount = items.fold<int>(
+    final serviceFee = FeeConfig.serviceFee;
+    final itemsSubtotal = items.fold<int>(
       0,
       (sum, item) => sum + (item['subtotal'] as int),
     );
+    final totalAmount = itemsSubtotal + serviceFee;
     final now = DateTime.now().toIso8601String();
 
     final stockBefore = <String, int>{};
@@ -80,6 +83,7 @@ class OrderServiceAppwrite {
         'customerName': customerName,
         'customerEmail': customerEmail,
         'totalAmount': totalAmount,
+        'serviceFee': serviceFee,
         'status': 'pending',
         'paymentMethod': paymentMethod,
         'paymentStatus': 'unpaid',
@@ -91,6 +95,11 @@ class OrderServiceAppwrite {
     );
 
     for (final item in items) {
+      final subtotal = item['subtotal'] as int;
+      final platformFee =
+          (subtotal * FeeConfig.platformFeePercent / 100).round();
+      final sellerAmount = subtotal - platformFee;
+
       await databases.createDocument(
         databaseId: AppwriteConfig.databaseId,
         collectionId: AppwriteConfig.orderItemsCollectionId,
@@ -102,7 +111,9 @@ class OrderServiceAppwrite {
           'sellerId': item['sellerId'],
           'price': item['price'],
           'quantity': item['quantity'],
-          'subtotal': item['subtotal'],
+          'subtotal': subtotal,
+          'platformFee': platformFee,
+          'sellerAmount': sellerAmount,
           'imageUrl': item['imageUrl'] ?? '',
           'color': item['selectedColor'] ?? '',
           'size': item['selectedSize'] ?? '',

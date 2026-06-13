@@ -5,6 +5,7 @@ class OrderModel {
   final String customerName;
   final String customerEmail;
   final int totalAmount;
+  final int serviceFee;
   final String status;
   final String paymentMethod;
   final String paymentStatus;
@@ -20,6 +21,7 @@ class OrderModel {
     required this.customerName,
     required this.customerEmail,
     required this.totalAmount,
+    this.serviceFee = 0,
     required this.status,
     required this.paymentMethod,
     required this.paymentStatus,
@@ -40,6 +42,7 @@ class OrderModel {
       customerName: data['customerName'] ?? '',
       customerEmail: data['customerEmail'] ?? '',
       totalAmount: data['totalAmount'] ?? 0,
+      serviceFee: data['serviceFee'] ?? 0,
       status: data['status'] ?? 'pending',
       paymentMethod: data['paymentMethod'] ?? '',
       paymentStatus: data['paymentStatus'] ?? '',
@@ -57,6 +60,7 @@ class OrderModel {
       'customerName': customerName,
       'customerEmail': customerEmail,
       'totalAmount': totalAmount,
+      'serviceFee': serviceFee,
       'status': status,
       'paymentMethod': paymentMethod,
       'paymentStatus': paymentStatus,

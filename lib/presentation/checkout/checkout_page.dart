@@ -4,6 +4,7 @@ import 'package:appwrite/appwrite.dart';
 
 import 'success_page.dart';
 import '../../providers/cart_provider.dart';
+import '../../core/constants/fee_config.dart';
 import '../../core/services/auth_service_appwrite.dart';
 import '../../core/services/order_service_appwrite.dart';
 import '../../core/services/product_service_appwrite.dart';
@@ -426,6 +427,22 @@ class _CheckoutPageState extends State<CheckoutPage> {
               ),
             ],
           ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Biaya Layanan',
+                style: TextStyle(color: Colors.grey),
+              ),
+              Text(
+                _formatPrice(FeeConfig.serviceFee),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
           const Divider(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -438,7 +455,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ),
               ),
               Text(
-                _formatPrice(total),
+                _formatPrice(total + FeeConfig.serviceFee),
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 24,
