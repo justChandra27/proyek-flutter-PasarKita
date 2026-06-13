@@ -372,6 +372,16 @@ class _DashboardCustomerMobileState
       ),
       onRatingTap: () => _showReviews(product),
       onAddToCart: () {
+        if (product.colors.isNotEmpty || product.sizes.isNotEmpty) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) =>
+                  DetailProdukCustomerMobile(productId: product.id),
+            ),
+          );
+          return;
+        }
         context.read<CartProvider>().addItem(CartModel(
           productId: product.id,
           sellerId: product.sellerId,

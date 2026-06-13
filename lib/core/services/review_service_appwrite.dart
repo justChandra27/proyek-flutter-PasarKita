@@ -16,6 +16,19 @@ class ReviewServiceAppwrite {
     required int rating,
     String? comment,
   }) async {
+    final alreadyReviewed = await hasReviewed(
+      productId: productId,
+      orderId: orderId,
+      userId: userId,
+    );
+    if (alreadyReviewed) {
+      throw AppwriteException(
+        'Anda sudah memberikan ulasan untuk produk ini',
+        400,
+        'duplicate_review',
+      );
+    }
+
     final doc = await databases.createDocument(
       databaseId: AppwriteConfig.databaseId,
       collectionId: AppwriteConfig.reviewsCollectionId,

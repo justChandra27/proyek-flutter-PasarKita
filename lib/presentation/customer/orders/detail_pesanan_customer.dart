@@ -368,6 +368,16 @@ class _DetailPesananCustomerState extends State<DetailPesananCustomer> {
                                 style: const TextStyle(
                                     fontWeight: FontWeight.w600),
                               ),
+                              if (item.color.isNotEmpty ||
+                                  item.size.isNotEmpty)
+                                Text(
+                                  [
+                                    if (item.color.isNotEmpty) item.color,
+                                    if (item.size.isNotEmpty) item.size,
+                                  ].join(' / '),
+                                  style: const TextStyle(
+                                      color: Colors.grey, fontSize: 12),
+                                ),
                               Text(
                                 '${item.quantity} x ${_formatPrice(item.price)}',
                                 style: const TextStyle(
@@ -537,6 +547,35 @@ class _DetailPesananCustomerState extends State<DetailPesananCustomer> {
                             const SnackBar(
                                 content: Text('Ulasan berhasil dikirim')),
                           );
+                        }
+                      } on AppwriteException catch (e) {
+                        if (e.type == 'duplicate_review') {
+                          if (ctx.mounted) {
+                            setDialogState(() => submitting = false);
+                          }
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Anda sudah memberikan ulasan untuk produk ini',
+                                ),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                          }
+                        } else {
+                          if (ctx.mounted) {
+                            setDialogState(() => submitting = false);
+                          }
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Gagal: ${e.message ?? e.type}',
+                                ),
+                              ),
+                            );
+                          }
                         }
                       } catch (e) {
                         if (ctx.mounted) {

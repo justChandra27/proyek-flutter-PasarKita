@@ -237,6 +237,19 @@ class _SuccessPageState extends State<SuccessPage> {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(item.productName),
+                                        if (item.color.isNotEmpty ||
+                                            item.size.isNotEmpty)
+                                          Text(
+                                            [
+                                              if (item.color.isNotEmpty)
+                                                item.color,
+                                              if (item.size.isNotEmpty)
+                                                item.size,
+                                            ].join(' / '),
+                                            style: const TextStyle(
+                                                color: Colors.grey,
+                                                fontSize: 12),
+                                          ),
                                         const SizedBox(height: 2),
                                         Text(
                                           '${item.quantity} x ${_formatPrice(item.price)}',

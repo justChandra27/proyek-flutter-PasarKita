@@ -90,6 +90,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
           'quantity': item.quantity,
           'subtotal': subtotal,
           'imageUrl': item.imageUrl,
+          'selectedColor': item.selectedColor,
+          'selectedSize': item.selectedSize,
         };
       }).toList();
 
@@ -110,6 +112,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
           'quantity': item.quantity,
           'subtotal': item.price * item.quantity,
           'imageUrl': item.imageUrl,
+          'selectedColor': item.selectedColor,
+          'selectedSize': item.selectedSize,
         };
       }).toList();
 

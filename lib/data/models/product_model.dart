@@ -13,6 +13,8 @@ class ProductModel {
   final double weight;
   final int minPurchase;
   final int soldCount;
+  final List<String> colors;
+  final List<String> sizes;
 
   ProductModel({
     required this.id,
@@ -27,6 +29,8 @@ class ProductModel {
     required this.weight,
     required this.minPurchase,
     required this.soldCount,
+    this.colors = const [],
+    this.sizes = const [],
   });
 
   factory ProductModel.fromMap(
@@ -46,6 +50,14 @@ class ProductModel {
       weight: (data['weight'] ?? 0).toDouble(),
       minPurchase: data['minPurchase'] ?? 1,
       soldCount: data['soldCount'] ?? 0,
+      colors: (data['colors'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      sizes: (data['sizes'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
     );
   }
 
@@ -62,6 +74,8 @@ class ProductModel {
       'weight': weight,
       'minPurchase': minPurchase,
       'soldCount': soldCount,
+      'colors': colors,
+      'sizes': sizes,
     };
   }
 }

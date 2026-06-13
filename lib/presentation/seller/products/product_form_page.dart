@@ -75,6 +75,15 @@ class _ProductFormPageState extends State<ProductFormPage> {
       minPurchaseController.text = widget.product!.minPurchase.toString();
 
       uploadedImageUrl = widget.product!.imageUrl;
+
+      if (widget.product!.colors.isNotEmpty) {
+        _enableColorVariant = true;
+        _colorController.text = widget.product!.colors.join(', ');
+      }
+      if (widget.product!.sizes.isNotEmpty) {
+        _enableSizeVariant = true;
+        _selectedSizes.addAll(widget.product!.sizes);
+      }
     }
 
     _loadCategories();
@@ -155,6 +164,15 @@ class _ProductFormPageState extends State<ProductFormPage> {
 
       final category = _selectedCategory ?? '';
 
+      final colors = _enableColorVariant && _colorController.text.isNotEmpty
+          ? _colorController.text
+              .split(',')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList()
+          : <String>[];
+      final sizes = _enableSizeVariant ? _selectedSizes.toList() : <String>[];
+
       if (widget.product == null) {
         await _service.addProduct(
           sellerId: sellerId,
@@ -166,6 +184,8 @@ class _ProductFormPageState extends State<ProductFormPage> {
           imageUrl: imageUrl,
           weight: double.parse(weightController.text.trim()),
           minPurchase: int.parse(minPurchaseController.text.trim()),
+          colors: colors,
+          sizes: sizes,
         );
       } else {
         await _service.updateProduct(
@@ -179,6 +199,8 @@ class _ProductFormPageState extends State<ProductFormPage> {
           active: widget.product!.active,
           weight: double.parse(weightController.text.trim()),
           minPurchase: int.parse(minPurchaseController.text.trim()),
+          colors: colors,
+          sizes: sizes,
         );
       }
 

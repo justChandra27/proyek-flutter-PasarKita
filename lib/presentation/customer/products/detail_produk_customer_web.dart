@@ -30,6 +30,8 @@ class _DetailProdukCustomerWebState extends State<DetailProdukCustomerWeb> {
   ProductReviewStats? _stats;
   bool _isLoading = true;
   String? _error;
+  String? _selectedColor;
+  String? _selectedSize;
 
   @override
   void initState() {
@@ -75,14 +77,28 @@ class _DetailProdukCustomerWebState extends State<DetailProdukCustomerWeb> {
 
   void _addToCart() {
     if (_product == null || _product!.stock <= 0) return;
+    if (_product!.colors.isNotEmpty && _selectedColor == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pilih warna terlebih dahulu')),
+      );
+      return;
+    }
+    if (_product!.sizes.isNotEmpty && _selectedSize == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pilih ukuran terlebih dahulu')),
+      );
+      return;
+    }
     context.read<CartProvider>().addItem(CartModel(
-      productId: _product!.id,
-      sellerId: _product!.sellerId,
-      name: _product!.name,
-      price: _product!.price.toInt(),
-      imageUrl: _product!.imageUrl,
-      stock: _product!.stock,
-    ));
+          productId: _product!.id,
+          sellerId: _product!.sellerId,
+          name: _product!.name,
+          price: _product!.price.toInt(),
+          imageUrl: _product!.imageUrl,
+          stock: _product!.stock,
+          selectedColor: _selectedColor ?? '',
+          selectedSize: _selectedSize ?? '',
+        ));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('${_product!.name} ditambahkan ke keranjang')),
     );
@@ -150,6 +166,44 @@ class _DetailProdukCustomerWebState extends State<DetailProdukCustomerWeb> {
                         product: product,
                         reviewStats: _stats,
                       ),
+                      if (product.colors.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        const Text('Warna',
+                            style: TextStyle(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          children: product.colors.map((color) {
+                            final selected = _selectedColor == color;
+                            return ChoiceChip(
+                              label: Text(color),
+                              selected: selected,
+                              onSelected: (v) =>
+                                  setState(() => _selectedColor = v ? color : null),
+                              selectedColor: const Color(0xffEFF6FF),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                      if (product.sizes.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        const Text('Ukuran',
+                            style: TextStyle(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          children: product.sizes.map((size) {
+                            final selected = _selectedSize == size;
+                            return ChoiceChip(
+                              label: Text(size),
+                              selected: selected,
+                              onSelected: (v) =>
+                                  setState(() => _selectedSize = v ? size : null),
+                              selectedColor: const Color(0xffEFF6FF),
+                            );
+                          }).toList(),
+                        ),
+                      ],
                       const SizedBox(height: 24),
                       Row(
                         children: [

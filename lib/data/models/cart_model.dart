@@ -6,6 +6,8 @@ class CartModel {
   final String imageUrl;
   final int quantity;
   final int stock;
+  final String selectedColor;
+  final String selectedSize;
 
   CartModel({
     required this.productId,
@@ -15,6 +17,8 @@ class CartModel {
     required this.imageUrl,
     this.quantity = 1,
     this.stock = 0,
+    this.selectedColor = '',
+    this.selectedSize = '',
   });
 
   factory CartModel.fromMap(
@@ -29,6 +33,8 @@ class CartModel {
       imageUrl: data['imageUrl'] ?? '',
       quantity: data['quantity'] ?? 1,
       stock: data['stock'] ?? 0,
+      selectedColor: data['selectedColor'] ?? '',
+      selectedSize: data['selectedSize'] ?? '',
     );
   }
 
@@ -41,6 +47,8 @@ class CartModel {
       'imageUrl': imageUrl,
       'quantity': quantity,
       'stock': stock,
+      'selectedColor': selectedColor,
+      'selectedSize': selectedSize,
     };
   }
 }

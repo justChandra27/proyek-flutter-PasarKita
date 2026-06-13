@@ -103,6 +103,8 @@ class ProductServiceAppwrite {
     required String imageUrl,
     required double weight,
     required int minPurchase,
+    List<String> colors = const [],
+    List<String> sizes = const [],
   }) async {
     await databases.createDocument(
       databaseId: AppwriteConfig.databaseId,
@@ -120,6 +122,8 @@ class ProductServiceAppwrite {
         'weight': weight,
         'minPurchase': minPurchase,
         'soldCount': 0,
+        'colors': colors,
+        'sizes': sizes,
       },
     );
   }
@@ -139,6 +143,8 @@ class ProductServiceAppwrite {
     required bool active,
     required double weight,
     required int minPurchase,
+    List<String> colors = const [],
+    List<String> sizes = const [],
   }) async {
     await databases.updateDocument(
       databaseId: AppwriteConfig.databaseId,
@@ -154,6 +160,8 @@ class ProductServiceAppwrite {
         'active': active,
         'weight': weight,
         'minPurchase': minPurchase,
+        'colors': colors,
+        'sizes': sizes,
       },
     );
   }

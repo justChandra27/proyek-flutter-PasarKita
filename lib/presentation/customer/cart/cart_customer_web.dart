@@ -260,7 +260,6 @@ class _CartItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 115,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -268,27 +267,31 @@ class _CartItem extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
+          SizedBox(
             width: 90,
-            height: 90,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(12),
+            child: AspectRatio(
+              aspectRatio: 1,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: item.imageUrl.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius:
+                            BorderRadius.circular(12),
+                        child: Image.network(
+                          item.imageUrl,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                          errorBuilder: (_, _, _) =>
+                              const SizedBox(),
+                        ),
+                      )
+                    : const SizedBox(),
+              ),
             ),
-            child: item.imageUrl.isNotEmpty
-                ? ClipRRect(
-                    borderRadius:
-                        BorderRadius.circular(12),
-                    child: Image.network(
-                      item.imageUrl,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: double.infinity,
-                      errorBuilder: (_, _, _) =>
-                          const SizedBox(),
-                    ),
-                  )
-                : const SizedBox(),
           ),
 
           const SizedBox(width: 16),
@@ -302,11 +305,31 @@ class _CartItem extends StatelessWidget {
               children: [
                 Text(
                   item.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+
+                if (item.selectedColor.isNotEmpty ||
+                    item.selectedSize.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      [
+                        if (item.selectedColor.isNotEmpty)
+                          item.selectedColor,
+                        if (item.selectedSize.isNotEmpty)
+                          item.selectedSize,
+                      ].join(' / '),
+                      style: const TextStyle(
+                        color: Colors.grey,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
 
                 const SizedBox(height: 12),
 
@@ -328,6 +351,8 @@ class _CartItem extends StatelessWidget {
                             .updateQuantity(
                               item.productId,
                               item.quantity - 1,
+                              selectedColor: item.selectedColor,
+                              selectedSize: item.selectedSize,
                             ),
                         child: const Text("-"),
                       ),
@@ -348,6 +373,8 @@ class _CartItem extends StatelessWidget {
                               .updateQuantity(
                                 item.productId,
                                 item.quantity + 1,
+                                selectedColor: item.selectedColor,
+                                selectedSize: item.selectedSize,
                               );
                         },
                         child: Text(
@@ -375,7 +402,9 @@ class _CartItem extends StatelessWidget {
               GestureDetector(
                 onTap: () => context
                     .read<CartProvider>()
-                    .removeItem(item.productId),
+                    .removeItem(item.productId,
+                        selectedColor: item.selectedColor,
+                        selectedSize: item.selectedSize),
                 child: const Icon(
                   Icons.delete_outline,
                   color: Colors.black54,

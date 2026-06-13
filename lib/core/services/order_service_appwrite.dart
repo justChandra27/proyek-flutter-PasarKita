@@ -103,7 +103,9 @@ class OrderServiceAppwrite {
           'price': item['price'],
           'quantity': item['quantity'],
           'subtotal': item['subtotal'],
-      'imageUrl': item['imageUrl'] ?? '',
+          'imageUrl': item['imageUrl'] ?? '',
+          'color': item['selectedColor'] ?? '',
+          'size': item['selectedSize'] ?? '',
         },
       );
 

@@ -38,14 +38,15 @@ class CartCustomerMobile extends StatelessWidget {
 
                   Row(
                     children: [
-                      Text(
-                        "Anda memiliki ${cart.itemCount} item dalam keranjang",
-                        style: const TextStyle(
-                          color: Colors.grey,
+                      Expanded(
+                        child: Text(
+                          "Anda memiliki ${cart.itemCount} item dalam keranjang",
+                          style: const TextStyle(
+                            color: Colors.grey,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-
-                      const Spacer(),
 
                       TextButton(
                         onPressed: cart.clear,
@@ -306,6 +307,24 @@ class CartCustomerMobile extends StatelessWidget {
                       ),
                     ),
 
+                    if (item.selectedColor.isNotEmpty ||
+                        item.selectedSize.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          [
+                            if (item.selectedColor.isNotEmpty)
+                              item.selectedColor,
+                            if (item.selectedSize.isNotEmpty)
+                              item.selectedSize,
+                          ].join(' / '),
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+
                     const SizedBox(height: 12),
 
                     Text(
@@ -342,6 +361,8 @@ class CartCustomerMobile extends StatelessWidget {
                           .updateQuantity(
                             item.productId,
                             item.quantity - 1,
+                            selectedColor: item.selectedColor,
+                            selectedSize: item.selectedSize,
                           ),
                       icon: const Icon(Icons.remove),
                     ),
@@ -369,6 +390,8 @@ class CartCustomerMobile extends StatelessWidget {
                             .updateQuantity(
                               item.productId,
                               item.quantity + 1,
+                              selectedColor: item.selectedColor,
+                              selectedSize: item.selectedSize,
                             );
                       },
                       icon: Icon(
@@ -387,7 +410,9 @@ class CartCustomerMobile extends StatelessWidget {
               TextButton.icon(
                 onPressed: () => context
                     .read<CartProvider>()
-                    .removeItem(item.productId),
+                    .removeItem(item.productId,
+                        selectedColor: item.selectedColor,
+                        selectedSize: item.selectedSize),
                 icon: const Icon(
                   Icons.delete_outline,
                   color: Colors.red,

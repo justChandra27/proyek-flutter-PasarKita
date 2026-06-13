@@ -12,7 +12,12 @@ class CartProvider extends ChangeNotifier {
       _items.fold(0, (sum, item) => sum + (item.price * item.quantity));
 
   void addItem(CartModel item) {
-    final index = _items.indexWhere((i) => i.productId == item.productId);
+    final index = _items.indexWhere(
+      (i) =>
+          i.productId == item.productId &&
+          i.selectedColor == item.selectedColor &&
+          i.selectedSize == item.selectedSize,
+    );
     if (index >= 0) {
       final newQty = _items[index].quantity + item.quantity;
       if (newQty > _items[index].stock) return;
@@ -24,6 +29,8 @@ class CartProvider extends ChangeNotifier {
         imageUrl: _items[index].imageUrl,
         quantity: newQty,
         stock: _items[index].stock,
+        selectedColor: _items[index].selectedColor,
+        selectedSize: _items[index].selectedSize,
       );
     } else {
       if (item.stock <= 0) return;
@@ -32,13 +39,32 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void removeItem(String productId) {
-    _items.removeWhere((i) => i.productId == productId);
+  void removeItem(
+    String productId, {
+    String selectedColor = '',
+    String selectedSize = '',
+  }) {
+    _items.removeWhere(
+      (i) =>
+          i.productId == productId &&
+          i.selectedColor == selectedColor &&
+          i.selectedSize == selectedSize,
+    );
     notifyListeners();
   }
 
-  void updateQuantity(String productId, int quantity) {
-    final index = _items.indexWhere((i) => i.productId == productId);
+  void updateQuantity(
+    String productId,
+    int quantity, {
+    String selectedColor = '',
+    String selectedSize = '',
+  }) {
+    final index = _items.indexWhere(
+      (i) =>
+          i.productId == productId &&
+          i.selectedColor == selectedColor &&
+          i.selectedSize == selectedSize,
+    );
     if (index >= 0) {
       if (quantity <= 0) {
         _items.removeAt(index);
@@ -54,6 +80,8 @@ class CartProvider extends ChangeNotifier {
           imageUrl: _items[index].imageUrl,
           quantity: capped,
           stock: _items[index].stock,
+          selectedColor: _items[index].selectedColor,
+          selectedSize: _items[index].selectedSize,
         );
       }
       notifyListeners();
