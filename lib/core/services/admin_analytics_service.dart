@@ -29,6 +29,7 @@ class AdminAnalytics {
   final int totalOrders;
   final int completedOrders;
   final int totalRevenue;
+  final int totalPlatformRevenue;
   final Map<String, int> orderStatusCounts;
   final List<TopSeller> topSellers;
   final List<ProductSales> topProducts;
@@ -40,6 +41,7 @@ class AdminAnalytics {
     required this.totalOrders,
     required this.completedOrders,
     required this.totalRevenue,
+    required this.totalPlatformRevenue,
     required this.orderStatusCounts,
     required this.topSellers,
     required this.topProducts,
@@ -67,6 +69,7 @@ class AdminAnalyticsService {
     final completedOrderIds = <String>{};
     final statusCounts = <String, int>{};
     int totalRevenue = 0;
+    int totalPlatformRevenue = 0;
 
     for (final o in orders) {
       final status = (o['status'] as String?)?.toLowerCase() ?? 'pending';
@@ -74,6 +77,8 @@ class AdminAnalyticsService {
       if (status == 'completed') {
         completedOrderIds.add(o['\$id'] as String);
         totalRevenue += (o['totalAmount'] as num?)?.toInt() ?? 0;
+        totalPlatformRevenue +=
+            (o['serviceFee'] as num?)?.toInt() ?? 0;
       }
     }
 
@@ -107,6 +112,8 @@ class AdminAnalyticsService {
       sellerRevenue[sellerId] = (sellerRevenue[sellerId] ?? 0) + (sellerAmount > 0 ? sellerAmount : subtotal);
       sellerOrderCount[sellerId] = (sellerOrderCount[sellerId] ?? 0) + 1;
       productSales[productName] = (productSales[productName] ?? 0) + quantity;
+      totalPlatformRevenue +=
+          (item['platformFee'] as num?)?.toInt() ?? 0;
     }
 
     final sortedSellers = sellerRevenue.entries.toList()
@@ -133,6 +140,7 @@ class AdminAnalyticsService {
       totalOrders: totalOrders,
       completedOrders: completedOrderIds.length,
       totalRevenue: totalRevenue,
+      totalPlatformRevenue: totalPlatformRevenue,
       orderStatusCounts: statusCounts,
       topSellers: topSellers,
       topProducts: topProducts,

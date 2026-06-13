@@ -319,6 +319,12 @@ class _MobileAdminDashboardState
                   icon: Icons.account_balance_wallet,
                   color: Colors.deepPurple,
                 ),
+                SummaryCard(
+                  title: "Platform Revenue",
+                  value: _formatPrice(data.totalPlatformRevenue),
+                  icon: Icons.account_balance,
+                  color: Colors.amber,
+                ),
               ],
             ),
             const SizedBox(height: 24),

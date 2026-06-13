@@ -1,45 +1,64 @@
-# HASIL IMPLEMENTASI — Service Fee Analytics
+# HASIL IMPLEMENTASI — Platform Revenue
 
 ## Files Changed
 
-| File | Baris | Perubahan |
-|------|-------|-----------|
-| `seller_analytics_service.dart` | 56 | `i.subtotal` → `(i.sellerAmount > 0 ? i.sellerAmount : i.subtotal)` |
-| `admin_analytics_service.dart` | 102-106 | +`sellerAmount` variable + fallback guard |
+| File | Perubahan |
+|------|-----------|
+| `admin_analytics_service.dart` | +field `totalPlatformRevenue`, +akumulasi serviceFee+platformFee |
+| `dashboard_admin_web.dart` | Layout 1 Row → 2 Rows (4+3), +card Platform Revenue |
+| `mobile_admin_dashboard.dart` | +SummaryCard Platform Revenue |
 
 ---
 
 ## Detail Perubahan
 
-### seller_analytics_service.dart:56
+### admin_analytics_service.dart
 
-**Before:**
-```dart
-completedItems.fold<int>(0, (sum, i) => sum + i.subtotal);
+**Class + Constructor:**
+```
+L31:  final int totalPlatformRevenue;        // NEW
+L37:  ...existing fields...
+L42:  required this.totalPlatformRevenue,     // NEW
 ```
 
-**After:**
-```dart
-completedItems.fold<int>(0, (sum, i) => sum + (i.sellerAmount > 0 ? i.sellerAmount : i.subtotal));
+**Variable init (L70):**
+```
+int totalPlatformRevenue = 0;                 // NEW
 ```
 
-### admin_analytics_service.dart:102-106
-
-**Before:**
-```dart
-final subtotal = (item['subtotal'] as num?)?.toInt() ?? 0;
-final quantity = (item['quantity'] as num?)?.toInt() ?? 0;
-final productName = item['productName'] as String? ?? '';
-sellerRevenue[sellerId] = (sellerRevenue[sellerId] ?? 0) + subtotal;
+**Orders loop (L77-79):**
+```
+totalPlatformRevenue +=
+    (o['serviceFee'] as num?)?.toInt() ?? 0;  // NEW
 ```
 
-**After:**
-```dart
-final subtotal = (item['subtotal'] as num?)?.toInt() ?? 0;
-final sellerAmount = (item['sellerAmount'] as num?)?.toInt() ?? 0;
-final quantity = (item['quantity'] as num?)?.toInt() ?? 0;
-final productName = item['productName'] as String? ?? '';
-sellerRevenue[sellerId] = (sellerRevenue[sellerId] ?? 0) + (sellerAmount > 0 ? sellerAmount : subtotal);
+**Items loop (L112-113):**
+```
+totalPlatformRevenue +=
+    (item['platformFee'] as num?)?.toInt() ?? 0;  // NEW
+```
+
+**Return (L138):**
+```
+totalPlatformRevenue: totalPlatformRevenue,   // NEW
+```
+
+### dashboard_admin_web.dart
+
+**Before:** `Row` → 6 `Expanded` (1 baris)
+**After:** `Column` → `Row` (4 cards) + `SizedBox` + `Row` (3 cards)
+
+Baris 1: Total Customer · Total Seller · Total Produk · Total Order
+Baris 2: Order Completed · Total Revenue · **Platform Revenue** (NEW)
+
+### mobile_admin_dashboard.dart
+
+**Before:** 6 SummaryCards (`crossAxisCount: 2`, 3 baris)
+**After:** 7 SummaryCards (`crossAxisCount: 2`, 4 baris — baris terakhir 1 card)
+
+Card baru di akhir children (setelah Total Revenue):
+```
+SummaryCard(Platform Revenue, Icons.account_balance, Colors.amber)
 ```
 
 ---
@@ -54,9 +73,8 @@ sellerRevenue[sellerId] = (sellerRevenue[sellerId] ?? 0) + (sellerAmount > 0 ? s
 
 | Fase | File | Status |
 |------|------|--------|
-| Fase 1: fee_config | `fee_config.dart` | ✅ |
-| Fase 1: model | `order_model.dart`, `order_item_model.dart` | ✅ |
-| Fase 1: service | `order_service_appwrite.dart` | ✅ |
-| Fase 2: UI checkout | `checkout_page.dart`, `success_page.dart` | ✅ |
-| **Fase 3: analytics** | **`seller_analytics_service.dart`, `admin_analytics_service.dart`** | **✅ BARU** |
-| Fase 4: Platform Revenue + dashboard | — | ⏳ Next (jika diperlukan) |
+| Fase 1: fee_config + model + service | 4 files | ✅ |
+| Fase 2: UI checkout | 2 files | ✅ |
+| Fase 3: analytics seller + admin | 2 files | ✅ |
+| **Fase 4: Platform Revenue + dashboard** | **3 files** | **✅ BARU** |
+| Order History (optional) | — | ⏳ Next |

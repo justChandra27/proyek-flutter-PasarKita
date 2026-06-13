@@ -160,60 +160,77 @@ class _DashboardAdminWebState extends State<DashboardAdminWeb> {
   }
 
   Widget _buildStatCards(AdminAnalytics data) {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: _statCard(
-            "Total Customer",
-            _formatNumber(data.totalCustomers),
-            Icons.people_outline,
-            Colors.blue,
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: _statCard(
+                "Total Customer",
+                _formatNumber(data.totalCustomers),
+                Icons.people_outline,
+                Colors.blue,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _statCard(
+                "Total Seller",
+                _formatNumber(data.totalSellers),
+                Icons.store_outlined,
+                Colors.teal,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _statCard(
+                "Total Produk",
+                _formatNumber(data.totalProducts),
+                Icons.inventory_2_outlined,
+                Colors.purple,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _statCard(
+                "Total Order",
+                _formatNumber(data.totalOrders),
+                Icons.shopping_bag_outlined,
+                Colors.orange,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _statCard(
-            "Total Seller",
-            _formatNumber(data.totalSellers),
-            Icons.store_outlined,
-            Colors.teal,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _statCard(
-            "Total Produk",
-            _formatNumber(data.totalProducts),
-            Icons.inventory_2_outlined,
-            Colors.purple,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _statCard(
-            "Total Order",
-            _formatNumber(data.totalOrders),
-            Icons.shopping_bag_outlined,
-            Colors.orange,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _statCard(
-            "Order Completed",
-            _formatNumber(data.completedOrders),
-            Icons.check_circle_outlined,
-            Colors.green,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _statCard(
-            "Total Revenue",
-            _formatPrice(data.totalRevenue),
-            Icons.payments_outlined,
-            Colors.green,
-          ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _statCard(
+                "Order Completed",
+                _formatNumber(data.completedOrders),
+                Icons.check_circle_outlined,
+                Colors.green,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _statCard(
+                "Total Revenue",
+                _formatPrice(data.totalRevenue),
+                Icons.payments_outlined,
+                Colors.green,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _statCard(
+                "Platform Revenue",
+                _formatPrice(data.totalPlatformRevenue),
+                Icons.account_balance,
+                Colors.amber,
+              ),
+            ),
+          ],
         ),
       ],
     );
