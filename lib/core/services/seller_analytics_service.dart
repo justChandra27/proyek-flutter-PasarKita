@@ -53,7 +53,7 @@ class SellerAnalyticsService {
         items.where((i) => completedOrderIds.contains(i.orderId));
     final completedOrders = completedOrderIds.length;
     final totalRevenue =
-        completedItems.fold<int>(0, (sum, i) => sum + i.subtotal);
+        completedItems.fold<int>(0, (sum, i) => sum + (i.sellerAmount > 0 ? i.sellerAmount : i.subtotal));
 
     final statusCounts = <String, int>{};
     for (final o in orders) {

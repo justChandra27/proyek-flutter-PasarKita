@@ -100,10 +100,11 @@ class AdminAnalyticsService {
 
       final sellerId = item['sellerId'] as String? ?? '';
       final subtotal = (item['subtotal'] as num?)?.toInt() ?? 0;
+      final sellerAmount = (item['sellerAmount'] as num?)?.toInt() ?? 0;
       final quantity = (item['quantity'] as num?)?.toInt() ?? 0;
       final productName = item['productName'] as String? ?? '';
 
-      sellerRevenue[sellerId] = (sellerRevenue[sellerId] ?? 0) + subtotal;
+      sellerRevenue[sellerId] = (sellerRevenue[sellerId] ?? 0) + (sellerAmount > 0 ? sellerAmount : subtotal);
       sellerOrderCount[sellerId] = (sellerOrderCount[sellerId] ?? 0) + 1;
       productSales[productName] = (productSales[productName] ?? 0) + quantity;
     }
