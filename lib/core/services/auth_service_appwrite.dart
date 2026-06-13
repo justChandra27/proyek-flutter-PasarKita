@@ -102,6 +102,38 @@ class AuthServiceAppwrite {
   }
 
   // =========================
+  // CHECK SESSION
+  // =========================
+
+  Future<bool> hasActiveSession() async {
+    try {
+      await account.get();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // =========================
+  // CURRENT USER DATA (including role)
+  // =========================
+
+  Future<Map<String, dynamic>?> getCurrentUserData() async {
+    try {
+      final user = await account.get();
+      final result = await databases.listDocuments(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.usersCollectionId,
+        queries: [Query.equal('email', user.email)],
+      );
+      if (result.documents.isEmpty) return null;
+      return result.documents.first.data;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // =========================
   // LOGOUT
   // =========================
 

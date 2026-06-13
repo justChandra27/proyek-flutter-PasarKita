@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../data/models/cart_model.dart';
 
 class CartProvider extends ChangeNotifier {
-  final List<CartModel> _items = [];
+  List<CartModel> _items = [];
 
   List<CartModel> get items => List.unmodifiable(_items);
 
@@ -10,6 +12,25 @@ class CartProvider extends ChangeNotifier {
 
   int get totalPrice =>
       _items.fold(0, (sum, item) => sum + (item.price * item.quantity));
+
+  CartProvider() {
+    _loadCart();
+  }
+
+  Future<void> _loadCart() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('cart_items');
+    if (raw == null) return;
+    final list = jsonDecode(raw) as List;
+    _items = list.map((e) => CartModel.fromMap(e, '')).toList();
+    notifyListeners();
+  }
+
+  Future<void> _saveCart() async {
+    final prefs = await SharedPreferences.getInstance();
+    final json = _items.map((e) => e.toMap()).toList();
+    await prefs.setString('cart_items', jsonEncode(json));
+  }
 
   void addItem(CartModel item) {
     final index = _items.indexWhere(
@@ -37,6 +58,7 @@ class CartProvider extends ChangeNotifier {
       _items.add(item);
     }
     notifyListeners();
+    _saveCart();
   }
 
   void removeItem(
@@ -51,6 +73,7 @@ class CartProvider extends ChangeNotifier {
           i.selectedSize == selectedSize,
     );
     notifyListeners();
+    _saveCart();
   }
 
   void updateQuantity(
@@ -85,11 +108,13 @@ class CartProvider extends ChangeNotifier {
         );
       }
       notifyListeners();
+      _saveCart();
     }
   }
 
   void clear() {
     _items.clear();
     notifyListeners();
+    _saveCart();
   }
 }

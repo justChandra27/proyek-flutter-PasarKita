@@ -26,6 +26,42 @@ class _LoginPageState extends State<LoginPage> {
   bool obscurePassword = true;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkExistingSession();
+    });
+  }
+
+  Future<void> _checkExistingSession() async {
+    try {
+      final hasSession = await _authService.hasActiveSession();
+      if (hasSession && mounted) {
+        final userData = await _authService.getCurrentUserData();
+        if (userData != null && mounted) {
+          _redirectBasedOnRole(userData['role'] as String?);
+        }
+      }
+    } catch (_) {}
+  }
+
+  void _redirectBasedOnRole(String? role) {
+    if (!mounted) return;
+    Widget page;
+    if (role == 'admin') {
+      page = const AdminPage();
+    } else if (role == 'seller') {
+      page = const SellerPage();
+    } else {
+      page = const CustomerPage();
+    }
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => page),
+    );
+  }
+
+  @override
   void dispose() {
     usernameController.dispose();
     passwordController.dispose();
@@ -78,12 +114,26 @@ class _LoginPageState extends State<LoginPage> {
     } catch (e) {
       if (!mounted) return;
 
+      final errorMsg = e.toString();
+      if (errorMsg.contains('session is active')) {
+        setState(() => isLoading = false);
+        try {
+          final userData = await _authService.getCurrentUserData();
+          if (userData != null && mounted) {
+            _redirectBasedOnRole(userData['role'] as String?);
+            return;
+          }
+        } catch (_) {}
+      }
+
+      if (!mounted) return;
+
       setState(() {
         isLoading = false;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+        SnackBar(content: Text(errorMsg.replaceFirst('Exception: ', ''))),
       );
     }
   }
