@@ -7,6 +7,7 @@ import '../../data/models/order_item_model.dart';
 import '../appwrite/appwrite_config.dart';
 import '../appwrite/appwrite_service.dart';
 import '../constants/fee_config.dart';
+import 'balance_service_appwrite.dart';
 import 'notification_service_appwrite.dart';
 
 
@@ -310,6 +311,10 @@ class OrderServiceAppwrite {
           collectionId: AppwriteConfig.productsCollectionId,
           documentId: item.productId,
           data: {'soldCount': currentSold + item.quantity},
+        );
+        await BalanceServiceAppwrite().addEarnings(
+          item.sellerId,
+          item.sellerAmount > 0 ? item.sellerAmount : item.subtotal,
         );
       }
       await notifService.createNotification(

@@ -60,11 +60,13 @@ class SidebarAdminWeb extends StatelessWidget {
             index: 5,
           ),
 
-          _menu(icon: Icons.category_outlined, title: "Kategori", index: 6),
+          _menu(icon: Icons.account_balance_outlined, title: "Penarikan", index: 6),
 
-          _menu(icon: Icons.local_offer_outlined, title: "Promo", index: 7),
+          _menu(icon: Icons.category_outlined, title: "Kategori", index: 7),
 
-          _menu(icon: Icons.bar_chart_outlined, title: "Laporan", index: 8),
+          _menu(icon: Icons.local_offer_outlined, title: "Promo", index: 8),
+
+          _menu(icon: Icons.bar_chart_outlined, title: "Laporan", index: 9),
 
           const Spacer(),
 

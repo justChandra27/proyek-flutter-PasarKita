@@ -14,6 +14,7 @@ import 'transactions/form_transaksi_web.dart';
 import 'categories/form_kategori_web.dart';
 import 'promo/form_promo_web.dart';
 import 'reports/form_laporan_web.dart';
+import 'withdrawal/form_withdrawal_admin.dart';
 import '../auth/login_page.dart';
 import '../../core/services/auth_service_appwrite.dart';
 
@@ -34,6 +35,7 @@ class _AdminPageState extends State<AdminPage> {
     const FormProdukWeb(),
     const FormPesananWeb(),
     const FormTransaksiWeb(),
+    const FormWithdrawalAdmin(),
     const FormKategoriWeb(),
     const FormPromoWeb(),
     const FormLaporanWeb(),

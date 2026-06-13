@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/services/auth_service_appwrite.dart';
+import '../../../core/services/balance_service_appwrite.dart';
 import '../../../core/services/seller_analytics_service.dart';
+import '../../../data/models/seller_balance_model.dart';
 import '../profile/profile_seller_mobile.dart';
+import '../withdrawal/withdrawal_page.dart';
 
 class MobileSellerDashboard extends StatefulWidget {
   const MobileSellerDashboard({super.key});
@@ -13,7 +16,9 @@ class MobileSellerDashboard extends StatefulWidget {
 
 class _MobileSellerDashboardState extends State<MobileSellerDashboard> {
   final SellerAnalyticsService _analytics = SellerAnalyticsService();
+  final BalanceServiceAppwrite _balanceService = BalanceServiceAppwrite();
   late Future<SellerAnalytics> _analyticsFuture;
+  SellerBalanceModel? _balance;
 
   @override
   void initState() {
@@ -23,7 +28,10 @@ class _MobileSellerDashboardState extends State<MobileSellerDashboard> {
 
   Future<SellerAnalytics> _load() async {
     final account = await AuthServiceAppwrite().getCurrentUser();
-    return _analytics.getAnalytics(account.$id);
+    final analytics = await _analytics.getAnalytics(account.$id);
+    final bal = await _balanceService.getBalance(account.$id);
+    if (mounted) setState(() => _balance = bal);
+    return analytics;
   }
 
   String _formatPrice(int price) {
@@ -220,6 +228,53 @@ class _MobileSellerDashboardState extends State<MobileSellerDashboard> {
                 Text(
                   '${data.completedOrders} pesanan selesai',
                   style: const TextStyle(color: Colors.greenAccent),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.green.shade200),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.account_balance_wallet, color: Colors.green, size: 24),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Saldo Tersedia', style: TextStyle(color: Colors.grey)),
+                      const SizedBox(height: 4),
+                      Text(
+                        _formatPrice(_balance?.balance ?? 0),
+                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const WithdrawalPage(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.arrow_forward, size: 18),
+                  label: const Text('Tarik'),
                 ),
               ],
             ),

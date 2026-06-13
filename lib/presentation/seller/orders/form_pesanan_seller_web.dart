@@ -704,18 +704,15 @@ class _FormPesananSellerWebState
     } on AppwriteException catch (e) {
       if (!mounted) return;
       debugPrint('ORDER STATUS ERROR | code=${e.code} | type=${e.type} | message=${e.message}');
-      String message = 'Gagal mengubah status';
-      if (e.code == 400) {
-        message = 'Transisi status tidak valid';
-      } else if (e.code == 403) {
+      String message = e.message ?? 'Gagal mengubah status';
+      if (e.code == 403) {
         message = 'Anda tidak memiliki akses untuk mengubah pesanan ini';
-      } else {
-        message = e.message ?? 'Gagal mengubah status';
       }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message), backgroundColor: Colors.red),
       );
+      await _loadOrders();
     } catch (e) {
       if (!mounted) return;
       debugPrint('ORDER STATUS UNEXPECTED ERROR: $e');
@@ -1317,13 +1314,9 @@ class _StatusButton extends StatelessWidget {
             'type=${e.type} | '
             'message=${e.message}',
           );
-          String message = 'Gagal mengubah status';
-          if (e.code == 400) {
-            message = 'Transisi status tidak valid';
-          } else if (e.code == 403) {
+          String message = e.message ?? 'Gagal mengubah status';
+          if (e.code == 403) {
             message = 'Anda tidak memiliki akses untuk mengubah pesanan ini';
-          } else {
-            message = e.message ?? 'Gagal mengubah status';
           }
           if (!context.mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1332,6 +1325,7 @@ class _StatusButton extends StatelessWidget {
               backgroundColor: Colors.red,
             ),
           );
+          onStatusChanged?.call();
         } catch (e) {
           if (!context.mounted) return;
           debugPrint('ORDER STATUS UNEXPECTED ERROR: $e');

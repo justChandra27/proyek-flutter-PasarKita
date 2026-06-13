@@ -35,6 +35,12 @@ class AppwriteConfig {
   static const String reviewsCollectionId =
       'reviews';
 
+  static const String sellerBalancesCollectionId =
+      'seller_balances';
+
+  static const String withdrawalsCollectionId =
+      'withdrawals';
+
   // Storage
   static const String productBucketId =
       'product_images';
