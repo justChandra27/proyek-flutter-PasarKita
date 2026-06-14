@@ -1,78 +1,117 @@
-# Implementasi Distributed Lock + Rollback untuk createOrder() — Selesai
+# Implementasi Seller Analytics Dashboard V1 — Selesai
 
-## 1. File yang Diubah / Dibuat
+## 1. File yang Diubah
 
-| File | Status | Perubahan |
-|---|---|---|
-| `lib/data/models/processing_phase.dart` | ✅ BARU | Enum `ProcessingPhase` (none, locked, orderCreated, itemsCreated, committed) |
-| `lib/core/services/stock_lock_service.dart` | ✅ BARU | `StockLockService` — acquireLock, releaseLock, releaseAllLocks, expired lock cleanup |
-| `lib/core/appwrite/appwrite_config.dart` | ✅ DIUBAH | Tambah `stockLocksCollectionId = 'stock_locks'` |
-| `lib/core/services/order_service_appwrite.dart` | ✅ DIUBAH | `createOrder()` rewrite + method `_rollbackCreateOrder()` baru |
+| File | Perubahan |
+|---|---|
+| `lib/core/services/seller_analytics_service.dart` | Tambah 4 field + import ReviewServiceAppwrite + compute review stats |
+| `lib/presentation/seller/dashboard/dashboard_seller_web.dart` | 6 overview cards + Reviews section |
+| `lib/presentation/seller/dashboard/dashboard_seller_mobile.dart` | 6 mini cards (2 baris) + Reviews section |
 
----
-
-## 2. Schema Collection `stock_locks`
-
-Collection baru di Appwrite:
-
-| Field | Type | Keterangan |
-|---|---|---|
-| `productId` | string | ID produk (unique per lock) |
-| `sessionId` | string | ID session `createOrder()` — untuk identifikasi ownership |
-| `expiresAt` | datetime | TTL 30 detik — fallback jika release gagal |
-| `createdAt` | datetime | Waktu lock dibuat |
+**Tidak ada file baru.** Semua data dihitung di `SellerAnalyticsService`, dashboard hanya menerima final data.
 
 ---
 
-## 3. Flow Final createOrder()
+## 2. Data Flow Final
 
 ```
-Input items → aggregateQuantities (group by productId for stock)
-→ sort unique productIds (lock ordering)
-→ acquire locks (sequential, sorted — no deadlock)
-→ check stock (re-read under lock — TOCTOU aman)
-→ create order document
-→ create order items (preserve original color/size per item)
-→ deduct stock (use aggregated quantity per productId)
-→ release locks (best-effort, TTL backup)
-→ return orderId
+SellerDashboard._load(sellerId)
+  │
+  └── SellerAnalyticsService.getAnalytics(sellerId)     ← 1 call, semua data
+        │
+        ├── getSellerProducts(sellerId)                  ← 1 query
+        │     ├── totalProducts                          ← .length
+        │     ├── activeProducts                         ← .where(active)
+        │     └── pendingReviewProducts                  ← .where(moderationStatus == 'pending')
+        │
+        ├── getOrdersBySeller(sellerId)                  ← 1 query (order_items)
+        │     └── for each unique orderId:
+        │           └── getOrderById(oid)                 ← N queries (N+1 problem)
+        │                 ├── totalOrders                 ← unique order IDs
+        │                 ├── completedOrders             ← filter status
+        │                 ├── totalRevenue                ← sum sellerAmount
+        │                 ├── orderStatusCounts           ← group by status
+        │                 └── topProducts                 ← top 5 by quantity
+        │
+        └── getProductsStats(productIds)                  ← 1 batch query
+              ├── totalReviews                            ← sum reviewCount
+              └── averageRating                           ← weighted average
 ```
+
+**Total query per load: 3 + N** (products + order_items + N×orders + review_stats).
 
 ---
 
-## 4. Semua Lokasi Rollback
+## 3. `SellerAnalytics` — Field Baru
 
-| Failure Point | Phase Saat Gagal | Rollback Action |
+| Field | Tipe | Sumber |
 |---|---|---|
-| acquire lock (409 conflict atau network error) | `none` | `releaseAllLocks(sessionId)` — partial lock cleanup |
-| check stock (insufficient) | `locked` | `releaseAllLocks(sessionId)` — tidak ada data ditulis |
-| create order (network error) | `locked` | `releaseAllLocks(sessionId)` — tidak ada data ditulis |
-| create order item (network error — bisa partial) | `orderCreated` | delete created items → delete order → release locks (stock belum disentuh) |
-| deduct stock (network error — bisa partial) | `itemsCreated` | restore stock (untuk yg terdeduct) → delete items → delete order → release locks |
-| release lock (network error) | `committed` | **Tidak perlu rollback** — data sudah konsisten, TTL cleanup |
+| `activeProducts` | `int` | `products.where((p) => p.active).length` |
+| `pendingReviewProducts` | `int` | `products.where((p) => p.moderationStatus == 'pending').length` |
+| `totalReviews` | `int` | Sum `reviewCount` dari `getProductsStats()` |
+| `averageRating` | `double` | Weighted average dari `getProductsStats()` |
 
-Semua operasi rollback menggunakan **best-effort** (try/catch per sub-operasi). Partial rollback lebih baik dari no rollback.
+---
+
+## 4. Layout Dashboard
+
+### Web — 6 overview cards + Top Products + Reviews
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Ringkasan Merchant                                           │
+├──────────┬──────────┬──────────┬──────────┬──────────┬──────┤
+│ Revenue  │ Orders   │ Selesai  │ Produk   │ Aktif    │Review│
+│ Rp X     │ N        │ M        │ K        │ L        │  P   │
+├──────────┴──────────┴──────────┴──────────┴──────────┴──────┤
+│ Saldo Tersedia (Rp Y)                           [Tarik]     │
+├─────────────────────────────────────────────────────────────┤
+│ Status Pesanan: [Perlu Diproses:3] [Diproses:1] ...         │
+├──────────────────────────────┬──────────────────────────────┤
+│ PRODUK TERLARIS              │ ULASAN                       │
+│ Product A — 5 terjual       │ Total Review: X              │
+│ Product B — 3 terjual       │ ★ Average: X.X               │
+│ ...                          │                              │
+│                              │ QUICK MENU                   │
+│                              │ [Tambah] [Laporan] ...       │
+└──────────────────────────────┴──────────────────────────────┘
+```
+
+### Mobile — Gradient Revenue + 6 mini cards (2 baris)
+
+```
+┌──────────────────────────────┐
+│ TOTAL PENDAPATAN             │
+│ Rp XX.XXX                    │
+│ N pesanan selesai            │
+├──────────────────────────────┤
+│ Saldo Tersedia     [Tarik]   │
+├──────────┬──────────┬───────┤
+│ Revenue  │ Orders   │ Selesai│
+├──────────┼──────────┼───────┤
+│ Produk   │ Aktif    │Review │
+├──────────┴──────────┴───────┤
+│ Status Pesanan               │
+├──────────────────────────────┤
+│ Produk Terlaris              │
+├──────────────────────────────┤
+│ Ulasan — Total Review + ★   │
+└──────────────────────────────┘
+```
 
 ---
 
 ## 5. Hasil `flutter analyze`
 
-**0 issue baru** dari implementasi ini.
-
-21 total issues — semuanya pre-existing di file lain (storage_service print, deprecated withOpacity, unused variables, dll). Tidak ada error atau warning dari:
-- `order_service_appwrite.dart`
-- `stock_lock_service.dart`
-- `processing_phase.dart`
-- `appwrite_config.dart`
+**0 new issues.** 21 total — semuanya pre-existing.
 
 ---
 
 ## 6. Risiko yang Masih Tersisa
 
-| Risiko | Dampak | Mitigasi |
+| Risiko | Dampak | Catatan |
 |---|---|---|
-| **Crash di window Step 2 (deduct) → increment** | Tidak ada — order + items sudah dibuat sebelum stock disentuh | ✅ Desain `order → items → deduct` menghilangkan phantom deduction |
-| **Rollback delete order gagal** | Orphan order tanpa items | ✅ Stock aman (belum/tidak berubah). Mudah dideteksi via query `paymentStatus = unpaid`. Scheduled cleanup bisa ditambah. |
-| **Lock expired sebelum selesai** | Lock dilepas session lain, data race | ✅ TTL 30 detik cukup untuk operasi <5 detik. Jika butuh lebih lama, `extendLock()` bisa ditambah. |
-| **Concurrent request productId sama** | Hanya 1 session dapat lock, lainnya 409 | ✅ User diminta coba lagi. Wajar untuk produk populer. |
-| **Expired lock masih terisi** | Lock lama mencegah order baru | ✅ `acquireLock()` cek `expiresAt` — jika expired, hapus dan buat ulang. |
+| **N+1 query orders** | Seller dengan 200 order → 202+ query Appwrite | Pre-existing. Belum dioptimasi di V1. |
+| **getProductsStats untuk 0 produk** | Query tetap jalan | Dijaga dengan `if (products.isNotEmpty)` — safe. |
+| **weighted average rating** | Bisa NaN jika 0 review | Dijaga dengan `totalReviews > 0` — fallback ke 0. |
+| **Refresh manual** | Data tidak auto-refresh | Perlu pull-to-refresh atau periodic refresh di V2. |

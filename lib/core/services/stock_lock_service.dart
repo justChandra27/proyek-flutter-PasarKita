@@ -44,22 +44,37 @@ class StockLockService {
               'lock_conflict',
             );
           }
-          await _db.deleteDocument(
-            databaseId: AppwriteConfig.databaseId,
-            collectionId: AppwriteConfig.stockLocksCollectionId,
-            documentId: lock.$id,
-          );
-          await _db.createDocument(
-            databaseId: AppwriteConfig.databaseId,
-            collectionId: AppwriteConfig.stockLocksCollectionId,
-            documentId: ID.unique(),
-            data: {
-              'productId': productId,
-              'sessionId': sessionId,
-              'expiresAt': expiresAt.toIso8601String(),
-              'createdAt': now.toIso8601String(),
-            },
-          );
+          try {
+            await _db.deleteDocument(
+              databaseId: AppwriteConfig.databaseId,
+              collectionId: AppwriteConfig.stockLocksCollectionId,
+              documentId: lock.$id,
+            );
+          } catch (_) {
+            // expired lock sudah didelete session lain — lanjut
+          }
+          try {
+            await _db.createDocument(
+              databaseId: AppwriteConfig.databaseId,
+              collectionId: AppwriteConfig.stockLocksCollectionId,
+              documentId: ID.unique(),
+              data: {
+                'productId': productId,
+                'sessionId': sessionId,
+                'expiresAt': expiresAt.toIso8601String(),
+                'createdAt': now.toIso8601String(),
+              },
+            );
+          } on AppwriteException catch (e) {
+            if (e.code == 409) {
+              throw AppwriteException(
+                'Stok sedang diproses untuk produk lain. Coba lagi.',
+                409,
+                'lock_conflict',
+              );
+            }
+            rethrow;
+          }
         }
       } else {
         rethrow;

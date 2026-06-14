@@ -170,9 +170,9 @@ class _DashboardSellerWebState extends State<DashboardSellerWeb> {
           children: [
             Expanded(
               child: _statCard(
-                "Total Produk",
-                '${data.totalProducts}',
-                Icons.inventory_2_outlined,
+                "Total Pendapatan",
+                _formatPrice(data.totalRevenue),
+                Icons.payments_outlined,
                 Colors.blue,
               ),
             ),
@@ -197,10 +197,28 @@ class _DashboardSellerWebState extends State<DashboardSellerWeb> {
             const SizedBox(width: 16),
             Expanded(
               child: _statCard(
-                "Total Pendapatan",
-                _formatPrice(data.totalRevenue),
-                Icons.payments_outlined,
+                "Total Produk",
+                '${data.totalProducts}',
+                Icons.inventory_2_outlined,
                 Colors.blue,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _statCard(
+                "Produk Aktif",
+                '${data.activeProducts}',
+                Icons.check_circle_outline,
+                Colors.teal,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _statCard(
+                "Menunggu Review",
+                '${data.pendingReviewProducts}',
+                Icons.hourglass_empty,
+                Colors.amber,
               ),
             ),
           ],
@@ -267,7 +285,7 @@ class _DashboardSellerWebState extends State<DashboardSellerWeb> {
           const SizedBox(height: 24),
         ],
 
-        // PRODUK TERLARIS
+        // PRODUK TERLARIS + REVIEWS
         Expanded(
           child: Row(
             children: [
@@ -277,7 +295,14 @@ class _DashboardSellerWebState extends State<DashboardSellerWeb> {
               ),
               const SizedBox(width: 20),
               Expanded(
-                child: _quickMenu(),
+                flex: 2,
+                child: Column(
+                  children: [
+                    _reviewsCard(data.totalReviews, data.averageRating),
+                    const SizedBox(height: 16),
+                    Expanded(child: _quickMenu()),
+                  ],
+                ),
               ),
             ],
           ),
@@ -436,6 +461,75 @@ class _DashboardSellerWebState extends State<DashboardSellerWeb> {
           ),
           const Divider(height: 1),
           ...topProducts.map((p) => _productRow(p.productName, p.totalSold)),
+        ],
+      ),
+    );
+  }
+
+  Widget _reviewsCard(int totalReviews, double averageRating) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.star_rounded, color: Colors.amber, size: 22),
+              SizedBox(width: 8),
+              Text(
+                'Ulasan',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$totalReviews',
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Text(
+                      'Total Ulasan',
+                      style: TextStyle(color: Colors.grey, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.star, color: Colors.amber, size: 20),
+                    const SizedBox(width: 4),
+                    Text(
+                      averageRating.toStringAsFixed(1),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

@@ -286,9 +286,9 @@ class _MobileSellerDashboardState extends State<MobileSellerDashboard> {
             children: [
               Expanded(
                 child: _miniCard(
-                  title: "Total Produk",
-                  value: '${data.totalProducts}',
-                  icon: Icons.inventory_2_outlined,
+                  title: "Total Pendapatan",
+                  value: _formatPrice(data.totalRevenue),
+                  icon: Icons.payments_outlined,
                   color: const Color(0xffDBEAFE),
                 ),
               ),
@@ -307,6 +307,36 @@ class _MobileSellerDashboardState extends State<MobileSellerDashboard> {
                   value: '${data.completedOrders}',
                   icon: Icons.check_circle_outline,
                   color: const Color(0xffDCFCE7),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _miniCard(
+                  title: "Total Produk",
+                  value: '${data.totalProducts}',
+                  icon: Icons.inventory_2_outlined,
+                  color: const Color(0xffEDE9FE),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _miniCard(
+                  title: "Produk Aktif",
+                  value: '${data.activeProducts}',
+                  icon: Icons.check_circle_outline,
+                  color: const Color(0xffD1FAE5),
+                ),
+              ),
+              Expanded(
+                child: _miniCard(
+                  title: "Menunggu Review",
+                  value: '${data.pendingReviewProducts}',
+                  icon: Icons.hourglass_empty,
+                  color: const Color(0xffFEF3C7),
                 ),
               ),
             ],
@@ -348,6 +378,75 @@ class _MobileSellerDashboardState extends State<MobileSellerDashboard> {
                     )),
             const SizedBox(height: 30),
           ],
+
+          // REVIEWS
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.star_rounded, color: Colors.amber, size: 22),
+                    SizedBox(width: 8),
+                    Text(
+                      'Ulasan',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${data.totalReviews}',
+                            style: const TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const Text(
+                            'Total Ulasan',
+                            style: TextStyle(color: Colors.grey, fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.shade50,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.star, color: Colors.amber, size: 22),
+                          const SizedBox(width: 4),
+                          Text(
+                            data.averageRating.toStringAsFixed(1),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 20,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 30),
         ],
       ),
     );

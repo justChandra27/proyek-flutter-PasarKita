@@ -1,5 +1,7 @@
 //lib/core/services/order_service_appwrite.dart
 
+import 'dart:math';
+
 import 'package:appwrite/appwrite.dart';
 
 import '../../data/models/order_model.dart';
@@ -51,7 +53,7 @@ class OrderServiceAppwrite {
     );
     final totalAmount = itemsSubtotal + serviceFee;
     final now = DateTime.now().toIso8601String();
-    final sessionId = 'sess-${DateTime.now().microsecondsSinceEpoch}';
+    final sessionId = 'sess-${DateTime.now().microsecondsSinceEpoch}-${Random().nextInt(99999)}';
     final lockService = StockLockService();
 
     // Step 0: aggregate quantities by productId

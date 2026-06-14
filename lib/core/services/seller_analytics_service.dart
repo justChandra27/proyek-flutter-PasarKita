@@ -1,6 +1,7 @@
 import '../../data/models/order_model.dart';
 import 'order_service_appwrite.dart';
 import 'product_service_appwrite.dart';
+import 'review_service_appwrite.dart';
 
 class ProductSales {
   final String productName;
@@ -16,6 +17,10 @@ class SellerAnalytics {
   final int totalRevenue;
   final List<ProductSales> topProducts;
   final Map<String, int> orderStatusCounts;
+  final int activeProducts;
+  final int pendingReviewProducts;
+  final int totalReviews;
+  final double averageRating;
 
   SellerAnalytics({
     required this.totalProducts,
@@ -24,12 +29,17 @@ class SellerAnalytics {
     required this.totalRevenue,
     required this.topProducts,
     required this.orderStatusCounts,
+    required this.activeProducts,
+    required this.pendingReviewProducts,
+    required this.totalReviews,
+    required this.averageRating,
   });
 }
 
 class SellerAnalyticsService {
   final ProductServiceAppwrite _productService = ProductServiceAppwrite();
   final OrderServiceAppwrite _orderService = OrderServiceAppwrite();
+  final ReviewServiceAppwrite _reviewService = ReviewServiceAppwrite();
 
   Future<SellerAnalytics> getAnalytics(String sellerId) async {
     final products = await _productService.getSellerProducts(sellerId);
@@ -43,6 +53,9 @@ class SellerAnalyticsService {
     }
 
     final totalProducts = products.length;
+    final activeProducts = products.where((p) => p.active).length;
+    final pendingReviewProducts =
+        products.where((p) => p.moderationStatus == 'pending').length;
     final totalOrders = orders.length;
 
     final completedOrderIds = orders
@@ -73,6 +86,21 @@ class SellerAnalyticsService {
         .map((e) => ProductSales(productName: e.key, totalSold: e.value))
         .toList();
 
+    int totalReviews = 0;
+    double averageRating = 0;
+    if (products.isNotEmpty) {
+      final productIds = products.map((p) => p.id).toList();
+      final statsMap = await _reviewService.getProductsStats(productIds);
+      if (statsMap.isNotEmpty) {
+        double weightedSum = 0;
+        for (final stat in statsMap.values) {
+          weightedSum += stat.averageRating * stat.reviewCount;
+          totalReviews += stat.reviewCount;
+        }
+        averageRating = totalReviews > 0 ? weightedSum / totalReviews : 0;
+      }
+    }
+
     return SellerAnalytics(
       totalProducts: totalProducts,
       totalOrders: totalOrders,
@@ -80,6 +108,10 @@ class SellerAnalyticsService {
       totalRevenue: totalRevenue,
       topProducts: topProducts,
       orderStatusCounts: statusCounts,
+      activeProducts: activeProducts,
+      pendingReviewProducts: pendingReviewProducts,
+      totalReviews: totalReviews,
+      averageRating: averageRating,
     );
   }
 }
