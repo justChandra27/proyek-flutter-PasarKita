@@ -2,6 +2,9 @@ import 'package:appwrite/appwrite.dart';
 
 import '../appwrite/appwrite_config.dart';
 import '../appwrite/appwrite_service.dart';
+import '../../data/models/moderation_status.dart';
+import 'product_service_appwrite.dart';
+import 'withdrawal_service_appwrite.dart';
 
 class TopSeller {
   final String name;
@@ -30,6 +33,10 @@ class AdminAnalytics {
   final int completedOrders;
   final int totalRevenue;
   final int totalPlatformRevenue;
+  final int pendingProducts;
+  final int pendingWithdrawals;
+  final int pendingWithdrawalAmount;
+  final int averageOrderValue;
   final Map<String, int> orderStatusCounts;
   final List<TopSeller> topSellers;
   final List<ProductSales> topProducts;
@@ -42,6 +49,10 @@ class AdminAnalytics {
     required this.completedOrders,
     required this.totalRevenue,
     required this.totalPlatformRevenue,
+    required this.pendingProducts,
+    required this.pendingWithdrawals,
+    required this.pendingWithdrawalAmount,
+    required this.averageOrderValue,
     required this.orderStatusCounts,
     required this.topSellers,
     required this.topProducts,
@@ -50,21 +61,31 @@ class AdminAnalytics {
 
 class AdminAnalyticsService {
   final _db = AppwriteService.databases;
+  final _productService = ProductServiceAppwrite();
+  final _withdrawalService = WithdrawalServiceAppwrite();
 
   Future<AdminAnalytics> getAnalytics() async {
     final results = await Future.wait([
       _fetchOrders(),
-      _fetchUsers(),
       _fetchProductCount(),
       _fetchOrderItems(),
+      _fetchUserCounts(),
+      _fetchSellerNames(),
+      _productService.getProductsByStatus(ModerationStatus.pending),
+      _withdrawalService.getPendingWithdrawals(),
     ]);
 
     final orders = results[0] as List<Map<String, dynamic>>;
-    final users = results[1] as List<Map<String, dynamic>>;
-    final productCount = results[2] as int;
-    final allItems = results[3] as List<Map<String, dynamic>>;
+    final productCount = results[1] as int;
+    final allItems = results[2] as List<Map<String, dynamic>>;
+    final userCounts = results[3] as Map<String, int>;
+    final sellerNameMap = results[4] as Map<String, String>;
+    final pendingProductsList = results[5] as List<dynamic>;
+    final pendingWithdrawalsList = results[6] as List<dynamic>;
 
     final totalOrders = orders.length;
+    final totalCustomers = userCounts['customer'] ?? 0;
+    final totalSellers = userCounts['seller'] ?? 0;
 
     final completedOrderIds = <String>{};
     final statusCounts = <String, int>{};
@@ -82,18 +103,17 @@ class AdminAnalyticsService {
       }
     }
 
-    final totalCustomers =
-        users.where((u) => (u['role'] as String?) == 'customer').length;
-    final totalSellers =
-        users.where((u) => (u['role'] as String?) == 'seller').length;
+    final pendingProducts = pendingProductsList.length;
+    final pendingWithdrawals = pendingWithdrawalsList.length;
+    final pendingWithdrawalAmount = pendingWithdrawalsList.fold<int>(
+      0,
+      (sum, item) => sum + ((item as dynamic).amount as int? ?? 0),
+    );
 
-    final sellerNameMap = <String, String>{};
-    for (final u in users) {
-      if ((u['role'] as String?) == 'seller') {
-        sellerNameMap[u['\$id'] as String] =
-            (u['name'] as String?) ?? 'Unknown';
-      }
-    }
+    final completedOrdersCount = completedOrderIds.length;
+    final averageOrderValue = completedOrdersCount > 0
+        ? totalRevenue ~/ completedOrdersCount
+        : 0;
 
     final sellerRevenue = <String, int>{};
     final sellerOrderCount = <String, int>{};
@@ -138,9 +158,13 @@ class AdminAnalyticsService {
       totalSellers: totalSellers,
       totalProducts: productCount,
       totalOrders: totalOrders,
-      completedOrders: completedOrderIds.length,
+      completedOrders: completedOrdersCount,
       totalRevenue: totalRevenue,
       totalPlatformRevenue: totalPlatformRevenue,
+      pendingProducts: pendingProducts,
+      pendingWithdrawals: pendingWithdrawals,
+      pendingWithdrawalAmount: pendingWithdrawalAmount,
+      averageOrderValue: averageOrderValue,
       orderStatusCounts: statusCounts,
       topSellers: topSellers,
       topProducts: topProducts,
@@ -151,14 +175,7 @@ class AdminAnalyticsService {
     final result = await _db.listDocuments(
       databaseId: AppwriteConfig.databaseId,
       collectionId: AppwriteConfig.ordersCollectionId,
-    );
-    return result.documents.map((d) => d.data..['\$id'] = d.$id).toList();
-  }
-
-  Future<List<Map<String, dynamic>>> _fetchUsers() async {
-    final result = await _db.listDocuments(
-      databaseId: AppwriteConfig.databaseId,
-      collectionId: AppwriteConfig.usersCollectionId,
+      queries: [Query.limit(100)],
     );
     return result.documents.map((d) => d.data..['\$id'] = d.$id).toList();
   }
@@ -176,7 +193,40 @@ class AdminAnalyticsService {
     final result = await _db.listDocuments(
       databaseId: AppwriteConfig.databaseId,
       collectionId: AppwriteConfig.orderItemsCollectionId,
+      queries: [Query.limit(100)],
     );
     return result.documents.map((d) => d.data..['\$id'] = d.$id).toList();
+  }
+
+  Future<Map<String, int>> _fetchUserCounts() async {
+    final results = await Future.wait([
+      _db.listDocuments(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.usersCollectionId,
+        queries: [Query.equal('role', 'customer'), Query.limit(1)],
+      ),
+      _db.listDocuments(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.usersCollectionId,
+        queries: [Query.equal('role', 'seller'), Query.limit(1)],
+      ),
+    ]);
+    return {
+      'customer': results[0].total,
+      'seller': results[1].total,
+    };
+  }
+
+  Future<Map<String, String>> _fetchSellerNames() async {
+    final result = await _db.listDocuments(
+      databaseId: AppwriteConfig.databaseId,
+      collectionId: AppwriteConfig.usersCollectionId,
+      queries: [Query.equal('role', 'seller'), Query.limit(100)],
+    );
+    final names = <String, String>{};
+    for (final d in result.documents) {
+      names[d.$id] = (d.data['name'] as String?) ?? 'Unknown';
+    }
+    return names;
   }
 }

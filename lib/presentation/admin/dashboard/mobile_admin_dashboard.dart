@@ -325,6 +325,18 @@ class _MobileAdminDashboardState
                   icon: Icons.account_balance,
                   color: Colors.amber,
                 ),
+                SummaryCard(
+                  title: "Pending Products",
+                  value: _formatNumber(data.pendingProducts),
+                  icon: Icons.pending_actions,
+                  color: Colors.orange,
+                ),
+                SummaryCard(
+                  title: "Pending Withdrawals",
+                  value: _formatPrice(data.pendingWithdrawalAmount),
+                  icon: Icons.money_off,
+                  color: Colors.red,
+                ),
               ],
             ),
             const SizedBox(height: 24),
@@ -349,6 +361,35 @@ class _MobileAdminDashboardState
               ),
               const SizedBox(height: 24),
             ],
+
+            // AVG ORDER VALUE
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Rata-rata Pesanan",
+                    style: TextStyle(fontSize: 13, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _formatPrice(data.averageOrderValue),
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xff2962FF),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
 
             // TOP PRODUK
             if (data.topProducts.isNotEmpty) ...[

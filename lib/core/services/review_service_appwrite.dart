@@ -52,6 +52,7 @@ class ReviewServiceAppwrite {
       queries: [
         Query.equal('productId', productId),
         Query.orderDesc('\$createdAt'),
+        Query.limit(100),
       ],
     );
     return result.documents
@@ -94,7 +95,7 @@ class ReviewServiceAppwrite {
     final result = await databases.listDocuments(
       databaseId: AppwriteConfig.databaseId,
       collectionId: AppwriteConfig.reviewsCollectionId,
-      queries: [Query.equal('productId', productId)],
+      queries: [Query.equal('productId', productId), Query.limit(100)],
     );
 
     if (result.documents.isEmpty) {
@@ -118,7 +119,7 @@ class ReviewServiceAppwrite {
     final result = await databases.listDocuments(
       databaseId: AppwriteConfig.databaseId,
       collectionId: AppwriteConfig.reviewsCollectionId,
-      queries: [Query.equal('productId', productIds)],
+      queries: [Query.equal('productId', productIds), Query.limit(100)],
     );
 
     final grouped = <String, List<int>>{};

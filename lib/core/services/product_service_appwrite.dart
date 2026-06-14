@@ -19,6 +19,7 @@ class ProductServiceAppwrite {
     final result = await databases.listDocuments(
       databaseId: AppwriteConfig.databaseId,
       collectionId: AppwriteConfig.productsCollectionId,
+      queries: [Query.limit(100)],
     );
 
     return result.documents.map((doc) {
@@ -34,7 +35,7 @@ class ProductServiceAppwrite {
     final result = await databases.listDocuments(
       databaseId: AppwriteConfig.databaseId,
       collectionId: AppwriteConfig.productsCollectionId,
-      queries: [Query.equal('moderationStatus', status.toJson())],
+      queries: [Query.equal('moderationStatus', status.toJson()), Query.limit(100)],
     );
 
     return result.documents.map((doc) {
@@ -50,7 +51,7 @@ class ProductServiceAppwrite {
     final result = await databases.listDocuments(
       databaseId: AppwriteConfig.databaseId,
       collectionId: AppwriteConfig.productsCollectionId,
-      queries: [Query.equal('active', true)],
+      queries: [Query.equal('active', true), Query.limit(100)],
     );
 
     return result.documents.map((doc) {
@@ -113,7 +114,7 @@ class ProductServiceAppwrite {
     final result = await databases.listDocuments(
       databaseId: AppwriteConfig.databaseId,
       collectionId: AppwriteConfig.productsCollectionId,
-      queries: [Query.equal('sellerId', sellerId)],
+      queries: [Query.equal('sellerId', sellerId), Query.limit(100)],
     );
 
     return result.documents.map((doc) {

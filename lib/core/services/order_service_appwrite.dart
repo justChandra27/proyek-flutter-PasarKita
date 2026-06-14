@@ -273,6 +273,7 @@ class OrderServiceAppwrite {
       queries: [
         Query.equal('customerId', customerId),
         Query.orderDesc('\$createdAt'),
+        Query.limit(100),
       ],
     );
 
@@ -301,7 +302,7 @@ class OrderServiceAppwrite {
     final result = await databases.listDocuments(
       databaseId: AppwriteConfig.databaseId,
       collectionId: AppwriteConfig.orderItemsCollectionId,
-      queries: [Query.equal('sellerId', sellerId)],
+      queries: [Query.equal('sellerId', sellerId), Query.limit(100)],
     );
 
     return result.documents.map((doc) {

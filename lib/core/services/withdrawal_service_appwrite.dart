@@ -50,6 +50,7 @@ class WithdrawalServiceAppwrite {
       queries: [
         Query.equal('sellerId', sellerId),
         Query.orderDesc('\$createdAt'),
+        Query.limit(100),
       ],
     );
     return result.documents
@@ -64,6 +65,7 @@ class WithdrawalServiceAppwrite {
       queries: [
         Query.equal('status', 'pending'),
         Query.orderDesc('\$createdAt'),
+        Query.limit(100),
       ],
     );
     return result.documents

@@ -230,6 +230,24 @@ class _DashboardAdminWebState extends State<DashboardAdminWeb> {
                 Colors.amber,
               ),
             ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _statCard(
+                "Pending Products",
+                _formatNumber(data.pendingProducts),
+                Icons.pending_actions,
+                Colors.orange,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _statCard(
+                "Pending Withdrawals",
+                _formatPrice(data.pendingWithdrawalAmount),
+                Icons.money_off,
+                Colors.red,
+              ),
+            ),
           ],
         ),
       ],
@@ -441,6 +459,33 @@ class _DashboardAdminWebState extends State<DashboardAdminWeb> {
                   ],
                 ),
               )),
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Rata-rata Pesanan",
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _formatPrice(data.averageOrderValue),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xff2563EB),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
