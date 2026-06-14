@@ -135,13 +135,51 @@ class _FormProdukSellerMobileState extends State<FormProdukSellerMobile> {
                     return const Center(child: Text("Belum ada produk"));
                   }
 
+                  final produkPending = products
+                      .where((p) => p.moderationStatus == 'pending')
+                      .length;
+
                   return ListView.separated(
                     padding: const EdgeInsets.all(16),
-                    itemCount: products.length,
+                    itemCount: products.length + (produkPending > 0 ? 1 : 0),
                     separatorBuilder: (_, _) => const SizedBox(height: 14),
                     itemBuilder: (context, index) {
+                      if (produkPending > 0 && index == 0) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.orange.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.hourglass_empty,
+                                color: Colors.orange.shade700,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                '$produkPending produk menunggu review',
+                                style: TextStyle(
+                                  color: Colors.orange.shade800,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      final productIndex = produkPending > 0
+                          ? index - 1
+                          : index;
                       return ProductCard(
-                        product: products[index],
+                        product: products[productIndex],
                         onProductChanged: () {
                           if (mounted) setState(() {});
                         },

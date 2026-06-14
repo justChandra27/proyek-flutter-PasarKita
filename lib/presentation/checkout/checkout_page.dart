@@ -66,7 +66,33 @@ class _CheckoutPageState extends State<CheckoutPage> {
       final productService = ProductServiceAppwrite();
       for (final cartItem in cart.items) {
         final product = await productService.getProductById(cartItem.productId);
-        if (product == null || cartItem.quantity > product.stock) {
+        if (product == null) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Produk tidak ditemukan. Silakan periksa kembali keranjang Anda.',
+              ),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          setState(() => _loading = false);
+          return;
+        }
+        if (!product.active) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '${product.name} tidak tersedia. Produk telah dinonaktifkan.',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+          setState(() => _loading = false);
+          return;
+        }
+        if (cartItem.quantity > product.stock) {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(

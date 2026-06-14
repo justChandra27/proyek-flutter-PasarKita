@@ -273,6 +273,10 @@ class _FormProdukSellerWebState extends State<FormProdukSellerWeb> {
                               .where((p) => p.active)
                               .length;
 
+                          final produkPending = products
+                              .where((p) => p.moderationStatus == 'pending')
+                              .length;
+
                           final stokMenipis = products
                               .where((p) => p.stock <= 5)
                               .length;
@@ -359,9 +363,9 @@ class _FormProdukSellerWebState extends State<FormProdukSellerWeb> {
 
                                     Expanded(
                                       child: _statCard(
-                                        Icons.visibility_outlined,
-                                        "Dilihat",
-                                        "0",
+                                        Icons.hourglass_empty,
+                                        "Menunggu Review",
+                                        produkPending.toString(),
                                         Colors.orange,
                                       ),
                                     ),

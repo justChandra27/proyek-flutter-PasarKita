@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import '../../../../core/services/product_service_appwrite.dart';
 import '../../../../core/services/storage_service_appwrite.dart';
 import '../../../../data/models/product_model.dart';
+import '../../../../data/models/moderation_status.dart';
 import '../product_form_page.dart';
+import 'moderation_status_badge.dart';
 
 class ProductCard extends StatelessWidget {
   final ProductModel product;
@@ -40,8 +42,14 @@ class ProductCard extends StatelessWidget {
 
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 6),
-          child: Text(
-            "Stok : ${product.stock}",
+          child: Row(
+            children: [
+              Text("Stok : ${product.stock}"),
+              const SizedBox(width: 12),
+              ModerationStatusBadge(
+                status: ModerationStatus.fromJson(product.moderationStatus),
+              ),
+            ],
           ),
         ),
 

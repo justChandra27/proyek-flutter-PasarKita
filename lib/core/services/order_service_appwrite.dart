@@ -4,11 +4,13 @@ import 'package:appwrite/appwrite.dart';
 
 import '../../data/models/order_model.dart';
 import '../../data/models/order_item_model.dart';
+import '../../data/models/processing_phase.dart';
 import '../appwrite/appwrite_config.dart';
 import '../appwrite/appwrite_service.dart';
 import '../constants/fee_config.dart';
 import 'balance_service_appwrite.dart';
 import 'notification_service_appwrite.dart';
+import 'stock_lock_service.dart';
 
 
 class OrderServiceAppwrite {
@@ -49,89 +51,215 @@ class OrderServiceAppwrite {
     );
     final totalAmount = itemsSubtotal + serviceFee;
     final now = DateTime.now().toIso8601String();
+    final sessionId = 'sess-${DateTime.now().microsecondsSinceEpoch}';
+    final lockService = StockLockService();
 
-    final stockBefore = <String, int>{};
+    // Step 0: aggregate quantities by productId
+    final aggregatedQty = <String, int>{};
     for (final item in items) {
-      final productId = item['productId'] as String;
-      final quantity = item['quantity'] as int;
+      final pid = item['productId'] as String;
+      final qty = item['quantity'] as int;
+      aggregatedQty[pid] = (aggregatedQty[pid] ?? 0) + qty;
+    }
+    final uniqueProductIds = aggregatedQty.keys.toList()..sort();
+    final stockBefore = <String, int>{};
+    final deducted = <String>[];
+    final createdItemIds = <String>[];
+    String? orderId;
+    var phase = ProcessingPhase.none;
 
-      final productDoc = await databases.getDocument(
-        databaseId: AppwriteConfig.databaseId,
-        collectionId: AppwriteConfig.productsCollectionId,
-        documentId: productId,
-      );
-      final currentStock = productDoc.data['stock'] as int? ?? 0;
+    try {
+      // Step 1: acquire locks (lock ordering by productId mencegah deadlock)
+      for (final pid in uniqueProductIds) {
+        await lockService.acquireLock(productId: pid, sessionId: sessionId);
+      }
+      phase = ProcessingPhase.locked;
 
-      if (currentStock < quantity) {
-        throw AppwriteException(
-          'Stok ${item['productName']} tidak mencukupi. '
-              'Diminta: $quantity, tersedia: $currentStock',
-          400,
-          'insufficient_stock',
+      // Step 2: check stock (baca ulang setelah lock — TOCTOU aman)
+      for (final pid in uniqueProductIds) {
+        final productDoc = await databases.getDocument(
+          databaseId: AppwriteConfig.databaseId,
+          collectionId: AppwriteConfig.productsCollectionId,
+          documentId: pid,
         );
+        final currentStock = productDoc.data['stock'] as int? ?? 0;
+        stockBefore[pid] = currentStock;
+        final needed = aggregatedQty[pid]!;
+        if (currentStock < needed) {
+          throw AppwriteException(
+            'Stok tidak mencukupi. Diminta: $needed, tersedia: $currentStock',
+            400,
+            'insufficient_stock',
+          );
+        }
       }
 
-      stockBefore[productId] = currentStock;
-    }
-
-    final order = await databases.createDocument(
-      databaseId: AppwriteConfig.databaseId,
-      collectionId: AppwriteConfig.ordersCollectionId,
-      documentId: ID.unique(),
-      data: {
-        'orderCode': orderCode,
-        'customerId': customerId,
-        'customerName': customerName,
-        'customerEmail': customerEmail,
-        'totalAmount': totalAmount,
-        'serviceFee': serviceFee,
-        'status': 'pending',
-        'paymentMethod': paymentMethod,
-        'paymentStatus': 'unpaid',
-        'address': address,
-        'notes': notes,
-        'createdAt': now,
-        'updatedAt': now,
-      },
-    );
-
-    for (final item in items) {
-      final subtotal = item['subtotal'] as int;
-      final platformFee =
-          (subtotal * FeeConfig.platformFeePercent / 100).round();
-      final sellerAmount = subtotal - platformFee;
-
-      await databases.createDocument(
+      // Step 3: create order
+      final order = await databases.createDocument(
         databaseId: AppwriteConfig.databaseId,
-        collectionId: AppwriteConfig.orderItemsCollectionId,
+        collectionId: AppwriteConfig.ordersCollectionId,
         documentId: ID.unique(),
         data: {
-          'orderId': order.$id,
-          'productId': item['productId'],
-          'productName': item['productName'],
-          'sellerId': item['sellerId'],
-          'price': item['price'],
-          'quantity': item['quantity'],
-          'subtotal': subtotal,
-          'platformFee': platformFee,
-          'sellerAmount': sellerAmount,
-          'imageUrl': item['imageUrl'] ?? '',
-          'color': item['selectedColor'] ?? '',
-          'size': item['selectedSize'] ?? '',
+          'orderCode': orderCode,
+          'customerId': customerId,
+          'customerName': customerName,
+          'customerEmail': customerEmail,
+          'totalAmount': totalAmount,
+          'serviceFee': serviceFee,
+          'status': 'pending',
+          'paymentMethod': paymentMethod,
+          'paymentStatus': 'unpaid',
+          'address': address,
+          'notes': notes,
+          'createdAt': now,
+          'updatedAt': now,
         },
       );
+      orderId = order.$id;
+      phase = ProcessingPhase.orderCreated;
 
-      final productId = item['productId'] as String;
-      final quantity = item['quantity'] as int;
-      await databases.updateDocument(
-        databaseId: AppwriteConfig.databaseId,
-        collectionId: AppwriteConfig.productsCollectionId,
-        documentId: productId,
-        data: {'stock': stockBefore[productId]! - quantity},
+      // Step 4: create order items (preserve individual color/size per item)
+      for (final item in items) {
+        final subtotal = item['subtotal'] as int;
+        final platformFee =
+            (subtotal * FeeConfig.platformFeePercent / 100).round();
+        final sellerAmount = subtotal - platformFee;
+
+        final itemDoc = await databases.createDocument(
+          databaseId: AppwriteConfig.databaseId,
+          collectionId: AppwriteConfig.orderItemsCollectionId,
+          documentId: ID.unique(),
+          data: {
+            'orderId': orderId,
+            'productId': item['productId'],
+            'productName': item['productName'],
+            'sellerId': item['sellerId'],
+            'price': item['price'],
+            'quantity': item['quantity'],
+            'subtotal': subtotal,
+            'platformFee': platformFee,
+            'sellerAmount': sellerAmount,
+            'imageUrl': item['imageUrl'] ?? '',
+            'color': item['selectedColor'] ?? '',
+            'size': item['selectedSize'] ?? '',
+          },
+        );
+        createdItemIds.add(itemDoc.$id);
+      }
+      phase = ProcessingPhase.itemsCreated;
+
+      // Step 5: deduct stock (gunakan aggregated quantity per productId)
+      for (final pid in uniqueProductIds) {
+        final qty = aggregatedQty[pid]!;
+        await databases.updateDocument(
+          databaseId: AppwriteConfig.databaseId,
+          collectionId: AppwriteConfig.productsCollectionId,
+          documentId: pid,
+          data: {'stock': stockBefore[pid]! - qty},
+        );
+        deducted.add(pid);
+      }
+
+      // Step 6: release locks (commit)
+      try {
+        await lockService.releaseAllLocks(sessionId);
+      } catch (e) {
+        // TTL akan cleanup — data sudah konsisten di DB
+      }
+      phase = ProcessingPhase.committed;
+
+      return orderId;
+    } catch (e) {
+      await _rollbackCreateOrder(
+        phase: phase,
+        sessionId: sessionId,
+        orderId: orderId,
+        createdItemIds: createdItemIds,
+        deducted: deducted,
+        stockBefore: stockBefore,
+        lockService: lockService,
       );
+      rethrow;
     }
+  }
 
-    return order.$id;
+  Future<void> _rollbackCreateOrder({
+    required ProcessingPhase phase,
+    required String sessionId,
+    required String? orderId,
+    required List<String> createdItemIds,
+    required List<String> deducted,
+    required Map<String, int> stockBefore,
+    required StockLockService lockService,
+  }) async {
+    switch (phase) {
+      case ProcessingPhase.none:
+      case ProcessingPhase.locked:
+        // Stock belum berubah, order belum dibuat
+        // Hanya release partial locks jika ada
+        await lockService.releaseAllLocks(sessionId);
+        break;
+
+      case ProcessingPhase.orderCreated:
+        // Order items mungkin sebagian sudah dibuat, stock belum disentuh
+        for (final id in createdItemIds) {
+          try {
+            await databases.deleteDocument(
+              databaseId: AppwriteConfig.databaseId,
+              collectionId: AppwriteConfig.orderItemsCollectionId,
+              documentId: id,
+            );
+          } catch (_) {}
+        }
+        if (orderId != null) {
+          try {
+            await databases.deleteDocument(
+              databaseId: AppwriteConfig.databaseId,
+              collectionId: AppwriteConfig.ordersCollectionId,
+              documentId: orderId,
+            );
+          } catch (_) {}
+        }
+        await lockService.releaseAllLocks(sessionId);
+        break;
+
+      case ProcessingPhase.itemsCreated:
+        // Stock mungkin sudah terdeduct sebagian (partial failure)
+        for (final pid in deducted) {
+          try {
+            await databases.updateDocument(
+              databaseId: AppwriteConfig.databaseId,
+              collectionId: AppwriteConfig.productsCollectionId,
+              documentId: pid,
+              data: {'stock': stockBefore[pid]},
+            );
+          } catch (_) {}
+        }
+        for (final id in createdItemIds) {
+          try {
+            await databases.deleteDocument(
+              databaseId: AppwriteConfig.databaseId,
+              collectionId: AppwriteConfig.orderItemsCollectionId,
+              documentId: id,
+            );
+          } catch (_) {}
+        }
+        if (orderId != null) {
+          try {
+            await databases.deleteDocument(
+              databaseId: AppwriteConfig.databaseId,
+              collectionId: AppwriteConfig.ordersCollectionId,
+              documentId: orderId,
+            );
+          } catch (_) {}
+        }
+        await lockService.releaseAllLocks(sessionId);
+        break;
+
+      case ProcessingPhase.committed:
+        // Data sudah konsisten — tidak perlu rollback
+        break;
+    }
   }
 
   Future<List<OrderModel>> getOrdersByCustomer(

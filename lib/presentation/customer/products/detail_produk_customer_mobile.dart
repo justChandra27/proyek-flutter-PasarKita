@@ -30,6 +30,7 @@ class _DetailProdukCustomerMobileState
   List<ReviewModel> _reviews = [];
   ProductReviewStats? _stats;
   bool _isLoading = true;
+  bool _isInactive = false;
   String? _error;
   String? _selectedColor;
   String? _selectedSize;
@@ -47,6 +48,17 @@ class _DetailProdukCustomerMobileState
         if (mounted) {
           setState(() {
             _error = 'Produk tidak ditemukan';
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+
+      if (!product.active) {
+        if (mounted) {
+          setState(() {
+            _product = product;
+            _isInactive = true;
             _isLoading = false;
           });
         }
@@ -113,7 +125,7 @@ class _DetailProdukCustomerMobileState
         centerTitle: true,
       ),
       body: _buildBody(),
-      bottomNavigationBar: _product != null && !_isLoading
+      bottomNavigationBar: _product != null && !_isLoading && !_isInactive
           ? _buildBottomBar()
           : null,
     );
@@ -135,6 +147,47 @@ class _DetailProdukCustomerMobileState
             const SizedBox(height: 16),
             ElevatedButton(onPressed: _loadData, child: const Text('Coba Lagi')),
           ],
+        ),
+      );
+    }
+
+    if (_isInactive) {
+      final note = _product!.moderationNote;
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.block, size: 64, color: Colors.grey.shade400),
+              const SizedBox(height: 16),
+              const Text(
+                'Produk Tidak Tersedia',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              if (note.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.orange.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.orange.shade700),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(note,
+                            style: TextStyle(color: Colors.orange.shade900)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       );
     }

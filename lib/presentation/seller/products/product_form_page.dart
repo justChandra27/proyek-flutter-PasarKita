@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../core/services/storage_service_appwrite.dart';
 import '../../../data/models/product_model.dart';
+import '../../../data/models/moderation_status.dart';
 import '../../../core/services/category_service_appwrite.dart';
 import '../../../data/models/category_model.dart';
 import '../widgets/product_form_section.dart';
@@ -201,13 +202,14 @@ class _ProductFormPageState extends State<ProductFormPage> {
           minPurchase: int.parse(minPurchaseController.text.trim()),
           colors: colors,
           sizes: sizes,
+          moderationNote: widget.product!.moderationNote,
         );
       }
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Produk berhasil ditambahkan')),
+        const SnackBar(content: Text('Produk berhasil dikirim dan sedang menunggu review admin.')),
       );
 
       Navigator.pop(context, true);
@@ -222,6 +224,47 @@ class _ProductFormPageState extends State<ProductFormPage> {
         });
       }
     }
+  }
+
+  Future<void> resubmitProduct() async {
+    final product = widget.product;
+    if (product == null) return;
+
+    try {
+      setState(() => isLoading = true);
+
+      await _service.updateModerationStatus(
+        productId: product.id,
+        status: ModerationStatus.pending,
+        moderatedBy: '',
+        moderationNote: '',
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Produk berhasil diajukan kembali untuk review')),
+      );
+
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal mengajukan: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
+  }
+
+  bool get _canResubmit {
+    final product = widget.product;
+    if (product == null) return false;
+    final status = ModerationStatus.fromJson(product.moderationStatus);
+    return status == ModerationStatus.rejected || status == ModerationStatus.deactivated;
   }
 
   @override
@@ -253,6 +296,63 @@ class _ProductFormPageState extends State<ProductFormPage> {
     );
   }
 
+  Widget? _buildModerationBanner() {
+    final product = widget.product;
+    if (product == null) return null;
+
+    final status = ModerationStatus.fromJson(product.moderationStatus);
+    if (status == ModerationStatus.approved ||
+        status == ModerationStatus.pending) return null;
+    if (product.moderationNote.isEmpty) return null;
+
+    final isRejected = status == ModerationStatus.rejected;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isRejected ? Colors.red.shade50 : Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isRejected ? Colors.red.shade200 : Colors.grey.shade300,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            isRejected ? Icons.error_outline : Icons.info_outline,
+            color: isRejected ? Colors.red : Colors.grey,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isRejected ? 'Produk Ditolak' : 'Produk Dinonaktifkan',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isRejected ? Colors.red.shade800 : Colors.grey.shade800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Alasan: ${product.moderationNote}',
+                  style: TextStyle(
+                    color: isRejected ? Colors.red.shade700 : Colors.grey.shade700,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildWebForm() {
     return Center(
       child: ConstrainedBox(
@@ -267,6 +367,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 20),
+              if (_buildModerationBanner() != null) _buildModerationBanner()!,
 
               ProductFormSection(
                 icon: Icons.shopping_bag,
@@ -465,29 +566,46 @@ class _ProductFormPageState extends State<ProductFormPage> {
               ),
               const SizedBox(height: 32),
 
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton.icon(
-                  onPressed: isLoading ? null : saveProduct,
-                  icon: isLoading
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.save),
-                  label: Text(
-                    isLoading
-                        ? 'Menyimpan...'
-                        : widget.product == null
-                        ? 'Simpan Produk'
-                        : 'Update Produk',
+              Row(
+                children: [
+                  if (_canResubmit)
+                    Expanded(
+                      child: SizedBox(
+                        height: 55,
+                        child: OutlinedButton.icon(
+                          onPressed: isLoading ? null : resubmitProduct,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Ajukan Kembali'),
+                        ),
+                      ),
+                    ),
+                  if (_canResubmit) const SizedBox(width: 12),
+                  Expanded(
+                    child: SizedBox(
+                      height: 55,
+                      child: ElevatedButton.icon(
+                        onPressed: isLoading ? null : saveProduct,
+                        icon: isLoading
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.save),
+                        label: Text(
+                          isLoading
+                              ? 'Menyimpan...'
+                              : widget.product == null
+                              ? 'Simpan Produk'
+                              : 'Update Produk',
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ],
           ),
@@ -501,6 +619,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       child: Column(
         children: [
+          if (_buildModerationBanner() != null) _buildModerationBanner()!,
           ProductImageUpload(
             selectedImage: selectedImage,
             existingImageUrl: widget.product?.imageUrl,
@@ -712,6 +831,17 @@ class _ProductFormPageState extends State<ProductFormPage> {
           const SellerTipCard(),
           const SizedBox(height: 24),
 
+          if (_canResubmit)
+            SizedBox(
+              width: double.infinity,
+              height: 55,
+              child: OutlinedButton.icon(
+                onPressed: isLoading ? null : resubmitProduct,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Ajukan Kembali'),
+              ),
+            ),
+          if (_canResubmit) const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
             height: 55,

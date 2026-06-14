@@ -3,12 +3,44 @@
 import 'package:appwrite/appwrite.dart';
 
 import '../../data/models/product_model.dart';
+import '../../data/models/moderation_status.dart';
 import '../appwrite/appwrite_config.dart';
 import '../appwrite/appwrite_service.dart';
 import '../models/paginated_response.dart';
 
 class ProductServiceAppwrite {
   final Databases databases = AppwriteService.databases;
+
+  // =========================
+  // GET ALL PRODUCTS (admin — no active filter)
+  // =========================
+
+  Future<List<ProductModel>> getAllProductsForAdmin() async {
+    final result = await databases.listDocuments(
+      databaseId: AppwriteConfig.databaseId,
+      collectionId: AppwriteConfig.productsCollectionId,
+    );
+
+    return result.documents.map((doc) {
+      return ProductModel.fromMap(doc.$id, doc.data);
+    }).toList();
+  }
+
+  // =========================
+  // GET PRODUCTS BY MODERATION STATUS
+  // =========================
+
+  Future<List<ProductModel>> getProductsByStatus(ModerationStatus status) async {
+    final result = await databases.listDocuments(
+      databaseId: AppwriteConfig.databaseId,
+      collectionId: AppwriteConfig.productsCollectionId,
+      queries: [Query.equal('moderationStatus', status.toJson())],
+    );
+
+    return result.documents.map((doc) {
+      return ProductModel.fromMap(doc.$id, doc.data);
+    }).toList();
+  }
 
   // =========================
   // GET PRODUCTS (customer dashboard, paginated)
@@ -105,6 +137,7 @@ class ProductServiceAppwrite {
     required int minPurchase,
     List<String> colors = const [],
     List<String> sizes = const [],
+    String moderationNote = '',
   }) async {
     await databases.createDocument(
       databaseId: AppwriteConfig.databaseId,
@@ -118,12 +151,15 @@ class ProductServiceAppwrite {
         'price': price,
         'stock': stock,
         'imageUrl': imageUrl,
-        'active': true,
+        'active': false,
         'weight': weight,
         'minPurchase': minPurchase,
         'soldCount': 0,
         'colors': colors,
         'sizes': sizes,
+        'moderationNote': moderationNote,
+        'moderationStatus': 'pending',
+        'moderatedBy': '',
       },
     );
   }
@@ -145,6 +181,7 @@ class ProductServiceAppwrite {
     required int minPurchase,
     List<String> colors = const [],
     List<String> sizes = const [],
+    String moderationNote = '',
   }) async {
     await databases.updateDocument(
       databaseId: AppwriteConfig.databaseId,
@@ -162,6 +199,31 @@ class ProductServiceAppwrite {
         'minPurchase': minPurchase,
         'colors': colors,
         'sizes': sizes,
+        'moderationNote': moderationNote,
+      },
+    );
+  }
+
+  // =========================
+  // UPDATE MODERATION STATUS (admin only)
+  // =========================
+
+  Future<void> updateModerationStatus({
+    required String productId,
+    required ModerationStatus status,
+    required String moderatedBy,
+    String moderationNote = '',
+  }) async {
+    await databases.updateDocument(
+      databaseId: AppwriteConfig.databaseId,
+      collectionId: AppwriteConfig.productsCollectionId,
+      documentId: productId,
+      data: {
+        'moderationStatus': status.toJson(),
+        'active': status.isActive,
+        'moderatedBy': moderatedBy,
+        'moderatedAt': DateTime.now().toIso8601String(),
+        'moderationNote': moderationNote,
       },
     );
   }

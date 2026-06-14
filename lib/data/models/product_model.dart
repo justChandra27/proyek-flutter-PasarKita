@@ -15,6 +15,10 @@ class ProductModel {
   final int soldCount;
   final List<String> colors;
   final List<String> sizes;
+  final String moderationNote;
+  final String moderationStatus;
+  final String moderatedBy;
+  final DateTime? moderatedAt;
 
   ProductModel({
     required this.id,
@@ -31,6 +35,10 @@ class ProductModel {
     required this.soldCount,
     this.colors = const [],
     this.sizes = const [],
+    this.moderationNote = '',
+    this.moderationStatus = 'approved',
+    this.moderatedBy = '',
+    this.moderatedAt,
   });
 
   factory ProductModel.fromMap(
@@ -58,6 +66,12 @@ class ProductModel {
               ?.map((e) => e.toString())
               .toList() ??
           [],
+      moderationNote: data['moderationNote'] ?? '',
+      moderationStatus: data['moderationStatus'] ?? 'approved',
+      moderatedBy: data['moderatedBy'] ?? '',
+      moderatedAt: data['moderatedAt'] != null
+          ? DateTime.tryParse(data['moderatedAt'])
+          : null,
     );
   }
 
@@ -76,6 +90,10 @@ class ProductModel {
       'soldCount': soldCount,
       'colors': colors,
       'sizes': sizes,
+      'moderationNote': moderationNote,
+      'moderationStatus': moderationStatus,
+      'moderatedBy': moderatedBy,
+      'moderatedAt': moderatedAt?.toIso8601String(),
     };
   }
 }

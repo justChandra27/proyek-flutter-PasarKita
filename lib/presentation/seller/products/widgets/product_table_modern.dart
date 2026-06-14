@@ -3,9 +3,11 @@
 import 'package:flutter/material.dart';
 
 import '../../../../data/models/product_model.dart';
+import '../../../../data/models/moderation_status.dart';
 import '../../../../core/services/product_service_appwrite.dart';
 import '../../../../core/services/storage_service_appwrite.dart';
 import '../product_form_page.dart';
+import 'moderation_status_badge.dart';
 
 class ProductTableModern extends StatelessWidget {
   final List<ProductModel> products;
@@ -239,34 +241,8 @@ class ProductTableModern extends StatelessWidget {
           ),
 
           Expanded(
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 5,
-              ),
-              decoration: BoxDecoration(
-                color: product.active
-                    ? Colors.green.shade100
-                    : Colors.grey.shade200,
-                borderRadius:
-                    BorderRadius.circular(
-                  20,
-                ),
-              ),
-              child: Text(
-                product.active
-                    ? "Aktif"
-                    : "Nonaktif",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: product.active
-                      ? Colors.green
-                      : Colors.grey,
-                  fontWeight:
-                      FontWeight.bold,
-                ),
-              ),
+            child: ModerationStatusBadge(
+              status: ModerationStatus.fromJson(product.moderationStatus),
             ),
           ),
 

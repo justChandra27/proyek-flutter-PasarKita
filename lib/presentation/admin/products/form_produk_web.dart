@@ -1,9 +1,215 @@
-//lib/presentation/admin/products/form_produk_web.dart
-
 import 'package:flutter/material.dart';
 
-class FormProdukWeb extends StatelessWidget {
+import '../../../core/services/product_service_appwrite.dart';
+import '../../../core/services/auth_service_appwrite.dart';
+import '../../../data/models/product_model.dart';
+import '../../../data/models/moderation_status.dart';
+import 'product_moderation_card.dart';
+import 'moderation_dialog.dart';
+
+class FormProdukWeb extends StatefulWidget {
   const FormProdukWeb({super.key});
+
+  @override
+  State<FormProdukWeb> createState() => _FormProdukWebState();
+}
+
+class _FormProdukWebState extends State<FormProdukWeb> {
+  final _service = ProductServiceAppwrite();
+
+  List<ProductModel> _allProducts = [];
+  List<ProductModel> _filteredProducts = [];
+  bool _isLoading = true;
+  String? _error;
+  String _searchQuery = '';
+  String _adminName = 'Admin';
+
+  String _selectedTab = 'Semua';
+  static const _tabs = ['Semua', 'Pending', 'Approved', 'Rejected', 'Deactivated'];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+    _loadAdminName();
+  }
+
+  Future<void> _loadProducts() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final products = await _service.getAllProductsForAdmin();
+      if (mounted) {
+        setState(() {
+          _allProducts = products;
+          _applyFilters();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadAdminName() async {
+    try {
+      final userData = await AuthServiceAppwrite().getCurrentUserData();
+      if (mounted && userData != null) {
+        setState(() => _adminName = userData['name'] ?? 'Admin');
+      }
+    } catch (_) {}
+  }
+
+  void _setTab(String tab) {
+    setState(() {
+      _selectedTab = tab;
+      _applyFilters();
+    });
+  }
+
+  void _onSearch(String value) {
+    setState(() {
+      _searchQuery = value.toLowerCase();
+      _applyFilters();
+    });
+  }
+
+  void _applyFilters() {
+    _filteredProducts = _allProducts.where((p) {
+      if (_searchQuery.isNotEmpty &&
+          !p.name.toLowerCase().contains(_searchQuery) &&
+          !p.category.toLowerCase().contains(_searchQuery)) {
+        return false;
+      }
+      if (_selectedTab != 'Semua') {
+        final tabStatus = _selectedTab.toLowerCase();
+        if (p.moderationStatus != tabStatus) return false;
+      }
+      return true;
+    }).toList();
+  }
+
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'approved':
+        return 'Disetujui';
+      case 'rejected':
+        return 'Ditolak';
+      case 'pending':
+        return 'Menunggu';
+      case 'deactivated':
+        return 'Nonaktif';
+      default:
+        return status;
+    }
+  }
+
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'approved':
+        return Colors.green;
+      case 'rejected':
+        return Colors.red;
+      case 'pending':
+        return Colors.orange;
+      case 'deactivated':
+        return Colors.grey;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  int _countByStatus(String status) {
+    if (status == 'Semua') return _allProducts.length;
+    return _allProducts.where((p) => p.moderationStatus == status.toLowerCase()).length;
+  }
+
+  Future<void> _approve(ProductModel product) async {
+    try {
+      await _service.updateModerationStatus(
+        productId: product.id,
+        status: ModerationStatus.approved,
+        moderatedBy: _adminName,
+      );
+      _showSnackBar('${product.name} telah disetujui', Colors.green);
+      _loadProducts();
+    } catch (e) {
+      _showSnackBar('Gagal menyetujui: $e', Colors.red);
+    }
+  }
+
+  Future<void> _reject(ProductModel product) async {
+    final note = await showModerationDialog(
+      context,
+      title: 'Tolak ${product.name}',
+      actionLabel: 'Tolak',
+      actionColor: Colors.red,
+    );
+    if (note == null) return;
+    try {
+      await _service.updateModerationStatus(
+        productId: product.id,
+        status: ModerationStatus.rejected,
+        moderatedBy: _adminName,
+        moderationNote: note,
+      );
+      _showSnackBar('${product.name} telah ditolak', Colors.red);
+      _loadProducts();
+    } catch (e) {
+      _showSnackBar('Gagal menolak: $e', Colors.red);
+    }
+  }
+
+  Future<void> _deactivate(ProductModel product) async {
+    final note = await showModerationDialog(
+      context,
+      title: 'Nonaktifkan ${product.name}',
+      actionLabel: 'Nonaktifkan',
+      actionColor: Colors.orange,
+    );
+    if (note == null) return;
+    try {
+      await _service.updateModerationStatus(
+        productId: product.id,
+        status: ModerationStatus.deactivated,
+        moderatedBy: _adminName,
+        moderationNote: note,
+      );
+      _showSnackBar('${product.name} telah dinonaktifkan', Colors.orange);
+      _loadProducts();
+    } catch (e) {
+      _showSnackBar('Gagal menonaktifkan: $e', Colors.red);
+    }
+  }
+
+  Future<void> _reactivate(ProductModel product) async {
+    try {
+      await _service.updateModerationStatus(
+        productId: product.id,
+        status: ModerationStatus.approved,
+        moderatedBy: _adminName,
+        moderationNote: '',
+      );
+      _showSnackBar('${product.name} telah diaktifkan kembali', Colors.green);
+      _loadProducts();
+    } catch (e) {
+      _showSnackBar('Gagal mengaktifkan: $e', Colors.red);
+    }
+  }
+
+  void _showSnackBar(String message, Color color) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: color),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,381 +219,219 @@ class FormProdukWeb extends StatelessWidget {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            // HEADER
-            Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    "Manajemen Produk",
-                    style: TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-
-                SizedBox(
-                  width: 380,
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: "Cari nama produk atau SKU...",
-                      prefixIcon: const Icon(Icons.search),
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(width: 20),
-
-                const CircleAvatar(
-                  radius: 22,
-                  backgroundImage: NetworkImage(
-                    "https://i.pravatar.cc/150",
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 30),
-
-            // ACTION
-            Row(
-              children: [
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xff2563EB),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 22,
-                      vertical: 18,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  onPressed: () {},
-                  icon: const Icon(
-                    Icons.add,
-                    color: Colors.white,
-                  ),
-                  label: const Text(
-                    "Tambah Produk",
-                    style: TextStyle(
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(width: 12),
-
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 18,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  onPressed: () {},
-                  icon: const Icon(Icons.filter_alt_outlined),
-                  label: const Text("Filter"),
-                ),
-
-                const Spacer(),
-
-                const Text(
-                  "Menampilkan 128 Produk",
-                  style: TextStyle(
-                    color: Colors.black54,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 28),
-
-            Expanded(
-              child: GridView.count(
-                crossAxisCount: 4,
-                mainAxisSpacing: 22,
-                crossAxisSpacing: 22,
-                childAspectRatio: 0.72,
-                children: const [
-                  ProductCard(
-                    image:
-                        "https://images.unsplash.com/photo-1542291026-7eec264c27ff",
-                    category: "Sepatu Lari",
-                    title: "Nike Air Max Pro 2024",
-                    price: "Rp 2.499.000",
-                    stock: "42",
-                    badge: "TERLARIS",
-                  ),
-
-                  ProductCard(
-                    image:
-                        "https://images.unsplash.com/photo-1523170335258-f5ed11844a49",
-                    category: "Aksesoris",
-                    title: "Minimalist Silver Watch",
-                    price: "Rp 1.850.000",
-                    stock: "5",
-                  ),
-
-                  ProductCard(
-                    image:
-                        "https://images.unsplash.com/photo-1505740420928-5e560c06d30e",
-                    category: "Elektronik",
-                    title: "Audio-Technica M50x BT",
-                    price: "Rp 3.120.000",
-                    stock: "12",
-                  ),
-
-                  ProductCard(
-                    image:
-                        "https://images.unsplash.com/photo-1543508282-6319a3e2621f",
-                    category: "Sepatu Casual",
-                    title: "Vans Old Skool Yellow",
-                    price: "Rp 899.000",
-                    stock: "88",
-                  ),
-
-                  ProductCard(
-                    image:
-                        "https://images.unsplash.com/photo-1511499767150-a48a237f0083",
-                    category: "Aksesoris",
-                    title: "Ray-Ban Aviator Gold",
-                    price: "Rp 2.100.000",
-                    stock: "15",
-                  ),
-
-                  ProductCard(
-                    image:
-                        "https://images.unsplash.com/photo-1505843513577-22bb7d21e455",
-                    category: "Mebel",
-                    title: "Ergonomic Mesh Chair",
-                    price: "Rp 1.450.000",
-                    stock: "24",
-                  ),
-
-                  ProductCard(
-                    image:
-                        "https://images.unsplash.com/photo-1511467687858-23d96c32e4ae",
-                    category: "Elektronik",
-                    title: "Keychron K2 Wireless",
-                    price: "Rp 1.250.000",
-                    stock: "31",
-                  ),
-
-                  ProductCard(
-                    image:
-                        "https://images.unsplash.com/photo-1516035069371-29a1b244cc32",
-                    category: "Kamera",
-                    title: "Fujifilm Instax Mini 11",
-                    price: "Rp 950.000",
-                    stock: "56",
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _pageButton("<", false),
-                _pageButton("1", true),
-                _pageButton("2", false),
-                _pageButton("3", false),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10),
-                  child: Text("..."),
-                ),
-                _pageButton("12", false),
-                _pageButton(">", false),
-              ],
-            ),
+            _buildHeader(),
+            const SizedBox(height: 20),
+            _buildStatCards(),
+            const SizedBox(height: 20),
+            _buildFilterTabs(),
+            const SizedBox(height: 20),
+            Expanded(child: _buildBody()),
           ],
         ),
       ),
     );
   }
 
-  static Widget _pageButton(
-    String text,
-    bool active,
-  ) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      width: 42,
-      height: 42,
-      decoration: BoxDecoration(
-        color: active
-            ? const Color(0xff2563EB)
-            : Colors.white,
-        borderRadius: BorderRadius.circular(12),
+  Widget _buildHeader() {
+    return Row(
+      children: [
+        const Expanded(
+          child: Text(
+            'Manajemen Produk',
+            style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+          ),
+        ),
+        SizedBox(
+          width: 320,
+          child: TextField(
+            onChanged: _onSearch,
+            decoration: InputDecoration(
+              hintText: 'Cari nama produk...',
+              prefixIcon: const Icon(Icons.search),
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(30),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        CircleAvatar(
+          radius: 22,
+          backgroundColor: Colors.grey.shade300,
+          child: Text(
+            _adminName.isNotEmpty ? _adminName[0].toUpperCase() : 'A',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCards() {
+    return SizedBox(
+      height: 80,
+      child: Row(
+        children: _tabs.map((tab) {
+          final count = _countByStatus(tab);
+          final isActive = _selectedTab == tab;
+          final color = tab == 'Semua'
+              ? const Color(0xff2563EB)
+              : _statusColor(tab.toLowerCase());
+          return Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: GestureDetector(
+                onTap: () => _setTab(tab),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isActive ? color : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isActive ? color : Colors.grey.shade300,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        count.toString(),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: isActive ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                      Text(
+                        tab == 'Semua' ? 'Semua Produk' : _statusLabel(tab.toLowerCase()),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isActive ? Colors.white70 : Colors.black54,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
-      child: Center(
+    );
+  }
+
+  Widget _buildFilterTabs() {
+    return Row(
+      children: [
+        _tabButton('Semua'),
+        const SizedBox(width: 8),
+        _tabButton('Pending'),
+        const SizedBox(width: 8),
+        _tabButton('Approved'),
+        const SizedBox(width: 8),
+        _tabButton('Rejected'),
+        const SizedBox(width: 8),
+        _tabButton('Deactivated'),
+        const Spacer(),
+        Text(
+          '${_filteredProducts.length} produk',
+          style: const TextStyle(color: Colors.black54),
+        ),
+      ],
+    );
+  }
+
+  Widget _tabButton(String tab) {
+    final isActive = _selectedTab == tab;
+    final color = tab == 'Semua'
+        ? const Color(0xff2563EB)
+        : _statusColor(tab.toLowerCase());
+    return GestureDetector(
+      onTap: () => _setTab(tab),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isActive ? color : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isActive ? color : Colors.grey.shade300,
+          ),
+        ),
         child: Text(
-          text,
+          tab,
           style: TextStyle(
-            color:
-                active ? Colors.white : Colors.black87,
-            fontWeight: FontWeight.w600,
+            color: isActive ? Colors.white : Colors.black87,
+            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+            fontSize: 13,
           ),
         ),
       ),
     );
   }
-}
 
-class ProductCard extends StatelessWidget {
-  final String image;
-  final String category;
-  final String title;
-  final String price;
-  final String stock;
-  final String? badge;
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-  const ProductCard({
-    super.key,
-    required this.image,
-    required this.category,
-    required this.title,
-    required this.price,
-    required this.stock,
-    this.badge,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
-        children: [
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(22),
-                  topRight: Radius.circular(22),
-                ),
-                child: Image.network(
-                  image,
-                  height: 190,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
-              ),
-
-              if (badge != null)
-                Positioned(
-                  top: 10,
-                  left: 10,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xff2563EB),
-                      borderRadius:
-                          BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      badge!,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-              children: [
-                Text(
-                  category,
-                  style: const TextStyle(
-                    color: Colors.black54,
-                    fontSize: 12,
-                  ),
-                ),
-
-                const SizedBox(height: 6),
-
-                Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        price,
-                        style: const TextStyle(
-                          color: Color(0xff2563EB),
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-
-                    Container(
-                      padding:
-                          const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xffF3F4F6),
-                        borderRadius:
-                            BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.inventory_2_outlined,
-                            size: 14,
-                            color: Color(0xff2563EB),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(stock),
-                        ],
-                      ),
-                    )
-                  ],
-                )
-              ],
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(_error!, textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadProducts,
+              child: const Text('Coba Lagi'),
             ),
-          )
-        ],
+          ],
+        ),
+      );
+    }
+
+    if (_filteredProducts.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey.shade400),
+            const SizedBox(height: 16),
+            Text(
+              _searchQuery.isNotEmpty
+                  ? 'Produk tidak ditemukan'
+                  : 'Tidak ada produk dengan status ini',
+              style: const TextStyle(fontSize: 16, color: Colors.black54),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return GridView.builder(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 16,
+        childAspectRatio: 0.72,
       ),
+      itemCount: _filteredProducts.length,
+      itemBuilder: (context, index) {
+        final product = _filteredProducts[index];
+        return ProductModerationCard(
+          product: product,
+          adminName: _adminName,
+          onApprove: () => _approve(product),
+          onReject: () => _reject(product),
+          onDeactivate: () => _deactivate(product),
+          onReactivate: () => _reactivate(product),
+        );
+      },
     );
   }
 }
