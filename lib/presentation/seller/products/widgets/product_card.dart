@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/services/product_service_appwrite.dart';
 import '../../../../core/services/storage_service_appwrite.dart';
+import '../detail_produk_seller_mobile.dart';
 import '../../../../data/models/product_model.dart';
 import '../../../../data/models/moderation_status.dart';
 import '../product_form_page.dart';
@@ -28,6 +29,16 @@ class ProductCard extends StatelessWidget {
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.all(12),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => DetailProdukSellerMobile(
+                productId: product.id,
+              ),
+            ),
+          );
+        },
 
         leading: _buildImage(),
 

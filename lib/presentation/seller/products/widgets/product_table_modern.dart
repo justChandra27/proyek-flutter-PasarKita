@@ -6,6 +6,7 @@ import '../../../../data/models/product_model.dart';
 import '../../../../data/models/moderation_status.dart';
 import '../../../../core/services/product_service_appwrite.dart';
 import '../../../../core/services/storage_service_appwrite.dart';
+import '../detail_produk_seller_web.dart';
 import '../product_form_page.dart';
 import 'moderation_status_badge.dart';
 
@@ -318,6 +319,18 @@ class ProductTableModern extends StatelessWidget {
                 ),
 
                 PopupMenuButton(
+                  onSelected: (value) {
+                    if (value == 'detail') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => DetailProdukSellerWeb(
+                            productId: product.id,
+                          ),
+                        ),
+                      );
+                    }
+                  },
                   itemBuilder: (_) => [
                     const PopupMenuItem(
                       value: 'detail',
