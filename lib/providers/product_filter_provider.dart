@@ -16,10 +16,11 @@ class ProductFilterProvider extends ChangeNotifier {
   String? _error;
 
   String _searchQuery = '';
-  String _selectedCategory = 'Semua';
+  Set<String> _selectedCategories = {};
   String _stockFilter = 'Semua';
+  String _sortBy = 'Terbaru';
 
-  List<String> _categories = ['Semua'];
+  List<String> _categories = [];
 
   Map<String, ProductReviewStats> _reviewStats = {};
 
@@ -30,14 +31,22 @@ class ProductFilterProvider extends ChangeNotifier {
   List<ProductModel> get products => _filteredProducts;
   List<String> get categories => _categories;
   String get searchQuery => _searchQuery;
-  String get selectedCategory => _selectedCategory;
+  Set<String> get selectedCategories => _selectedCategories;
   String get stockFilter => _stockFilter;
+  String get sortBy => _sortBy;
   bool get isLoading => _isLoading;
   bool get isLoadingMore => _isLoadingMore;
   bool get hasMore => _hasMore;
   String? get error => _error;
   Map<String, ProductReviewStats> get reviewStats => _reviewStats;
   ReviewServiceAppwrite get reviewService => _reviewService;
+
+  int get activeFilterCount {
+    int count = 0;
+    if (_stockFilter != 'Semua') count++;
+    if (_selectedCategories.isNotEmpty) count++;
+    return count;
+  }
 
   Future<void> loadProducts() async {
     _isLoading = true;
@@ -106,14 +115,31 @@ class ProductFilterProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setCategory(String category) {
-    _selectedCategory = category;
+  void toggleCategory(String category) {
+    if (_selectedCategories.contains(category)) {
+      _selectedCategories.remove(category);
+    } else {
+      _selectedCategories.add(category);
+    }
+    notifyListeners();
+  }
+
+  void setSortBy(String sort) {
+    _sortBy = sort;
     _applyFilters();
     notifyListeners();
   }
 
   void setStockFilter(String filter) {
     _stockFilter = filter;
+    _applyFilters();
+    notifyListeners();
+  }
+
+  void clearFilters() {
+    _selectedCategories = {};
+    _stockFilter = 'Semua';
+    _sortBy = 'Terbaru';
     _applyFilters();
     notifyListeners();
   }
@@ -125,7 +151,7 @@ class ProductFilterProvider extends ChangeNotifier {
         .toSet()
         .toList();
     cats.sort();
-    _categories = ['Semua', ...cats];
+    _categories = cats;
   }
 
   void _applyFilters() {
@@ -134,12 +160,26 @@ class ProductFilterProvider extends ChangeNotifier {
           !p.name.toLowerCase().contains(_searchQuery)) {
         return false;
       }
-      if (_selectedCategory != 'Semua' && p.category != _selectedCategory) {
+      if (_selectedCategories.isNotEmpty &&
+          !_selectedCategories.contains(p.category)) {
         return false;
       }
       if (_stockFilter == 'Tersedia' && p.stock <= 0) return false;
       if (_stockFilter == 'Stok Habis' && p.stock > 0) return false;
       return true;
     }).toList();
+
+    switch (_sortBy) {
+      case 'Nama A-Z':
+        _filteredProducts.sort((a, b) => a.name.compareTo(b.name));
+        break;
+      case 'Nama Z-A':
+        _filteredProducts.sort((a, b) => b.name.compareTo(a.name));
+        break;
+      case 'Terbaru':
+      default:
+        _filteredProducts.sort((a, b) => b.id.compareTo(a.id));
+        break;
+    }
   }
 }

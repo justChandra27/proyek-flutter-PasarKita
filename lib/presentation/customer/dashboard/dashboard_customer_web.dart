@@ -8,7 +8,6 @@ import '../../../providers/cart_provider.dart';
 import '../../../providers/product_filter_provider.dart';
 import '../products/detail_produk_customer_web.dart';
 import '../widgets/product_card.dart';
-import '../widgets/category_chip.dart';
 import '../widgets/popular_products_row.dart';
 import '../widgets/promo_banner.dart';
 
@@ -63,27 +62,6 @@ class _DashboardCustomerWebState
             Consumer<ProductFilterProvider>(
               builder: (context, filter, _) {
                 return _searchAndFilterRow(filter);
-              },
-            ),
-            const SizedBox(height: 24),
-            Consumer<ProductFilterProvider>(
-              builder: (context, filter, _) {
-                return SizedBox(
-                  height: 42,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: [
-                      _stockFilterChip(filter),
-                      ...filter.categories.map((cat) => CategoryChip(
-                        label: cat,
-                        isActive: filter.selectedCategory == cat,
-                        onTap: () => filter.setCategory(
-                          filter.selectedCategory == cat ? 'Semua' : cat,
-                        ),
-                      )),
-                    ],
-                  ),
-                );
               },
             ),
             const SizedBox(height: 24),
@@ -215,28 +193,46 @@ class _DashboardCustomerWebState
           ),
         ),
         const SizedBox(width: 16),
-        PopupMenuButton<String>(
-          initialValue: filter.stockFilter,
-          onSelected: (v) => filter.setStockFilter(v),
-          itemBuilder: (_) => [
-            const PopupMenuItem(value: 'Semua', child: Text('Semua')),
-            const PopupMenuItem(value: 'Tersedia', child: Text('Tersedia')),
-            const PopupMenuItem(value: 'Stok Habis', child: Text('Stok Habis')),
-          ],
+        Badge(
+          isLabelVisible: filter.activeFilterCount > 0,
+          label: Text('${filter.activeFilterCount}'),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            height: 50,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: filter.activeFilterCount > 0
+                  ? const Color(0xff2563EB)
+                  : Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(
+                color: filter.activeFilterCount > 0
+                    ? const Color(0xff2563EB)
+                    : Colors.grey.shade300,
+              ),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.filter_list, size: 20),
-                const SizedBox(width: 6),
-                Text(filter.stockFilter),
-              ],
+            child: InkWell(
+              onTap: () => _showFilterBottomSheet(filter),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.filter_list,
+                    size: 20,
+                    color: filter.activeFilterCount > 0
+                        ? Colors.white
+                        : Colors.black87,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Filter',
+                    style: TextStyle(
+                      color: filter.activeFilterCount > 0
+                          ? Colors.white
+                          : Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -244,29 +240,120 @@ class _DashboardCustomerWebState
     );
   }
 
-  Widget _stockFilterChip(ProductFilterProvider filter) {
-    return GestureDetector(
-      onTap: () {
-        final options = ['Semua', 'Tersedia', 'Stok Habis'];
-        final idx = options.indexOf(filter.stockFilter);
-        filter.setStockFilter(options[(idx + 1) % options.length]);
-      },
-      child: Container(
-        margin: const EdgeInsets.only(right: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: const Color(0xff2563EB),
-          borderRadius: BorderRadius.circular(30),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.filter_list, size: 16, color: Colors.white),
-            const SizedBox(width: 4),
-            Text(
-              filter.stockFilter,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
-            ),
-          ],
+  void _showFilterBottomSheet(ProductFilterProvider filter) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Text(
+                    'Filter Produk',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () {
+                      filter.clearFilters();
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Reset'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // --- Sort Section ---
+              const Text(
+                'Urutkan',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black54),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: ['Terbaru', 'Nama A-Z', 'Nama Z-A'].map((opt) =>
+                  ChoiceChip(
+                    label: Text(opt),
+                    selected: filter.sortBy == opt,
+                    onSelected: (_) {
+                      filter.setSortBy(opt);
+                      setSheetState(() {});
+                    },
+                  ),
+                ).toList(),
+              ),
+
+              const SizedBox(height: 20),
+
+              // --- Stock Filter Section ---
+              const Text(
+                'Filter Stok',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black54),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: ['Semua', 'Tersedia', 'Stok Habis'].map((opt) =>
+                  ChoiceChip(
+                    label: Text(opt),
+                    selected: filter.stockFilter == opt,
+                    onSelected: (_) {
+                      filter.setStockFilter(opt);
+                      setSheetState(() {});
+                    },
+                  ),
+                ).toList(),
+              ),
+
+              const SizedBox(height: 20),
+
+              // --- Category Section ---
+              const Text(
+                'Kategori',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black54),
+              ),
+              const SizedBox(height: 8),
+              if (filter.categories.isEmpty)
+                const Text('Tidak ada kategori', style: TextStyle(color: Colors.grey))
+              else
+                ...filter.categories.map((cat) => CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(cat),
+                  value: filter.selectedCategories.contains(cat),
+                  onChanged: (_) {
+                    filter.toggleCategory(cat);
+                    setSheetState(() {});
+                  },
+                  controlAffinity: ListTileControlAffinity.leading,
+                )),
+
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xff2563EB),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Terapkan'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -7,7 +7,6 @@ import '../../../data/models/review_model.dart';
 import '../../../providers/cart_provider.dart';
 import '../../../providers/product_filter_provider.dart';
 import '../products/detail_produk_customer_mobile.dart';
-import '../widgets/category_chip.dart';
 import '../widgets/product_card.dart';
 import '../widgets/popular_products_row.dart';
 import '../widgets/promo_banner.dart';
@@ -75,52 +74,6 @@ class _DashboardCustomerMobileState
               Consumer<ProductFilterProvider>(
                 builder: (context, filter, _) {
                   return _searchBox(filter);
-                },
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  const Text(
-                    "Kategori",
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () {},
-                    child: const Text("Lihat Semua"),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Consumer<ProductFilterProvider>(
-                builder: (context, filter, _) {
-                  return SizedBox(
-                    height: 42,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      children: [
-                        _stockFilterChip(filter),
-                        ...filter.categories.map((cat) => CategoryChip(
-                          label: cat,
-                          isActive: filter.selectedCategory == cat,
-                          onTap: () => filter.setCategory(
-                            filter.selectedCategory == cat ? 'Semua' : cat,
-                          ),
-                          activeBgColor: const Color(0xff2563EB),
-                          inactiveBgColor: Colors.white,
-                          activeTextColor: Colors.white,
-                          inactiveTextColor: Colors.black87,
-                          borderColor: Colors.black12,
-                          borderRadius: 25,
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          activeFontWeight: FontWeight.bold,
-                        )),
-                      ],
-                    ),
-                  );
                 },
               ),
               const SizedBox(height: 24),
@@ -246,74 +199,163 @@ class _DashboardCustomerMobileState
   }
 
   Widget _searchBox(ProductFilterProvider filter) {
-    return TextField(
-      onChanged: (value) => filter.setSearchQuery(value),
-      decoration: InputDecoration(
-        hintText: "Cari produk...",
-        prefixIcon: const Icon(Icons.search),
-        filled: true,
-        fillColor: const Color(0xffE8EEF9),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-      ),
-    );
-  }
-
-  Widget _stockFilterChip(ProductFilterProvider filter) {
-    return GestureDetector(
-      onTap: () => _showStockFilter(filter),
-      child: Container(
-        margin: const EdgeInsets.only(right: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: const Color(0xff2563EB),
-          borderRadius: BorderRadius.circular(25),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.filter_list, size: 16, color: Colors.white),
-            const SizedBox(width: 4),
-            Text(
-              filter.stockFilter,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            onChanged: (value) => filter.setSearchQuery(value),
+            decoration: InputDecoration(
+              hintText: "Cari produk...",
+              prefixIcon: const Icon(Icons.search),
+              filled: true,
+              fillColor: const Color(0xffE8EEF9),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
             ),
-          ],
+          ),
         ),
-      ),
+        const SizedBox(width: 12),
+        Badge(
+          isLabelVisible: filter.activeFilterCount > 0,
+          label: Text('${filter.activeFilterCount}'),
+          child: Container(
+            height: 50,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: InkWell(
+              onTap: () => _showFilterBottomSheet(filter),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.filter_list, size: 20),
+                  SizedBox(width: 4),
+                  Text('Filter'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
-  void _showStockFilter(ProductFilterProvider filter) {
-    final options = ['Semua', 'Tersedia', 'Stok Habis'];
+  void _showFilterBottomSheet(ProductFilterProvider filter) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Filter Stok',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            ...options.map((opt) => ListTile(
-                  title: Text(opt),
-                  trailing: filter.stockFilter == opt
-                      ? const Icon(Icons.check, color: Color(0xff2563EB))
-                      : null,
-                  onTap: () {
-                    filter.setStockFilter(opt);
-                    Navigator.pop(context);
+      builder: (_) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Text(
+                    'Filter Produk',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () {
+                      filter.clearFilters();
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Reset'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              const Text(
+                'Urutkan',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black54),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: ['Terbaru', 'Nama A-Z', 'Nama Z-A'].map((opt) =>
+                  ChoiceChip(
+                    label: Text(opt),
+                    selected: filter.sortBy == opt,
+                    onSelected: (_) {
+                      filter.setSortBy(opt);
+                      setSheetState(() {});
+                    },
+                  ),
+                ).toList(),
+              ),
+
+              const SizedBox(height: 20),
+
+              const Text(
+                'Filter Stok',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black54),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: ['Semua', 'Tersedia', 'Stok Habis'].map((opt) =>
+                  ChoiceChip(
+                    label: Text(opt),
+                    selected: filter.stockFilter == opt,
+                    onSelected: (_) {
+                      filter.setStockFilter(opt);
+                      setSheetState(() {});
+                    },
+                  ),
+                ).toList(),
+              ),
+
+              const SizedBox(height: 20),
+
+              const Text(
+                'Kategori',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black54),
+              ),
+              const SizedBox(height: 8),
+              if (filter.categories.isEmpty)
+                const Text('Tidak ada kategori', style: TextStyle(color: Colors.grey))
+              else
+                ...filter.categories.map((cat) => CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(cat),
+                  value: filter.selectedCategories.contains(cat),
+                  onChanged: (_) {
+                    filter.toggleCategory(cat);
+                    setSheetState(() {});
                   },
+                  controlAffinity: ListTileControlAffinity.leading,
                 )),
-          ],
+
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xff2563EB),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Terapkan'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
