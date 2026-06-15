@@ -14,6 +14,27 @@ class FormProdukSellerMobile extends StatefulWidget {
 }
 
 class _FormProdukSellerMobileState extends State<FormProdukSellerMobile> {
+  String _selectedFilter = 'semua';
+  String _searchQuery = '';
+  String _sortBy = 'harga_tertinggi';
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -117,17 +138,77 @@ class _FormProdukSellerMobileState extends State<FormProdukSellerMobile> {
                     ],
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
+
+                  TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: "Cari produk...",
+                      prefixIcon: const Icon(Icons.search),
+                      filled: true,
+                      fillColor: const Color(0xffF5F7FB),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
 
                   Row(
                     children: [
-                      _filterChip("Semua", true),
+                      _filterChip("Semua", _selectedFilter == 'semua', 'semua'),
                       const SizedBox(width: 8),
-                      _filterChip("Aktif", false),
+                      _filterChip("Aktif", _selectedFilter == 'aktif', 'aktif'),
                       const SizedBox(width: 8),
-                      _filterChip("Stok Habis", false),
-                      const SizedBox(width: 8),
-                      _filterChip("Arsip", false),
+                      _filterChip("Nonaktif", _selectedFilter == 'nonaktif', 'nonaktif'),
+                      const Spacer(),
+                      PopupMenuButton<String>(
+                        initialValue: _sortBy,
+                        onSelected: (value) {
+                          setState(() {
+                            _sortBy = value;
+                          });
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'harga_tertinggi',
+                            child: Text('Harga Tertinggi'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'harga_terendah',
+                            child: Text('Harga Terendah'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'nama_a_z',
+                            child: Text('Nama A-Z'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'nama_z_a',
+                            child: Text('Nama Z-A'),
+                          ),
+                        ],
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xffDBEAFE),
+                            borderRadius: BorderRadius.circular(25),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.sort, size: 18),
+                              SizedBox(width: 4),
+                              Text("Urutkan", style: TextStyle(fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -141,13 +222,48 @@ class _FormProdukSellerMobileState extends State<FormProdukSellerMobile> {
                     return const Center(child: Text("Belum ada produk"));
                   }
 
+                  var filteredProducts = products.where((product) {
+                    if (_searchQuery.isNotEmpty) {
+                      final name = product.name.toLowerCase();
+                      final category = product.category.toLowerCase();
+                      if (!name.contains(_searchQuery) &&
+                          !category.contains(_searchQuery)) {
+                        return false;
+                      }
+                    }
+
+                    if (_selectedFilter == 'aktif' && !product.active) {
+                      return false;
+                    }
+                    if (_selectedFilter == 'nonaktif' && product.active) {
+                      return false;
+                    }
+
+                    return true;
+                  }).toList();
+
+                  filteredProducts.sort((a, b) {
+                    switch (_sortBy) {
+                      case 'harga_tertinggi':
+                        return b.price.compareTo(a.price);
+                      case 'harga_terendah':
+                        return a.price.compareTo(b.price);
+                      case 'nama_a_z':
+                        return a.name.compareTo(b.name);
+                      case 'nama_z_a':
+                        return b.name.compareTo(a.name);
+                      default:
+                        return 0;
+                    }
+                  });
+
                   final produkPending = products
                       .where((p) => p.moderationStatus == 'pending')
                       .length;
 
                   return ListView.separated(
                     padding: const EdgeInsets.all(16),
-                    itemCount: products.length + (produkPending > 0 ? 1 : 0),
+                    itemCount: filteredProducts.length + (produkPending > 0 ? 1 : 0),
                     separatorBuilder: (_, _) => const SizedBox(height: 14),
                     itemBuilder: (context, index) {
                       if (produkPending > 0 && index == 0) {
@@ -185,7 +301,7 @@ class _FormProdukSellerMobileState extends State<FormProdukSellerMobile> {
                           ? index - 1
                           : index;
                       return ProductCard(
-                        product: products[productIndex],
+                        product: filteredProducts[productIndex],
                         onProductChanged: () {
                           if (mounted) setState(() {});
                         },
@@ -201,18 +317,25 @@ class _FormProdukSellerMobileState extends State<FormProdukSellerMobile> {
     );
   }
 
-  Widget _filterChip(String title, bool active) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-      decoration: BoxDecoration(
-        color: active ? const Color(0xff1E40AF) : const Color(0xffDBEAFE),
-        borderRadius: BorderRadius.circular(25),
-      ),
-      child: Text(
-        title,
-        style: TextStyle(
-          color: active ? Colors.white : Colors.black54,
-          fontWeight: active ? FontWeight.bold : null,
+  Widget _filterChip(String title, bool active, String filterKey) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedFilter = filterKey;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+        decoration: BoxDecoration(
+          color: active ? const Color(0xff1E40AF) : const Color(0xffDBEAFE),
+          borderRadius: BorderRadius.circular(25),
+        ),
+        child: Text(
+          title,
+          style: TextStyle(
+            color: active ? Colors.white : Colors.black54,
+            fontWeight: active ? FontWeight.bold : null,
+          ),
         ),
       ),
     );

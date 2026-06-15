@@ -1,133 +1,120 @@
-# Seller Orders Filter Fix Report
-
-## Root Cause
-
-### Bug 1 (CRITICAL): Search `return true` bypasses advanced filters
-
-Pada `_filteredOrders` getter di kedua file (web + mobile), blok search menggunakan `return true` saat match, yang menyebabkan semua filter setelahnya (status/date/price) tidak pernah dieksekusi:
-
-```dart
-// BEFORE — BUG: return true langsung skip filter-status, date, price
-if (_searchQuery.isNotEmpty) {
-  final q = _searchQuery.toLowerCase();
-  if (order.orderCode.toLowerCase().contains(q)) return true;
-  if (order.customerName.toLowerCase().contains(q)) return true;
-  final items = entry['items'] as List<OrderItemModel>;
-  if (items.any((i) => i.productName.toLowerCase().contains(q))) return true;
-  return false;  // hanya tercapai jika search TIDAK match
-}
-```
-
-### Bug 2 (HIGH): `_activeTab` dan `_filterStatuses` konflik
-
-Tab filter (line 145) dan advanced status filter (line 158) berjalan sequential (AND). Jika tab = `'pending'` dan advanced filter = `{'shipped'}`, tab mengecualikan semua non-pending, lalu advanced mengecualikan pending (karena `'pending'` tidak ada di `{'shipped'}`). Hasil: 0 pesanan.
-
----
+# Seller Products Mobile Filter Implementation Report
 
 ## Files Modified
 
-| File | Lines Changed | Bug Fixed |
-|------|--------------|-----------|
-| `lib/presentation/seller/orders/form_pesanan_seller_web.dart` | 141-198 | Bug 1 + Bug 2 |
-| `lib/presentation/seller/orders/form_pesanan_seller_mobile.dart` | 64-101 | Bug 1 |
+| File | Description |
+|------|-------------|
+| `lib/presentation/seller/products/form_produk_seller_mobile.dart` | Added search, interactive filter chips, sort, filtering & sorting logic |
 
 ---
 
-## Logic Before / After
+## Search Implementation
 
-### Bug 1 — Web & Mobile
+**State:** `_searchQuery` (String), `_searchController` (TextEditingController)
 
-| Aspek | Before | After |
-|-------|--------|-------|
-| Search return | `return true` saat match → skip filter lain | `matchesSearch` boolean → `return false` jika tidak match (AND) |
-| Aliran filter | Search tabung dulu -> skip -> filter lain tidak jalan | Search adalah salah satu AND condition |
-| Contoh: search "abc" + status filter "shipped" + price > 100000 | Hanya filter search berfungsi | Semua filter diterapkan dengan AND |
+**UI:** `TextField` with search icon, placed between title row and filter chips. Listener via `_searchController.addListener` updates `_searchQuery` as lowercase.
 
-### Bug 2 — Web only
-
-| Aspek | Before | After |
-|-------|--------|-------|
-| Prioritas | Tab dulu → advanced belakang → konflik | Jika `_filterStatuses` tidak kosong, **tab diabaikan** (override) |
-| Tab + advanced filter beda status | Hasil 0 (conflict) | Advanced filter menang, tab ignored |
-| Tab + advanced filter kosong | Tab berfungsi normal | Tab berfungsi normal (sama) |
-
-### Logic After — Web
-
+**Filter logic** (inside `SellerProductBuilder.builder`, after receiving products):
 ```dart
-List<Map<String, dynamic>> get _filteredOrders {
-  var result = _allOrders.where((entry) {
-    final order = entry['order'] as OrderModel;
-    final items = entry['items'] as List<OrderItemModel>;
-
-    // STATUS: advanced filter override tab jika ada
-    if (_filterStatuses.isNotEmpty) {
-      if (!_filterStatuses.contains(order.status.toLowerCase())) return false;
-    } else {
-      if (_activeTab != 'semua') {
-        if (order.status.toLowerCase() != _activeTab) return false;
-      }
-    }
-
-    // SEARCH: AND dengan filter lainnya (tidak short-circuit)
-    if (_searchQuery.isNotEmpty) {
-      final q = _searchQuery.toLowerCase();
-      final matchesSearch =
-          order.orderCode.toLowerCase().contains(q) ||
-          order.customerName.toLowerCase().contains(q) ||
-          items.any((i) => i.productName.toLowerCase().contains(q));
-      if (!matchesSearch) return false;
-    }
-
-    // DATE FILTER (AND)
-    if (_filterStartDate != null || _filterEndDate != null) { ... }
-
-    // PRICE FILTER (AND)
-    if (_filterMinTotal != null || _filterMaxTotal != null) { ... }
-
-    return true;  // ALL filters passed
-  }).toList();
-  // ... sorting ...
+if (_searchQuery.isNotEmpty) {
+  final name = product.name.toLowerCase();
+  final category = product.category.toLowerCase();
+  if (!name.contains(_searchQuery) && !category.contains(_searchQuery)) {
+    return false;
+  }
 }
 ```
 
 ---
 
-## Mobile Impact
+## Status Filter Implementation
 
-Mobile memiliki **Bug 1 yang SAMA** (search `return true`). Tidak memiliki Bug 2 karena tidak ada advanced filter dialog.
+**State:** `_selectedFilter` (String): `'semua'`, `'aktif'`, `'nonaktif'`
 
-Fix diterapkan di `form_pesanan_seller_mobile.dart` dengan pola identik — search menggunakan `matchesSearch` boolean + `return false` untuk AND composition.
+**UI:** 3 interactive chips using `GestureDetector` wrapping styled `Container`. Tapping a chip updates `_selectedFilter` via `setState`. Active chip is highlighted with dark blue background.
+
+**Filter logic:**
+```dart
+if (_selectedFilter == 'aktif' && !product.active) return false;
+if (_selectedFilter == 'nonaktif' && product.active) return false;
+```
+
+**Before vs After:**
+
+| Aspek | Before | After |
+|-------|--------|-------|
+| Widget | `Container` (plain, no interaction) | `GestureDetector` wrapping `Container` |
+| State | Hardcoded literals (`true`/`false`) | `_selectedFilter` updated on tap |
+| Jumlah chip | 4 (Semua/Aktif/Stok Habis/Arsip) | 3 (Semua/Aktif/Nonaktif) |
+| Filtering | None | `product.active`-based filter |
+
+---
+
+## Sort Implementation
+
+**State:** `_sortBy` (String): `'harga_tertinggi'`, `'harga_terendah'`, `'nama_a_z'`, `'nama_z_a'`
+
+**UI:** `PopupMenuButton` with 4 options, styled consistently with the mobile orders page (`form_pesanan_seller_mobile.dart:262-287`). Placed next to filter chips.
+
+**Sort logic:**
+```dart
+filteredProducts.sort((a, b) {
+  switch (_sortBy) {
+    case 'harga_tertinggi': return b.price.compareTo(a.price);
+    case 'harga_terendah':  return a.price.compareTo(b.price);
+    case 'nama_a_z':        return a.name.compareTo(b.name);
+    case 'nama_z_a':        return b.name.compareTo(a.name);
+    default:                return 0;
+  }
+});
+```
+
+---
+
+## Logic Flow
+
+```
+SellerProductBuilder → List<ProductModel> (all seller products)
+  │
+  ▼
+  .where()
+    1. Search filter: product.name OR product.category contains _searchQuery
+    2. Status filter: _selectedFilter == 'semua' ? all : match product.active
+  │
+  ▼
+  .sort() by _sortBy
+  │
+  ▼
+  ListView.separated → ProductCard (filtered + sorted)
+```
+
+Semua filtering client-side, identik dengan pendekatan web.
 
 ---
 
 ## Risks
 
-| Risk | Assessment |
-|------|------------|
-| Regresi search | ✅ Rendah — logika search match identik, hanya cara return diubah |
-| Regresi tab filter | ✅ Rendah — tab behavior sama saat advanced filter kosong |
-| Regresi advanced filter | ✅ Rendah — filter status/date/price hanya di-skip jika search `return true` (yang sekarang tidak terjadi) |
-| `flutter analyze` | ✅ Pass — 0 errors |
+| Risk | Status |
+|------|--------|
+| `flutter analyze` errors | ✅ 0 — hanya pre-existing issues |
+| Perubahan file lain | ✅ Tidak ada |
+| Perubahan database/Appwrite | ✅ Tidak ada |
+| Perubahan ProductModel | ✅ Tidak ada |
+| Sort default (`harga_tertinggi`) | ✅ Disengaja — bukan `terbaru` karena tidak ada createdAt |
 
 ---
 
 ## Manual Testing Checklist
 
-### Skenario Web
-
-- [ ] **Search saja:** Ketik nama produk/pembeli/kode → hasil hanya yang cocok
-- [ ] **Tab saja:** Klik tab "Perlu Diproses" → hanya pending muncul
-- [ ] **Tab + search:** Tab "Pending" + search nama → hanya pending yang cocok search
-- [ ] **Advanced status saja:** Buka filter, centang "Shipped" + "Completed" → hanya shipped+completed
-- [ ] **Advanced status + tab:** Centang "Shipped" di advanced filter + tab "Pending" → advanced filter menang (shipped muncul, bukan pending)
-- [ ] **Search + advanced status:** Search "abc" + centang "Shipped" → hanya shipped yang cocok "abc"
-- [ ] **Search + status + date:** Search + shipped + date range → AND semua
-- [ ] **Search + status + date + price:** Search + shipped + date + price range → AND semua
-- [ ] **Reset filter:** Klik "Reset" di dialog filter → semua filter hilang, semua pesanan muncul
-- [ ] **Ekspor rekap:** Data yang diekspor sesuai filter aktif
-
-### Skenario Mobile
-
-- [ ] **Search saja:** Ketik di search → hasil hanya yang cocok
-- [ ] **Tab saja:** Tab berfungsi
-- [ ] **Search + tab:** Kombinasi AND
+- [ ] Search produk berdasarkan nama → hanya produk cocok muncul
+- [ ] Search berdasarkan kategori → produk dengan kategori cocok muncul
+- [ ] Search case-insensitive → "baju" sama dengan "Baju"
+- [ ] Filter "Aktif" → hanya produk dengan `active == true`
+- [ ] Filter "Nonaktif" → hanya produk dengan `active == false`
+- [ ] Filter "Semua" → semua produk
+- [ ] Sort "Harga Tertinggi" → descending price
+- [ ] Sort "Harga Terendah" → ascending price
+- [ ] Sort "Nama A-Z" → alphabetical
+- [ ] Sort "Nama Z-A" → reverse alphabetical
+- [ ] Search + filter + sort kombinasi → semua bekerja dengan AND
+- [ ] Reset search (clear field) → semua produk kembali
