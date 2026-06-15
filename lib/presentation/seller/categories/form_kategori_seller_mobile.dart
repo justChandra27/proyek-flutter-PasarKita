@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import '../profile/profile_seller_mobile.dart';
 
 import '../../../core/services/category_service_appwrite.dart';
+import '../../../core/services/product_service_appwrite.dart';
 import '../../../data/models/category_model.dart';
+import '../../../core/appwrite/appwrite_service.dart';
+import '../../seller/products/form_produk_seller_mobile.dart' as mobile;
 
 class FormKategoriSellerMobile extends StatefulWidget {
   const FormKategoriSellerMobile({super.key});
@@ -14,8 +17,10 @@ class FormKategoriSellerMobile extends StatefulWidget {
 
 class _FormKategoriSellerMobileState extends State<FormKategoriSellerMobile> {
   final _categoryService = CategoryServiceAppwrite();
+  final _productService = ProductServiceAppwrite();
 
   List<CategoryModel> _categories = [];
+  Map<String, int> _productCountByCategory = {};
   bool _loading = true;
 
   @override
@@ -27,9 +32,19 @@ class _FormKategoriSellerMobileState extends State<FormKategoriSellerMobile> {
   Future<void> _loadCategories() async {
     try {
       final cats = await _categoryService.getAllCategories();
+      final account = await AppwriteService.account.get();
+      final sellerId = account.$id;
+      final products = await _productService.getSellerProducts(sellerId);
+      final counts = <String, int>{};
+      for (final p in products) {
+        if (p.category.isNotEmpty) {
+          counts[p.category] = (counts[p.category] ?? 0) + 1;
+        }
+      }
       if (!mounted) return;
       setState(() {
         _categories = cats;
+        _productCountByCategory = counts;
         _loading = false;
       });
     } catch (e) {
@@ -178,7 +193,8 @@ class _FormKategoriSellerMobileState extends State<FormKategoriSellerMobile> {
                               (cat) => CategoryCard(
                                 icon: _iconForCategory(cat.name),
                                 title: cat.name,
-                                total: '${cat.productCount} Produk',
+                                total: '${_productCountByCategory[cat.name] ?? 0} Produk',
+                                onTap: () => _navigateToProductList(cat.name),
                               ),
                             ),
                           ],
@@ -189,23 +205,36 @@ class _FormKategoriSellerMobileState extends State<FormKategoriSellerMobile> {
       ),
     );
   }
+
+  void _navigateToProductList(String category) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => mobile.FormProdukSellerMobile(initialCategory: category),
+      ),
+    );
+  }
 }
 
 class CategoryCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final String total;
+  final VoidCallback? onTap;
 
   const CategoryCard({
     super.key,
     required this.icon,
     required this.title,
     required this.total,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -248,6 +277,7 @@ class CategoryCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

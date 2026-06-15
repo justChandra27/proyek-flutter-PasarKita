@@ -6,8 +6,10 @@ import 'package:appwrite/appwrite.dart';
 import '../../../core/services/category_service_appwrite.dart';
 import '../../../data/models/category_model.dart';
 import '../../../core/services/auth_service_appwrite.dart';
+import '../../../core/services/product_service_appwrite.dart';
 import '../../../core/appwrite/appwrite_config.dart';
 import '../../../core/appwrite/appwrite_service.dart';
+import '../../seller/products/form_produk_seller_web.dart' as web;
 
 class FormKategoriSellerWeb extends StatefulWidget {
   const FormKategoriSellerWeb({super.key});
@@ -18,8 +20,10 @@ class FormKategoriSellerWeb extends StatefulWidget {
 
 class _FormKategoriSellerWebState extends State<FormKategoriSellerWeb> {
   final _categoryService = CategoryServiceAppwrite();
+  final _productService = ProductServiceAppwrite();
 
   List<CategoryModel> _categories = [];
+  Map<String, int> _productCountByCategory = {};
   bool _loading = true;
   String _sellerName = 'Seller';
   String _initial = 'S';
@@ -67,9 +71,19 @@ class _FormKategoriSellerWebState extends State<FormKategoriSellerWeb> {
   Future<void> _loadCategories() async {
     try {
       final cats = await _categoryService.getAllCategories();
+      final account = await AppwriteService.account.get();
+      final sellerId = account.$id;
+      final products = await _productService.getSellerProducts(sellerId);
+      final counts = <String, int>{};
+      for (final p in products) {
+        if (p.category.isNotEmpty) {
+          counts[p.category] = (counts[p.category] ?? 0) + 1;
+        }
+      }
       if (!mounted) return;
       setState(() {
         _categories = cats;
+        _productCountByCategory = counts;
         _loading = false;
       });
     } catch (e) {
@@ -281,9 +295,10 @@ class _FormKategoriSellerWebState extends State<FormKategoriSellerWeb> {
                                             iconColor: _colorForCategory(cat.name),
                                             title: cat.name,
                                             description: cat.description,
-                                            totalProduct: '${cat.productCount}',
+                                            totalProduct: '${_productCountByCategory[cat.name] ?? 0}',
                                             status: cat.status == 'active' ? 'Aktif' : 'Nonaktif',
                                             statusColor: cat.status == 'active' ? Colors.green : Colors.red,
+                                            onTap: () => _navigateToProductList(cat.name),
                                           ),
                                         ),
                                       ],
@@ -348,6 +363,15 @@ class _FormKategoriSellerWebState extends State<FormKategoriSellerWeb> {
     );
   }
 
+  void _navigateToProductList(String category) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => web.FormProdukSellerWeb(initialCategory: category),
+      ),
+    );
+  }
+
   Widget _categoryCard({
     required IconData icon,
     required Color iconColor,
@@ -356,8 +380,11 @@ class _FormKategoriSellerWebState extends State<FormKategoriSellerWeb> {
     required String totalProduct,
     required String status,
     required Color statusColor,
+    VoidCallback? onTap,
   }) {
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -435,6 +462,7 @@ class _FormKategoriSellerWebState extends State<FormKategoriSellerWeb> {
             ],
           ),
         ],
+      ),
       ),
     );
   }

@@ -7,7 +7,9 @@ import 'widgets/seller_product_builder.dart';
 import 'product_form_page.dart';
 
 class FormProdukSellerMobile extends StatefulWidget {
-  const FormProdukSellerMobile({super.key});
+  final String? initialCategory;
+
+  const FormProdukSellerMobile({super.key, this.initialCategory});
 
   @override
   State<FormProdukSellerMobile> createState() => _FormProdukSellerMobileState();
@@ -15,6 +17,7 @@ class FormProdukSellerMobile extends StatefulWidget {
 
 class _FormProdukSellerMobileState extends State<FormProdukSellerMobile> {
   String _selectedFilter = 'semua';
+  String _selectedCategory = '';
   String _searchQuery = '';
   String _sortBy = 'harga_tertinggi';
   final TextEditingController _searchController = TextEditingController();
@@ -22,6 +25,9 @@ class _FormProdukSellerMobileState extends State<FormProdukSellerMobile> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialCategory != null) {
+      _selectedCategory = widget.initialCategory!;
+    }
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text.toLowerCase();
@@ -236,6 +242,11 @@ class _FormProdukSellerMobileState extends State<FormProdukSellerMobile> {
                       return false;
                     }
                     if (_selectedFilter == 'nonaktif' && product.active) {
+                      return false;
+                    }
+
+                    if (_selectedCategory.isNotEmpty &&
+                        product.category != _selectedCategory) {
                       return false;
                     }
 

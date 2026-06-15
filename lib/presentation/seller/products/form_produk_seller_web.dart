@@ -14,7 +14,9 @@ import '../../../core/services/category_service_appwrite.dart';
 import '../../../data/models/category_model.dart';
 
 class FormProdukSellerWeb extends StatefulWidget {
-  const FormProdukSellerWeb({super.key});
+  final String? initialCategory;
+
+  const FormProdukSellerWeb({super.key, this.initialCategory});
 
   @override
   State<FormProdukSellerWeb> createState() => _FormProdukSellerWebState();
@@ -35,6 +37,9 @@ class _FormProdukSellerWebState extends State<FormProdukSellerWeb> {
     super.initState();
     _loadSeller();
     _loadCategories();
+    if (widget.initialCategory != null) {
+      selectedCategory = widget.initialCategory!;
+    }
   }
 
   Future<void> _loadCategories() async {

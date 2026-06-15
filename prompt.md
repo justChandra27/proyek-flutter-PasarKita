@@ -1,147 +1,108 @@
-﻿# Seller Category Filter Sync Report
+﻿# Seller Category Improvement Report
 
 ## Root Cause
 
-Filter kategori di Seller → Produk Saya (`form_produk_seller_web.dart`) menggunakan **hardcoded list** `['Pakaian', 'Sepatu', 'Aksesoris']` sebagai opsi dropdown, bukan membaca dari Appwrite `categories` collection.
+**P0 (Product Count):** `CategoryModel.productCount` di DB di-set ke 0 saat kategori dibuat dan **tidak pernah diupdate** oleh operasi CRUD produk mana pun. Semua display menggunakan nilai basi ini.
 
-Akibatnya:
-- Admin menambah kategori baru → filter seller **tidak menampilkannya**
-- Admin menghapus kategori → filter seller **masih menampilkannya**
-- Seller tidak bisa memfilter produk dengan kategori yang bukan di list tersebut
-
-## Audit Findings
-
-### 1. Apakah filter kategori juga ada di mobile?
-
-**Tidak.** `form_produk_seller_mobile.dart` hanya memiliki search, status filter (Semua/aktif/nonaktif), dan sort — **tidak ada** dropdown filter kategori. Hanya web yang memiliki filter kategori hardcoded.
-
-### 2. Bagaimana Product Form mengambil kategori?
-
-`product_form_page.dart:93-109` — `_loadCategories()`:
-```dart
-final categories = await CategoryServiceAppwrite().getAllCategories();
-```
-
-Pattern: async load di `initState`, simpan di `List<CategoryModel> _categories`, tampilkan di `DropdownButtonFormField` via `_categories.map((cat) => DropdownMenuItem(value: cat.name, child: Text(cat.name)))`.
-
-Implementasi baru menggunakan **pola yang sama persis**.
+**P1 (Navigation):** `_categoryCard` (web) dan `CategoryCard` (mobile) adalah `Container` statis tanpa `onTap`. Tidak ada navigasi ke halaman produk.
 
 ## Files Modified
 
-Hanya 1 file:
-- `lib/presentation/seller/products/form_produk_seller_web.dart`
+| # | File | Perubahan |
+|---|---|---|
+| 1 | `lib/presentation/seller/categories/form_kategori_seller_web.dart` | P0 + P1 |
+| 2 | `lib/presentation/seller/categories/form_kategori_seller_mobile.dart` | P0 + P1 |
+| 3 | `lib/presentation/seller/products/form_produk_seller_web.dart` | P1 — tambah `initialCategory` param |
+| 4 | `lib/presentation/seller/products/form_produk_seller_mobile.dart` | P1 — tambah `initialCategory` param + filter kategori |
 
-## Before
+---
 
-```dart
-// form_produk_seller_web.dart
-class _FormProdukSellerWebState extends State<FormProdukSellerWeb> {
-  String selectedCategory = 'Semua';
-  // TIDAK ADA _categories atau _loadCategories
+## Product Count Strategy
 
-  @override
-  void initState() {
-    super.initState();
-    _loadSeller();  // HANYA load seller
-  }
+**Pendekatan:** Hitung real-time dari memory (1 query, filter in-memory).
 
-  // Di build method:
-  DropdownButton<String>(
-    value: selectedCategory,
-    items: const [
-      DropdownMenuItem(value: 'Semua', child: Text('Semua Kategori')),
-      DropdownMenuItem(value: 'Pakaian', child: Text('Pakaian')),      // HARDCODED
-      DropdownMenuItem(value: 'Sepatu', child: Text('Sepatu')),        // HARDCODED
-      DropdownMenuItem(value: 'Aksesoris', child: Text('Aksesoris')),  // HARDCODED
-    ],
-    onChanged: (value) { setState(() { selectedCategory = value!; }); },
-  ),
-```
-
-## After
-
-```dart
-class _FormProdukSellerWebState extends State<FormProdukSellerWeb> {
-  String selectedCategory = 'Semua';
-  List<CategoryModel> _categories = [];     // BARU
-  bool _isLoadingCategories = true;         // BARU
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSeller();
-    _loadCategories();                      // BARU
-  }
-
-  Future<void> _loadCategories() async {    // BARU — pola dari product_form_page
-    try {
-      final categories = await CategoryServiceAppwrite().getAllCategories();
-      if (mounted) {
-        setState(() {
-          _categories = categories;
-          _isLoadingCategories = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() { _isLoadingCategories = false; });
-    }
-  }
-
-  // Di build method:
-  DropdownButton<String>(
-    value: selectedCategory,
-    items: [
-      const DropdownMenuItem(value: 'Semua', child: Text('Semua Kategori')),
-      if (!_isLoadingCategories)                              // BARU
-        ..._categories.map((cat) => DropdownMenuItem(          // BARU — dari collection
-          value: cat.name,
-          child: Text(cat.name),
-        )),
-    ],
-    onChanged: (value) { setState(() { selectedCategory = value!; }); },
-  ),
-```
-
-## Data Flow
+### Flow
 
 ```
-Admin creates/edits/deletes categories
-        │
-        ▼
-Appwrite "categories" collection
-        │
-        ▼
-CategoryServiceAppwrite.getAllCategories()
-        │
-        ▼
-form_produk_seller_web.dart _loadCategories()
-        │
-        ▼
-Dropdown items ← _categories.map((cat) => cat.name)
-        │
-        ▼
-Seller selects category → filter: product.category == selectedCategory
+1. CategoryServiceAppwrite.getAllCategories()
+        ↓
+2. AppwriteService.account.get() → sellerId
+        ↓
+3. ProductServiceAppwrite.getSellerProducts(sellerId)
+        ↓
+4. Loop products → Map<String, int> countByCategory
+        ↓
+5. Tampilkan: _productCountByCategory[cat.name] ?? 0
 ```
 
-Tidak ada perubahan pada logika filtering (line 349-351). String comparison `product.category == selectedCategory` sudah bekerja untuk nama kategori apapun.
+### Keuntungan
+- ✅ Data akurat (langsung dari products, bukan field basi)
+- ✅ 1 query total (bukan N query per kategori — tidak N+1)
+- ✅ Tidak perlu ubah DB schema
+- ✅ Tidak perlu sinkronisasi productCount di create/update/delete product
+
+---
+
+## Navigation Flow
+
+```
+Kategori Seller (card)
+    ↓ onTap
+Produk Saya (halaman yang sudah ada)
+    ↓ initialCategory di-set
+Filter kategori otomatis terpilih
+```
+
+### Detail
+
+**Web:**
+- `_categoryCard` di-`GestureDetector` → `Navigator.push` ke `FormProdukSellerWeb(initialCategory: cat.name)`
+- `FormProdukSellerWeb` menerima `initialCategory` → di-`initState`, set `selectedCategory`
+- Filter existing `product.category == selectedCategory` langsung bekerja
+
+**Mobile:**
+- `CategoryCard` di-`GestureDetector` → `Navigator.push` ke `FormProdukSellerMobile(initialCategory: cat.name)`
+- `FormProdukSellerMobile` menerima `initialCategory` → di-`initState`, set `_selectedCategory`
+- Filter baru: `if (_selectedCategory.isNotEmpty && product.category != _selectedCategory)`
+
+---
+
+## Before vs After
+
+### P0: Product Count
+
+| File | Before | After |
+|---|---|---|
+| `form_kategori_seller_web.dart:284` | `'${cat.productCount}'` (dari DB — selalu 0) | `'${_productCountByCategory[cat.name] ?? 0}'` (real-time) |
+| `form_kategori_seller_mobile.dart:181` | `'${cat.productCount} Produk'` (dari DB — selalu 0) | `'${_productCountByCategory[cat.name] ?? 0} Produk'` (real-time) |
+
+### P1: Navigation
+
+| File | Before | After |
+|---|---|---|
+| `form_kategori_seller_web.dart` | Card tidak bisa diklik | `GestureDetector(onTap: ...)` → navigasi ke web product list |
+| `form_kategori_seller_mobile.dart` | Card tidak bisa diklik | `GestureDetector(onTap: ...)` → navigasi ke mobile product list |
+| `form_produk_seller_web.dart` | Tidak ada `initialCategory` param | `initialCategory` → auto-set `selectedCategory` di initState |
+| `form_produk_seller_mobile.dart` | Tidak ada filter kategori, tidak ada `initialCategory` | `initialCategory` + `_selectedCategory` + filter di `products.where(...)` |
+
+---
 
 ## Risks
 
 | Risk | Mitigation |
 |---|---|
-| Category collection kosong → dropdown hanya "Semua Kategori" | ✅ Diterima — filter tetap berfungsi, tidak error |
-| Kategori dihapus admin saat seller sedang di halaman ini | ✅ Minimal — hanya dropdown yang tidak update (perlu refresh) |
-| Nama kategori berubah → produk tetap menggunakan nama lama | ✅ Pre-existing — tidak ada FK constraint, bukan masalah baru |
-| `_isLoadingCategories` = true → dropdown tidak nampak | ✅ Aman — hanya "Semua Kategori" yang muncul sementara loading |
-| Network error saat load categories | ✅ Caught by try/catch — dropdown tetap berfungsi dengan "Semua Kategori" |
+| N+1 query (load seller + categories + products) | Semua query independen & paralel via Future.wait di method masing-masing |
+| Seller dengan banyak produk (5000+) | `Query.limit(5000)` — perlu pagination loop jika >5000 (dibahas di audit sebelumnya) |
+| Product count termasuk status apapun (aktif/nonaktif/pending) | ✅ Semua produk seller dihitung — sesuai ekspektasi seller |
+| `widget.initialCategory` di-set saat initState — tidak berubah setelahnya | ✅ Sesuai flow: klik card → halaman baru → filter langsung aktif |
+| GestureDetector tanpa feedback visual | Diterima — container sudah memiliki warna latar dan border radius sebagai indikator |
 
 ## Manual Testing Checklist
 
-- [ ] Buka Seller → Produk Saya → dropdown kategori menampilkan "Semua Kategori" + semua dari `categories` collection
-- [ ] Tidak ada kategori hardcoded (Pakaian, Sepatu, Aksesoris tidak muncul di kode)
-- [ ] Pilih kategori → produk terfilter sesuai
+- [ ] Buka Seller → Kategori → jumlah produk di card **sesuai** dengan jumlah produk di collection
+- [ ] Tambah produk baru → kembali ke kategori → jumlah **update** (setelah refresh)
+- [ ] Hapus produk → jumlah **berkurang** (setelah refresh)
+- [ ] Klik card kategori web → navigasi ke Produk Saya → filter kategori **otomatis terpilih**
+- [ ] Klik card kategori mobile → navigasi ke Produk Saya → hanya produk kategori tersebut yang tampil
 - [ ] Pilih "Semua Kategori" → semua produk tampil
-- [ ] Admin tambah kategori baru → muncul di dropdown seller (setelah refresh halaman)
-- [ ] Admin hapus kategori → hilang dari dropdown seller (setelah refresh halaman)
-- [ ] Error saat load → dropdown hanya "Semua Kategori", tidak crash
 - [ ] `flutter analyze` — 0 issues (divalidasi)
