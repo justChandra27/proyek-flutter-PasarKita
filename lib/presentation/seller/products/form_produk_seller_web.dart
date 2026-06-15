@@ -233,63 +233,6 @@ class _FormProdukSellerWebState extends State<FormProdukSellerWeb> {
                       padding: const EdgeInsets.all(16),
                       child: Row(
                         children: [
-                          DropdownButton<String>(
-                            value: selectedStatus,
-                            items: const [
-                              DropdownMenuItem(
-                                value: 'Semua',
-                                child: Text('Semua Status'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'Aktif',
-                                child: Text('Aktif'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'Nonaktif',
-                                child: Text('Nonaktif'),
-                              ),
-                            ],
-                            onChanged: (value) {
-                              setState(() {
-                                selectedStatus = value!;
-                              });
-                            },
-                          ),
-
-                          const SizedBox(width: 10),
-
-                          DropdownButton<String>(
-                            value: selectedCategory == 'Semua' || (!_isLoadingCategories && _categories.any((c) => c.name == selectedCategory))
-                                ? selectedCategory
-                                : 'Semua',
-                            items: [
-                              const DropdownMenuItem(
-                                value: 'Semua',
-                                child: Text('Semua Kategori'),
-                              ),
-                              if (!_isLoadingCategories)
-                                ..._categories.map((cat) => DropdownMenuItem(
-                                      value: cat.name,
-                                      child: Text(cat.name),
-                                    )),
-                            ],
-                            onChanged: (value) {
-                              setState(() {
-                                selectedCategory = value!;
-                              });
-                            },
-                          ),
-
-                          const SizedBox(width: 10),
-
-                          TextButton.icon(
-                            onPressed: () {},
-                            icon: const Icon(Icons.tune, size: 18),
-                            label: const Text("Filter"),
-                          ),
-
-                          const Spacer(),
-
                           const Text(
                             "Urutkan:",
                             style: TextStyle(color: Colors.black54),
@@ -331,6 +274,22 @@ class _FormProdukSellerWebState extends State<FormProdukSellerWeb> {
                                 sortBy = value!;
                               });
                             },
+                          ),
+
+                          const Spacer(),
+
+                          Badge(
+                            isLabelVisible: _activeFilterCount > 0,
+                            label: Text('$_activeFilterCount'),
+                            child: TextButton.icon(
+                              onPressed: _showFilterDialog,
+                              icon: const Icon(Icons.tune, size: 18),
+                              label: Text(
+                                _activeFilterCount > 0
+                                    ? 'Filter ($_activeFilterCount)'
+                                    : 'Filter',
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -474,6 +433,111 @@ class _FormProdukSellerWebState extends State<FormProdukSellerWeb> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  int get _activeFilterCount {
+    int count = 0;
+    if (selectedStatus != 'Semua') count++;
+    if (selectedCategory != 'Semua') count++;
+    return count;
+  }
+
+  void _showFilterDialog() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Filter Produk',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+
+              const Text(
+                'Status',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black54),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: ['Semua', 'Aktif', 'Nonaktif'].map((opt) =>
+                  ChoiceChip(
+                    label: Text(opt),
+                    selected: selectedStatus == opt,
+                    onSelected: (_) {
+                      setState(() {
+                        selectedStatus = opt;
+                      });
+                      setSheetState(() {});
+                    },
+                  ),
+                ).toList(),
+              ),
+
+              const SizedBox(height: 20),
+
+              const Text(
+                'Kategori',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black54),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: [
+                  ChoiceChip(
+                    label: const Text('Semua Kategori'),
+                    selected: selectedCategory == 'Semua',
+                    onSelected: (_) {
+                      setState(() {
+                        selectedCategory = 'Semua';
+                      });
+                      setSheetState(() {});
+                    },
+                  ),
+                  if (!_isLoadingCategories)
+                    ..._categories.map((cat) => ChoiceChip(
+                          label: Text(cat.name),
+                          selected: selectedCategory == cat.name,
+                          onSelected: (_) {
+                            setState(() {
+                              selectedCategory = cat.name;
+                            });
+                            setSheetState(() {});
+                          },
+                        )),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xff2563EB),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Terapkan'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

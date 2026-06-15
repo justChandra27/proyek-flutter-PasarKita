@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../profile/profile_seller_mobile.dart';
-
+import '../../../core/services/category_service_appwrite.dart';
+import '../../../data/models/category_model.dart';
 import 'widgets/product_card.dart';
 import 'widgets/seller_product_builder.dart';
 import 'product_form_page.dart';
@@ -21,6 +22,15 @@ class _FormProdukSellerMobileState extends State<FormProdukSellerMobile> {
   String _searchQuery = '';
   String _sortBy = 'harga_tertinggi';
   final TextEditingController _searchController = TextEditingController();
+  List<CategoryModel> _categories = [];
+  bool _isLoadingCategories = false;
+
+  int get _activeFilterCount {
+    int count = 0;
+    if (_selectedFilter != 'semua') count++;
+    if (_selectedCategory.isNotEmpty) count++;
+    return count;
+  }
 
   @override
   void initState() {
@@ -33,6 +43,16 @@ class _FormProdukSellerMobileState extends State<FormProdukSellerMobile> {
         _searchQuery = _searchController.text.toLowerCase();
       });
     });
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    setState(() => _isLoadingCategories = true);
+    try {
+      final cats = await CategoryServiceAppwrite().getAllCategories();
+      if (mounted) setState(() => _categories = cats);
+    } catch (_) {}
+    if (mounted) setState(() => _isLoadingCategories = false);
   }
 
   @override
@@ -175,12 +195,6 @@ class _FormProdukSellerMobileState extends State<FormProdukSellerMobile> {
 
                   Row(
                     children: [
-                      _filterChip("Semua", _selectedFilter == 'semua', 'semua'),
-                      const SizedBox(width: 8),
-                      _filterChip("Aktif", _selectedFilter == 'aktif', 'aktif'),
-                      const SizedBox(width: 8),
-                      _filterChip("Nonaktif", _selectedFilter == 'nonaktif', 'nonaktif'),
-                      const Spacer(),
                       PopupMenuButton<String>(
                         initialValue: _sortBy,
                         onSelected: (value) {
@@ -222,6 +236,32 @@ class _FormProdukSellerMobileState extends State<FormProdukSellerMobile> {
                               SizedBox(width: 4),
                               Text("Urutkan", style: TextStyle(fontSize: 13)),
                             ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Badge(
+                        isLabelVisible: _activeFilterCount > 0,
+                        label: Text('$_activeFilterCount'),
+                        child: GestureDetector(
+                          onTap: _showFilterBottomSheet,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xffDBEAFE),
+                              borderRadius: BorderRadius.circular(25),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.filter_list, size: 18),
+                                SizedBox(width: 4),
+                                Text("Filter", style: TextStyle(fontSize: 13)),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -338,24 +378,105 @@ class _FormProdukSellerMobileState extends State<FormProdukSellerMobile> {
     );
   }
 
-  Widget _filterChip(String title, bool active, String filterKey) {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedFilter = filterKey;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-        decoration: BoxDecoration(
-          color: active ? const Color(0xff1E40AF) : const Color(0xffDBEAFE),
-          borderRadius: BorderRadius.circular(25),
-        ),
-        child: Text(
-          title,
-          style: TextStyle(
-            color: active ? Colors.white : Colors.black54,
-            fontWeight: active ? FontWeight.bold : null,
+  void _showFilterBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Filter Produk',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+
+              const Text(
+                'Status',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black54),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: ['Semua', 'Aktif', 'Nonaktif'].map((opt) =>
+                  ChoiceChip(
+                    label: Text(opt),
+                    selected: (_selectedFilter == 'semua' && opt == 'Semua') ||
+                        (_selectedFilter == 'aktif' && opt == 'Aktif') ||
+                        (_selectedFilter == 'nonaktif' && opt == 'Nonaktif'),
+                    onSelected: (_) {
+                      setState(() {
+                        _selectedFilter = opt == 'Semua' ? 'semua' : opt.toLowerCase();
+                      });
+                      setSheetState(() {});
+                    },
+                  ),
+                ).toList(),
+              ),
+
+              const SizedBox(height: 20),
+
+              const Text(
+                'Kategori',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black54),
+              ),
+              const SizedBox(height: 8),
+              if (_isLoadingCategories)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              else
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    ChoiceChip(
+                      label: const Text('Semua Kategori'),
+                      selected: _selectedCategory.isEmpty,
+                      onSelected: (_) {
+                        setState(() => _selectedCategory = '');
+                        setSheetState(() {});
+                      },
+                    ),
+                    ..._categories.map((cat) => ChoiceChip(
+                          label: Text(cat.name),
+                          selected: _selectedCategory == cat.name,
+                          onSelected: (_) {
+                            setState(() => _selectedCategory = cat.name);
+                            setSheetState(() {});
+                          },
+                        )),
+                  ],
+                ),
+
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xff2563EB),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Terapkan'),
+                ),
+              ),
+            ],
           ),
         ),
       ),
