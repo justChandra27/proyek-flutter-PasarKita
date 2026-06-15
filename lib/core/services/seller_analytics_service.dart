@@ -1,4 +1,3 @@
-import '../../data/models/order_model.dart';
 import 'order_service_appwrite.dart';
 import 'product_service_appwrite.dart';
 import 'review_service_appwrite.dart';
@@ -46,11 +45,8 @@ class SellerAnalyticsService {
     final items = await _orderService.getOrdersBySeller(sellerId);
 
     final orderIds = items.map((i) => i.orderId).toSet().toList();
-    final orders = <OrderModel>[];
-    for (final oid in orderIds) {
-      final order = await _orderService.getOrderById(oid);
-      if (order != null) orders.add(order);
-    }
+    final ordersMap = await _orderService.getOrdersByIds(orderIds);
+    final orders = ordersMap.values.toList();
 
     final totalProducts = products.length;
     final activeProducts = products.where((p) => p.active).length;

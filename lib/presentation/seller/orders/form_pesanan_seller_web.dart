@@ -89,7 +89,7 @@ class _FormPesananSellerWebState
       final userResult = await databases.listDocuments(
         databaseId: AppwriteConfig.databaseId,
         collectionId: AppwriteConfig.usersCollectionId,
-        queries: [Query.equal('uid', account.$id)],
+        queries: [Query.equal('uid', account.$id), Query.limit(1)],
       );
       final name = account.name;
       if (userResult.documents.isNotEmpty) {

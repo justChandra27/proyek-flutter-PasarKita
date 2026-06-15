@@ -2,8 +2,6 @@ import 'package:appwrite/appwrite.dart';
 
 import '../appwrite/appwrite_config.dart';
 import '../appwrite/appwrite_service.dart';
-import '../../data/models/moderation_status.dart';
-import 'product_service_appwrite.dart';
 import 'withdrawal_service_appwrite.dart';
 
 class TopSeller {
@@ -61,7 +59,6 @@ class AdminAnalytics {
 
 class AdminAnalyticsService {
   final _db = AppwriteService.databases;
-  final _productService = ProductServiceAppwrite();
   final _withdrawalService = WithdrawalServiceAppwrite();
 
   Future<AdminAnalytics> getAnalytics() async {
@@ -71,7 +68,10 @@ class AdminAnalyticsService {
       _fetchOrderItems(),
       _fetchUserCounts(),
       _fetchSellerNames(),
-      _productService.getProductsByStatus(ModerationStatus.pending),
+      _fetchTotalOrderCount(),
+      _fetchCompletedOrderCount(),
+      _fetchPendingProductCount(),
+      _fetchStatusCounts(),
       _withdrawalService.getPendingWithdrawals(),
     ]);
 
@@ -80,21 +80,21 @@ class AdminAnalyticsService {
     final allItems = results[2] as List<Map<String, dynamic>>;
     final userCounts = results[3] as Map<String, int>;
     final sellerNameMap = results[4] as Map<String, String>;
-    final pendingProductsList = results[5] as List<dynamic>;
-    final pendingWithdrawalsList = results[6] as List<dynamic>;
+    final totalOrders = results[5] as int;
+    final completedOrders = results[6] as int;
+    final pendingProducts = results[7] as int;
+    final statusCounts = results[8] as Map<String, int>;
+    final pendingWithdrawalsList = results[9] as List<dynamic>;
 
-    final totalOrders = orders.length;
     final totalCustomers = userCounts['customer'] ?? 0;
     final totalSellers = userCounts['seller'] ?? 0;
 
     final completedOrderIds = <String>{};
-    final statusCounts = <String, int>{};
     int totalRevenue = 0;
     int totalPlatformRevenue = 0;
 
     for (final o in orders) {
       final status = (o['status'] as String?)?.toLowerCase() ?? 'pending';
-      statusCounts[status] = (statusCounts[status] ?? 0) + 1;
       if (status == 'completed') {
         completedOrderIds.add(o['\$id'] as String);
         totalRevenue += (o['totalAmount'] as num?)?.toInt() ?? 0;
@@ -103,16 +103,14 @@ class AdminAnalyticsService {
       }
     }
 
-    final pendingProducts = pendingProductsList.length;
     final pendingWithdrawals = pendingWithdrawalsList.length;
     final pendingWithdrawalAmount = pendingWithdrawalsList.fold<int>(
       0,
       (sum, item) => sum + ((item as dynamic).amount as int? ?? 0),
     );
 
-    final completedOrdersCount = completedOrderIds.length;
-    final averageOrderValue = completedOrdersCount > 0
-        ? totalRevenue ~/ completedOrdersCount
+    final averageOrderValue = completedOrders > 0
+        ? totalRevenue ~/ completedOrders
         : 0;
 
     final sellerRevenue = <String, int>{};
@@ -158,7 +156,7 @@ class AdminAnalyticsService {
       totalSellers: totalSellers,
       totalProducts: productCount,
       totalOrders: totalOrders,
-      completedOrders: completedOrdersCount,
+      completedOrders: completedOrders,
       totalRevenue: totalRevenue,
       totalPlatformRevenue: totalPlatformRevenue,
       pendingProducts: pendingProducts,
@@ -176,10 +174,19 @@ class AdminAnalyticsService {
     List<String>? baseQueries,
   }) async {
     const pageSize = 5000;
+    const maxPages = 100;
     final allDocs = <Map<String, dynamic>>[];
     String? cursorId;
+    var pageCount = 0;
 
     while (true) {
+      pageCount++;
+      if (pageCount > maxPages) {
+        // ignore: avoid_print
+        print('WARNING: _fetchAllDocs($collectionId) exceeded $maxPages pages');
+        break;
+      }
+
       final queries = <String>[];
       if (baseQueries != null) queries.addAll(baseQueries);
       queries.add(Query.orderAsc('\$id'));
@@ -255,5 +262,48 @@ class AdminAnalyticsService {
       }
     }
     return names;
+  }
+
+  Future<int> _fetchTotalOrderCount() async {
+    final result = await _db.listDocuments(
+      databaseId: AppwriteConfig.databaseId,
+      collectionId: AppwriteConfig.ordersCollectionId,
+      queries: [Query.limit(1)],
+    );
+    return result.total;
+  }
+
+  Future<int> _fetchCompletedOrderCount() async {
+    final result = await _db.listDocuments(
+      databaseId: AppwriteConfig.databaseId,
+      collectionId: AppwriteConfig.ordersCollectionId,
+      queries: [Query.equal('status', 'completed'), Query.limit(1)],
+    );
+    return result.total;
+  }
+
+  Future<int> _fetchPendingProductCount() async {
+    final result = await _db.listDocuments(
+      databaseId: AppwriteConfig.databaseId,
+      collectionId: AppwriteConfig.productsCollectionId,
+      queries: [Query.equal('moderationStatus', 'pending'), Query.limit(1)],
+    );
+    return result.total;
+  }
+
+  Future<Map<String, int>> _fetchStatusCounts() async {
+    final statuses = ['pending', 'processing', 'shipped', 'completed', 'cancelled'];
+    final results = await Future.wait(
+      statuses.map((s) => _db.listDocuments(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.ordersCollectionId,
+        queries: [Query.equal('status', s), Query.limit(1)],
+      )),
+    );
+    final map = <String, int>{};
+    for (var i = 0; i < statuses.length; i++) {
+      map[statuses[i]] = results[i].total;
+    }
+    return map;
   }
 }

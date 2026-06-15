@@ -320,30 +320,48 @@ class OrderServiceAppwrite {
     }).toList();
   }
 
+  Future<Map<String, OrderModel>> getOrdersByIds(
+    List<String> orderIds,
+  ) async {
+    final map = <String, OrderModel>{};
+    final unique = orderIds.toSet().toList();
+    const chunkSize = 100;
+    for (var i = 0; i < unique.length; i += chunkSize) {
+      final chunk = unique.sublist(i, (i + chunkSize).clamp(0, unique.length));
+      try {
+        final result = await databases.listDocuments(
+          databaseId: AppwriteConfig.databaseId,
+          collectionId: AppwriteConfig.ordersCollectionId,
+          queries: [
+            Query.equal('\$id', chunk),
+            Query.limit(chunkSize),
+          ],
+        );
+        for (final doc in result.documents) {
+          map[doc.$id] = OrderModel.fromMap(doc.$id, doc.data);
+        }
+      } catch (_) {}
+    }
+    return map;
+  }
+
   Future<List<Map<String, dynamic>>> getSellerOrdersWithDetails(
     String sellerId,
   ) async {
     final allItems = await getOrdersBySeller(sellerId);
     final orderIds = allItems.map((i) => i.orderId).toSet().toList();
+    final ordersMap = await getOrdersByIds(orderIds);
 
     final results = <Map<String, dynamic>>[];
     for (final oid in orderIds) {
-      try {
-        final doc = await databases.getDocument(
-          databaseId: AppwriteConfig.databaseId,
-          collectionId: AppwriteConfig.ordersCollectionId,
-          documentId: oid,
-        );
-        final order = OrderModel.fromMap(doc.$id, doc.data);
-        final sellerItems =
-            allItems.where((i) => i.orderId == oid).toList();
-        results.add({
-          'order': order,
-          'items': sellerItems,
-        });
-      } catch (_) {
-        // skip order if document not found or inaccessible
-      }
+      final order = ordersMap[oid];
+      if (order == null) continue;
+      final sellerItems =
+          allItems.where((i) => i.orderId == oid).toList();
+      results.add({
+        'order': order,
+        'items': sellerItems,
+      });
     }
 
     results.sort((a, b) => (b['order'] as OrderModel).createdAt
