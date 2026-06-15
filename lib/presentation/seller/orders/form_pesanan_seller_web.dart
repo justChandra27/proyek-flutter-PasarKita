@@ -141,22 +141,23 @@ class _FormPesananSellerWebState
   List<Map<String, dynamic>> get _filteredOrders {
     var result = _allOrders.where((entry) {
       final order = entry['order'] as OrderModel;
+      final items = entry['items'] as List<OrderItemModel>;
 
-      if (_activeTab != 'semua') {
-        if (order.status.toLowerCase() != _activeTab) return false;
+      if (_filterStatuses.isNotEmpty) {
+        if (!_filterStatuses.contains(order.status.toLowerCase())) return false;
+      } else {
+        if (_activeTab != 'semua') {
+          if (order.status.toLowerCase() != _activeTab) return false;
+        }
       }
 
       if (_searchQuery.isNotEmpty) {
         final q = _searchQuery.toLowerCase();
-        if (order.orderCode.toLowerCase().contains(q)) return true;
-        if (order.customerName.toLowerCase().contains(q)) return true;
-        final items = entry['items'] as List<OrderItemModel>;
-        if (items.any((i) => i.productName.toLowerCase().contains(q))) return true;
-        return false;
-      }
-
-      if (_filterStatuses.isNotEmpty) {
-        if (!_filterStatuses.contains(order.status.toLowerCase())) return false;
+        final matchesSearch =
+            order.orderCode.toLowerCase().contains(q) ||
+            order.customerName.toLowerCase().contains(q) ||
+            items.any((i) => i.productName.toLowerCase().contains(q));
+        if (!matchesSearch) return false;
       }
 
       if (_filterStartDate != null || _filterEndDate != null) {
