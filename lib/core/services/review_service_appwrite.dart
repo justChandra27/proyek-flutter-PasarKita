@@ -119,7 +119,7 @@ class ReviewServiceAppwrite {
     final result = await databases.listDocuments(
       databaseId: AppwriteConfig.databaseId,
       collectionId: AppwriteConfig.reviewsCollectionId,
-      queries: [Query.equal('productId', productIds), Query.limit(100)],
+      queries: [Query.equal('productId', productIds), Query.limit(5000)],
     );
 
     final grouped = <String, List<int>>{};

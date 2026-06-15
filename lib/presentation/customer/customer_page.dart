@@ -6,7 +6,8 @@ import 'customer_web_page.dart';
 import 'customer_mobile_page.dart';
 
 class CustomerPage extends StatelessWidget {
-  const CustomerPage({super.key});
+  final int initialIndex;
+  const CustomerPage({super.key, this.initialIndex = 0});
 
   @override
   Widget build(BuildContext context) {
@@ -15,9 +16,9 @@ class CustomerPage extends StatelessWidget {
         MediaQuery.of(context).size.width;
 
     if (width < 768) {
-      return const CustomerMobilePage();
+      return CustomerMobilePage(initialIndex: initialIndex);
     }
 
-    return const CustomerWebPage();
+    return CustomerWebPage(initialIndex: initialIndex);
   }
 }

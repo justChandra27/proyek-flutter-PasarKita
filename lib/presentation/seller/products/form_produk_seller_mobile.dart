@@ -49,10 +49,16 @@ class _FormProdukSellerMobileState extends State<FormProdukSellerMobile> {
                             ),
                           );
                         },
-                        child: CircleAvatar(
+                        child: const CircleAvatar(
                           radius: 18,
-                          backgroundColor: Colors.grey.shade300,
-                          child: const Icon(Icons.person),
+                          backgroundColor: Color(0xff2563EB),
+                          child: Text(
+                            "S",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ),
                     ],

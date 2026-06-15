@@ -21,7 +21,7 @@ class TransaksiController extends ChangeNotifier {
   // Pagination
   int currentPage = 1;
   int totalData = 0;
-  final int perPage = 10;
+  final int perPage = 5000;
   int get totalPages => (totalData / perPage).ceil();
 
   // Filter
@@ -82,7 +82,8 @@ class TransaksiController extends ChangeNotifier {
 
   // ─── FILTER STATUS ────────────────────────────────────────────────────────
   void filterStatus(String? status) {
-    statusFilter = status;
+    statusFilter =
+        (status == null || status.isEmpty) ? null : status;
     currentPage = 1;
     loadTransaksi();
   }

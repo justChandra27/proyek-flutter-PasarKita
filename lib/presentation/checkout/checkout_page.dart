@@ -8,9 +8,12 @@ import '../../core/constants/fee_config.dart';
 import '../../core/services/auth_service_appwrite.dart';
 import '../../core/services/order_service_appwrite.dart';
 import '../../core/services/product_service_appwrite.dart';
+import '../../data/models/cart_model.dart';
 
 class CheckoutPage extends StatefulWidget {
-  const CheckoutPage({super.key});
+  final CartModel? buyNowItem;
+
+  const CheckoutPage({super.key, this.buyNowItem});
 
   @override
   State<CheckoutPage> createState() => _CheckoutPageState();
@@ -18,9 +21,15 @@ class CheckoutPage extends StatefulWidget {
 
 class _CheckoutPageState extends State<CheckoutPage> {
   final _addressController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _orderService = OrderServiceAppwrite();
   bool _loading = false;
   String _selectedPayment = 'Transfer Bank';
+
+  String _profileShippingAddress = '';
+  String _profileShippingCity = '';
+  String _profileShippingProvince = '';
+  String _profileShippingPostalCode = '';
 
   final _paymentMethods = [
     {'label': 'Kartu Kredit', 'icon': Icons.credit_card},
@@ -29,8 +38,41 @@ class _CheckoutPageState extends State<CheckoutPage> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadProfile());
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final data = await AuthServiceAppwrite().getCurrentUserData();
+      if (!mounted) return;
+      if (data != null) {
+        final address = data['shippingAddress'] ?? '';
+        final city = data['shippingCity'] ?? '';
+        final province = data['shippingProvince'] ?? '';
+        final postal = data['shippingPostalCode'] ?? '';
+        final phone = data['phone'] ?? '';
+
+        final parts = [address, city, province, postal].where((p) => p.isNotEmpty);
+        final combined = parts.join(', ');
+
+        setState(() {
+          _addressController.text = combined.isNotEmpty ? combined : '';
+          _phoneController.text = phone;
+          _profileShippingAddress = address;
+          _profileShippingCity = city;
+          _profileShippingProvince = province;
+          _profileShippingPostalCode = postal;
+        });
+      }
+    } catch (_) {}
+  }
+
+  @override
   void dispose() {
     _addressController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -57,14 +99,25 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
     try {
       final account = await AuthServiceAppwrite().getCurrentUser();
-      final cart = context.read<CartProvider>();
+      final isBuyNow = widget.buyNowItem != null;
 
-      if (cart.items.isEmpty) {
-        throw Exception('Keranjang kosong');
+      List<CartModel> checkoutItems;
+      int totalPrice;
+
+      if (isBuyNow) {
+        checkoutItems = [widget.buyNowItem!];
+        totalPrice = widget.buyNowItem!.price;
+      } else {
+        final cart = context.read<CartProvider>();
+        if (cart.items.isEmpty) {
+          throw Exception('Keranjang kosong');
+        }
+        checkoutItems = cart.items;
+        totalPrice = cart.totalPrice;
       }
 
       final productService = ProductServiceAppwrite();
-      for (final cartItem in cart.items) {
+      for (final cartItem in checkoutItems) {
         final product = await productService.getProductById(cartItem.productId);
         if (product == null) {
           if (!mounted) return;
@@ -107,7 +160,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         }
       }
 
-      final items = cart.items.map((item) {
+      final items = checkoutItems.map((item) {
         final subtotal = item.price * item.quantity;
         return {
           'productId': item.productId,
@@ -129,9 +182,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
         address: address,
         paymentMethod: _selectedPayment,
         items: items,
+        phone: _phoneController.text.trim(),
+        shippingAddress: _profileShippingAddress,
+        shippingCity: _profileShippingCity,
+        shippingProvince: _profileShippingProvince,
+        shippingPostalCode: _profileShippingPostalCode,
       );
 
-      final orderItems = cart.items.map((item) {
+      final orderItems = checkoutItems.map((item) {
         return {
           'productId': item.productId,
           'productName': item.name,
@@ -144,6 +202,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
         };
       }).toList();
 
+      if (!isBuyNow) {
+        context.read<CartProvider>().clear();
+      }
+
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
@@ -153,7 +215,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
             customerName: account.name,
             address: address,
             paymentMethod: _selectedPayment,
-            totalAmount: cart.totalPrice,
+            totalAmount: totalPrice,
             items: orderItems,
           ),
         ),
@@ -191,7 +253,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   @override
   Widget build(BuildContext context) {
-    final cart = context.watch<CartProvider>();
+    final isBuyNow = widget.buyNowItem != null;
+    final cart = isBuyNow ? null : context.watch<CartProvider>();
+    final checkoutItems = isBuyNow ? [widget.buyNowItem!] : (cart?.items ?? []);
+    final totalPrice = isBuyNow ? widget.buyNowItem!.price : (cart?.totalPrice ?? 0);
+
     final screenWidth = MediaQuery.of(context).size.width;
     final isWide = screenWidth > 768;
 
@@ -214,16 +280,25 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ? Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(flex: 3, child: _leftColumn(cart)),
+                      Expanded(flex: 3, child: _leftColumn()),
                       const SizedBox(width: 24),
-                      Expanded(flex: 2, child: _rightColumn(cart)),
+                      Expanded(
+                        flex: 2,
+                        child: _rightColumn(
+                          items: checkoutItems,
+                          totalPrice: totalPrice,
+                        ),
+                      ),
                     ],
                   )
                 : Column(
                     children: [
-                      _leftColumn(cart),
+                      _leftColumn(),
                       const SizedBox(height: 24),
-                      _rightColumn(cart),
+                      _rightColumn(
+                        items: checkoutItems,
+                        totalPrice: totalPrice,
+                      ),
                     ],
                   ),
           ),
@@ -232,7 +307,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
-  Widget _leftColumn(CartProvider cart) {
+  Widget _leftColumn() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -267,6 +342,47 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 maxLines: 3,
                 decoration: InputDecoration(
                   hintText: 'Masukkan alamat lengkap pengiriman',
+                  filled: true,
+                  fillColor: const Color(0xffF1F5F9),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.phone_outlined, size: 20),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Nomor Telepon',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                  hintText: 'Masukkan nomor telepon',
                   filled: true,
                   fillColor: const Color(0xffF1F5F9),
                   border: OutlineInputBorder(
@@ -339,8 +455,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
-  Widget _rightColumn(CartProvider cart) {
-    final total = cart.totalPrice;
+  Widget _rightColumn({
+    required List<CartModel> items,
+    required int totalPrice,
+  }) {
+    final total = totalPrice;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -353,13 +472,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
         children: [
           _sectionTitle('Ringkasan Belanja'),
           const SizedBox(height: 16),
-          if (cart.items.isEmpty)
+          if (items.isEmpty)
             const Padding(
               padding: EdgeInsets.all(24),
               child: Center(child: Text('Tidak ada item')),
             )
           else
-            ...cart.items.map((item) {
+            ...items.map((item) {
               final subtotal = item.price * item.quantity;
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),

@@ -9,6 +9,8 @@ import '../../../core/services/auth_service_appwrite.dart';
 import '../../../core/services/order_service_appwrite.dart';
 import '../../../data/models/order_model.dart';
 import '../../../data/models/order_item_model.dart';
+import '../../../core/appwrite/appwrite_config.dart';
+import '../../../core/appwrite/appwrite_service.dart';
 
 class FormPesananSellerWeb extends StatefulWidget {
   const FormPesananSellerWeb({super.key});
@@ -22,6 +24,8 @@ class _FormPesananSellerWebState
     extends State<FormPesananSellerWeb> {
   final OrderServiceAppwrite _orderService = OrderServiceAppwrite();
   String? _sellerId;
+  String _sellerName = 'Seller';
+  String _initial = 'S';
 
   List<Map<String, dynamic>> _allOrders = [];
   bool _isLoading = true;
@@ -78,8 +82,27 @@ class _FormPesananSellerWebState
   Future<void> _loadOrders() async {
     setState(() { _isLoading = true; _error = null; });
     try {
-      final account = await AuthServiceAppwrite().getCurrentUser();
+      final auth = AuthServiceAppwrite();
+      final account = await auth.getCurrentUser();
       _sellerId = account.$id;
+      final databases = AppwriteService.databases;
+      final userResult = await databases.listDocuments(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.usersCollectionId,
+        queries: [Query.equal('uid', account.$id)],
+      );
+      final name = account.name;
+      if (userResult.documents.isNotEmpty) {
+        final data = userResult.documents.first.data;
+        final displayName = (data['storeName'] as String?)?.isNotEmpty == true
+            ? data['storeName'] as String
+            : name;
+        _sellerName = displayName;
+        _initial = name.isNotEmpty ? name[0].toUpperCase() : 'S';
+      } else {
+        _sellerName = name;
+        _initial = name.isNotEmpty ? name[0].toUpperCase() : 'S';
+      }
       final orders = await _orderService.getSellerOrdersWithDetails(account.$id);
       if (mounted) setState(() { _allOrders = orders; _currentPage = 1; _isLoading = false; });
     } catch (e) {
@@ -262,17 +285,17 @@ class _FormPesananSellerWebState
                   ),
                 ),
                 const SizedBox(width: 20),
-                const Column(
+                Column(
                   crossAxisAlignment:
                       CrossAxisAlignment.end,
                   children: [
                     Text(
-                      "Andi Setiawan",
-                      style: TextStyle(
+                      _sellerName,
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Text(
+                    const Text(
                       "Verified Merchant",
                       style: TextStyle(
                         color: Colors.black54,
@@ -282,9 +305,16 @@ class _FormPesananSellerWebState
                   ],
                 ),
                 const SizedBox(width: 10),
-                const CircleAvatar(
+                CircleAvatar(
                   radius: 20,
-                  child: Icon(Icons.person),
+                  backgroundColor: const Color(0xff2563EB),
+                  child: Text(
+                    _initial,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             ),

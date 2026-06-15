@@ -18,8 +18,17 @@ class _FormKategoriWebState extends State<FormKategoriWeb> {
   final Databases databases = AppwriteService.databases;
 
   List<CategoryModel> categories = [];
+  List<CategoryModel> filteredCategories = [];
+
+  final TextEditingController searchController = TextEditingController();
 
   bool isLoading = true;
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -143,6 +152,7 @@ class _FormKategoriWebState extends State<FormKategoriWeb> {
           .toList();
 
       setState(() {
+        _applyFilter();
         isLoading = false;
       });
     } catch (e) {
@@ -152,6 +162,21 @@ class _FormKategoriWebState extends State<FormKategoriWeb> {
         isLoading = false;
       });
     }
+  }
+
+  void _applyFilter() {
+    final keyword = searchController.text.toLowerCase();
+    filteredCategories = keyword.isEmpty
+        ? List.from(categories)
+        : categories
+            .where((c) => c.name.toLowerCase().contains(keyword))
+            .toList();
+  }
+
+  void _filterCategories() {
+    setState(() {
+      _applyFilter();
+    });
   }
 
   @override
@@ -175,6 +200,8 @@ class _FormKategoriWebState extends State<FormKategoriWeb> {
                 SizedBox(
                   width: 250,
                   child: TextField(
+                    controller: searchController,
+                    onChanged: (_) => _filterCategories(),
                     decoration: InputDecoration(
                       hintText: "Cari kategori...",
                       prefixIcon: const Icon(Icons.search),
@@ -313,7 +340,7 @@ class _FormKategoriWebState extends State<FormKategoriWeb> {
               child: isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : GridView.builder(
-                      itemCount: categories.length + 1,
+                      itemCount: filteredCategories.length,
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 4,
@@ -322,17 +349,13 @@ class _FormKategoriWebState extends State<FormKategoriWeb> {
                             childAspectRatio: 0.78,
                           ),
                       itemBuilder: (context, index) {
-                        // Card tambah kategori di posisi terakhir
-                        if (index == categories.length) {
-                          return const AddCategoryCard();
-                        }
-
-                        final category = categories[index];
+                        final category = filteredCategories[index];
 
                         return CategoryCard(
                           title: category.name,
                           productCount: "${category.productCount} Produk",
                           description: category.description,
+                          iconData: _categoryIcon(category.name),
                           onDelete: () {
                             confirmDeleteCategory(category);
                           },
@@ -344,6 +367,40 @@ class _FormKategoriWebState extends State<FormKategoriWeb> {
         ),
       ),
     );
+  }
+
+  IconData _categoryIcon(String name) {
+    switch (name.toLowerCase()) {
+      case 'fashion':
+        return Icons.checkroom;
+      case 'elektronik':
+        return Icons.devices;
+      case 'kuliner':
+      case 'makanan':
+      case 'minuman':
+        return Icons.restaurant;
+      case 'kecantikan':
+        return Icons.face;
+      case 'olahraga':
+        return Icons.sports_soccer;
+      case 'pertanian':
+        return Icons.agriculture;
+      case 'bayi':
+      case 'anak':
+      case 'bayi & anak':
+        return Icons.child_care;
+      case 'otomotif':
+        return Icons.directions_car;
+      case 'kesehatan':
+        return Icons.medical_services;
+      case 'buku':
+      case 'pendidikan':
+        return Icons.menu_book;
+      case 'rumah tangga':
+        return Icons.chair;
+      default:
+        return Icons.category;
+    }
   }
 
   Widget _statCard({
@@ -403,6 +460,7 @@ class CategoryCard extends StatelessWidget {
   final String title;
   final String productCount;
   final String description;
+  final IconData iconData;
   final VoidCallback? onDelete;
 
   const CategoryCard({
@@ -410,6 +468,7 @@ class CategoryCard extends StatelessWidget {
     required this.title,
     required this.productCount,
     required this.description,
+    this.iconData = Icons.category,
     this.onDelete,
   });
 
@@ -428,14 +487,16 @@ class CategoryCard extends StatelessWidget {
               Container(
                 height: 120,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: const Color(0xffF1F5F9),
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(18),
                     topRight: Radius.circular(18),
                   ),
                 ),
+                child: Center(
+                  child: Icon(iconData, size: 48, color: const Color(0xff94A3B8)),
+                ),
               ),
-
               Positioned(
                 left: 12,
                 bottom: 12,
@@ -526,36 +587,3 @@ class CategoryCard extends StatelessWidget {
   }
 }
 
-class AddCategoryCard extends StatelessWidget {
-  const AddCategoryCard({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.blueGrey.shade200, width: 1.5),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: const Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircleAvatar(
-            radius: 30,
-            backgroundColor: Color(0xffF1F5F9),
-            child: Icon(Icons.add, size: 30),
-          ),
-          SizedBox(height: 16),
-          Text(
-            "Tambah Kategori",
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 6),
-          Text(
-            "Definisikan segmen baru",
-            style: TextStyle(color: Colors.black54),
-          ),
-        ],
-      ),
-    );
-  }
-}

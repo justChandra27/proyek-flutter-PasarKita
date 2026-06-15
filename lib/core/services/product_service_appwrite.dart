@@ -32,15 +32,8 @@ class ProductServiceAppwrite {
   // =========================
 
   Future<List<ProductModel>> getProductsByStatus(ModerationStatus status) async {
-    final result = await databases.listDocuments(
-      databaseId: AppwriteConfig.databaseId,
-      collectionId: AppwriteConfig.productsCollectionId,
-      queries: [Query.equal('moderationStatus', status.toJson()), Query.limit(100)],
-    );
-
-    return result.documents.map((doc) {
-      return ProductModel.fromMap(doc.$id, doc.data);
-    }).toList();
+    final all = await getAllProductsForAdmin();
+    return all.where((p) => p.moderationStatus == status.toJson()).toList();
   }
 
   // =========================
@@ -114,7 +107,7 @@ class ProductServiceAppwrite {
     final result = await databases.listDocuments(
       databaseId: AppwriteConfig.databaseId,
       collectionId: AppwriteConfig.productsCollectionId,
-      queries: [Query.equal('sellerId', sellerId), Query.limit(100)],
+      queries: [Query.equal('sellerId', sellerId), Query.limit(5000)],
     );
 
     return result.documents.map((doc) {

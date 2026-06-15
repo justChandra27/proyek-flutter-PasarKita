@@ -8,6 +8,7 @@ import 'dashboard/dashboard_seller_web.dart';
 import 'products/form_produk_seller_web.dart';
 import 'orders/form_pesanan_seller_web.dart';
 import 'categories/form_kategori_seller_web.dart';
+import 'profile/form_profil_seller_web.dart';
 
 import '../auth/login_page.dart';
 import '../../core/services/auth_service_appwrite.dart';
@@ -27,6 +28,7 @@ class _SellerWebPageState extends State<SellerWebPage> {
     const FormProdukSellerWeb(),
     const FormPesananSellerWeb(),
     const FormKategoriSellerWeb(),
+    const FormProfilSellerWeb(),
   ];
 
   @override

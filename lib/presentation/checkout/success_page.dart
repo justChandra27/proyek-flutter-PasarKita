@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
-import '../../providers/cart_provider.dart';
 import '../../core/appwrite/appwrite_config.dart';
 import '../../core/appwrite/appwrite_service.dart';
 import '../../core/services/order_service_appwrite.dart';
 import '../../data/models/order_model.dart';
 import '../../data/models/order_item_model.dart';
+import '../customer/customer_page.dart';
 
 class SuccessPage extends StatefulWidget {
   final String orderId;
@@ -114,7 +113,6 @@ class _SuccessPageState extends State<SuccessPage> {
                     const SizedBox(height: 24),
                     ElevatedButton(
                       onPressed: () {
-                        context.read<CartProvider>().clear();
                         Navigator.popUntil(context, (route) => route.isFirst);
                       },
                       child: const Text('Kembali ke Toko'),
@@ -305,7 +303,6 @@ class _SuccessPageState extends State<SuccessPage> {
                           ),
                         ),
                         onPressed: () {
-                          context.read<CartProvider>().clear();
                           Navigator.popUntil(
                             context,
                             (route) => route.isFirst,
@@ -331,10 +328,13 @@ class _SuccessPageState extends State<SuccessPage> {
                           ),
                         ),
                         onPressed: () {
-                          context.read<CartProvider>().clear();
-                          Navigator.popUntil(
+                          Navigator.pushAndRemoveUntil(
                             context,
-                            (route) => route.isFirst,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  const CustomerPage(initialIndex: 2),
+                            ),
+                            (route) => false,
                           );
                         },
                         child: const Text(

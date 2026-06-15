@@ -6,6 +6,7 @@ import 'dashboard/dashboard_seller_mobile.dart';
 import 'products/form_produk_seller_mobile.dart';
 import 'orders/form_pesanan_seller_mobile.dart';
 import 'categories/form_kategori_seller_mobile.dart';
+import 'profile/profile_seller_mobile.dart';
 
 import 'widgets/bottom_nav_seller_mobile.dart';
 
@@ -26,6 +27,7 @@ class _SellerMobilePageState
     FormProdukSellerMobile(),
     FormPesananSellerMobile(),
     FormKategoriSellerMobile(),
+    SellerEditProfileMobile(),
   ];
 
   @override

@@ -7,6 +7,7 @@ import '../../../data/models/product_model.dart';
 import '../../../data/models/review_model.dart';
 import '../../../data/models/cart_model.dart';
 import '../../../providers/cart_provider.dart';
+import '../../checkout/checkout_page.dart';
 import '../widgets/product_image_gallery.dart';
 import '../widgets/product_detail_info.dart';
 import '../widgets/product_review_list.dart';
@@ -113,6 +114,38 @@ class _DetailProdukCustomerWebState extends State<DetailProdukCustomerWeb> {
         ));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('${_product!.name} ditambahkan ke keranjang')),
+    );
+  }
+
+  void _onBuyNow() {
+    if (_product == null || _product!.stock <= 0) return;
+    if (_product!.colors.isNotEmpty && _selectedColor == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pilih warna terlebih dahulu')),
+      );
+      return;
+    }
+    if (_product!.sizes.isNotEmpty && _selectedSize == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pilih ukuran terlebih dahulu')),
+      );
+      return;
+    }
+    final item = CartModel(
+      productId: _product!.id,
+      sellerId: _product!.sellerId,
+      name: _product!.name,
+      price: _product!.price.toInt(),
+      imageUrl: _product!.imageUrl,
+      stock: _product!.stock,
+      selectedColor: _selectedColor ?? '',
+      selectedSize: _selectedSize ?? '',
+    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CheckoutPage(buyNowItem: item),
+      ),
     );
   }
 
@@ -282,7 +315,7 @@ class _DetailProdukCustomerWebState extends State<DetailProdukCustomerWeb> {
                             child: SizedBox(
                               height: 50,
                               child: OutlinedButton.icon(
-                                onPressed: null,
+                                onPressed: _onBuyNow,
                                 icon: const Icon(Icons.bolt),
                                 label: const Text('Beli Langsung'),
                                 style: OutlinedButton.styleFrom(

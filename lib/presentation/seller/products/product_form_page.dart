@@ -302,7 +302,9 @@ class _ProductFormPageState extends State<ProductFormPage> {
 
     final status = ModerationStatus.fromJson(product.moderationStatus);
     if (status == ModerationStatus.approved ||
-        status == ModerationStatus.pending) return null;
+        status == ModerationStatus.pending) {
+      return null;
+    }
     if (product.moderationNote.isEmpty) return null;
 
     final isRejected = status == ModerationStatus.rejected;

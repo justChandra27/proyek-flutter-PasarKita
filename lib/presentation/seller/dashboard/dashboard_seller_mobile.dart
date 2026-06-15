@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:appwrite/appwrite.dart';
 
 import '../../../core/services/auth_service_appwrite.dart';
 import '../../../core/services/balance_service_appwrite.dart';
 import '../../../core/services/seller_analytics_service.dart';
 import '../../../data/models/seller_balance_model.dart';
+import '../../../core/appwrite/appwrite_config.dart';
+import '../../../core/appwrite/appwrite_service.dart';
 import '../profile/profile_seller_mobile.dart';
 import '../withdrawal/withdrawal_page.dart';
 
@@ -19,6 +22,8 @@ class _MobileSellerDashboardState extends State<MobileSellerDashboard> {
   final BalanceServiceAppwrite _balanceService = BalanceServiceAppwrite();
   late Future<SellerAnalytics> _analyticsFuture;
   SellerBalanceModel? _balance;
+  String _sellerName = 'Seller';
+  String _initial = 'S';
 
   @override
   void initState() {
@@ -27,7 +32,34 @@ class _MobileSellerDashboardState extends State<MobileSellerDashboard> {
   }
 
   Future<SellerAnalytics> _load() async {
-    final account = await AuthServiceAppwrite().getCurrentUser();
+    final auth = AuthServiceAppwrite();
+    final account = await auth.getCurrentUser();
+    final databases = AppwriteService.databases;
+    final result = await databases.listDocuments(
+      databaseId: AppwriteConfig.databaseId,
+      collectionId: AppwriteConfig.usersCollectionId,
+      queries: [Query.equal('uid', account.$id)],
+    );
+    final name = account.name;
+    if (result.documents.isNotEmpty) {
+      final data = result.documents.first.data;
+      final displayName = (data['storeName'] as String?)?.isNotEmpty == true
+          ? data['storeName'] as String
+          : name;
+      if (mounted) {
+        setState(() {
+          _sellerName = displayName;
+          _initial = name.isNotEmpty ? name[0].toUpperCase() : 'S';
+        });
+      }
+    } else {
+      if (mounted) {
+        setState(() {
+          _sellerName = name;
+          _initial = name.isNotEmpty ? name[0].toUpperCase() : 'S';
+        });
+      }
+    }
     final analytics = await _analytics.getAnalytics(account.$id);
     final bal = await _balanceService.getBalance(account.$id);
     if (mounted) setState(() => _balance = bal);
@@ -134,19 +166,19 @@ class _MobileSellerDashboardState extends State<MobileSellerDashboard> {
           // HEADER
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Halo, Andi 👋",
-                      style: TextStyle(
+                      "Halo, $_sellerName 👋",
+                      style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(height: 4),
-                    Text(
+                    const SizedBox(height: 4),
+                    const Text(
                       "Selamat datang kembali",
                       style: TextStyle(color: Colors.grey),
                     ),
@@ -168,9 +200,16 @@ class _MobileSellerDashboardState extends State<MobileSellerDashboard> {
                       ),
                     );
                   },
-                  child: const CircleAvatar(
+                  child: CircleAvatar(
                     radius: 24,
-                    child: Icon(Icons.person),
+                    backgroundColor: const Color(0xff2563EB),
+                    child: Text(
+                      _initial,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ),

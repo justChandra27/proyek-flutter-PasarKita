@@ -42,6 +42,11 @@ class AuthServiceAppwrite {
           'role': role,
           'status': 'pending',
           'active': true,
+          'phone': '',
+          'shippingAddress': '',
+          'shippingCity': '',
+          'shippingProvince': '',
+          'shippingPostalCode': '',
         },
       );
     } on AppwriteException catch (e) {
@@ -130,6 +135,33 @@ class AuthServiceAppwrite {
       return result.documents.first.data;
     } catch (_) {
       return null;
+    }
+  }
+
+  // =========================
+  // UPDATE USER DATA
+  // =========================
+
+  Future<void> updateUserData(Map<String, dynamic> data) async {
+    try {
+      final user = await account.get();
+      final result = await databases.listDocuments(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.usersCollectionId,
+        queries: [Query.equal('uid', user.$id)],
+      );
+      if (result.documents.isEmpty) return;
+      final docId = result.documents.first.$id;
+      await databases.updateDocument(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.usersCollectionId,
+        documentId: docId,
+        data: data,
+      );
+    } on AppwriteException catch (e) {
+      throw Exception(e.message ?? 'Update profil gagal');
+    } catch (e) {
+      throw Exception(e.toString());
     }
   }
 

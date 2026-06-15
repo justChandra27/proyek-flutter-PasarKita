@@ -23,7 +23,6 @@ class StockLockService {
           'productId': productId,
           'sessionId': sessionId,
           'expiresAt': expiresAt.toIso8601String(),
-          'createdAt': now.toIso8601String(),
         },
       );
     } on AppwriteException catch (e) {
@@ -62,7 +61,6 @@ class StockLockService {
                 'productId': productId,
                 'sessionId': sessionId,
                 'expiresAt': expiresAt.toIso8601String(),
-                'createdAt': now.toIso8601String(),
               },
             );
           } on AppwriteException catch (e) {

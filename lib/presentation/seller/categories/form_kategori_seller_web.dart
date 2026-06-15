@@ -1,12 +1,125 @@
 //lib/presentation/seller/categories/form_kategori_seller_web.dart
 
 import 'package:flutter/material.dart';
+import 'package:appwrite/appwrite.dart';
 
-class FormKategoriSellerWeb extends StatelessWidget {
+import '../../../core/services/category_service_appwrite.dart';
+import '../../../data/models/category_model.dart';
+import '../../../core/services/auth_service_appwrite.dart';
+import '../../../core/appwrite/appwrite_config.dart';
+import '../../../core/appwrite/appwrite_service.dart';
+
+class FormKategoriSellerWeb extends StatefulWidget {
   const FormKategoriSellerWeb({super.key});
 
   @override
+  State<FormKategoriSellerWeb> createState() => _FormKategoriSellerWebState();
+}
+
+class _FormKategoriSellerWebState extends State<FormKategoriSellerWeb> {
+  final _categoryService = CategoryServiceAppwrite();
+
+  List<CategoryModel> _categories = [];
+  bool _loading = true;
+  String _sellerName = 'Seller';
+  String _initial = 'S';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+    _loadCategories();
+  }
+
+  Future<void> _loadUser() async {
+    try {
+      final auth = AuthServiceAppwrite();
+      final account = await auth.getCurrentUser();
+      final databases = AppwriteService.databases;
+      final result = await databases.listDocuments(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.usersCollectionId,
+        queries: [Query.equal('uid', account.$id)],
+      );
+      final name = account.name;
+      if (result.documents.isNotEmpty) {
+        final data = result.documents.first.data;
+        final displayName = (data['storeName'] as String?)?.isNotEmpty == true
+            ? data['storeName'] as String
+            : name;
+        if (mounted) {
+          setState(() {
+            _sellerName = displayName;
+            _initial = name.isNotEmpty ? name[0].toUpperCase() : 'S';
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _sellerName = name;
+            _initial = name.isNotEmpty ? name[0].toUpperCase() : 'S';
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final cats = await _categoryService.getAllCategories();
+      if (!mounted) return;
+      setState(() {
+        _categories = cats;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
+  }
+
+  IconData _iconForCategory(String name) {
+    final n = name.toLowerCase();
+    if (n.contains('pakaian') || n.contains('fashion') || n.contains('baju')) {
+      return Icons.checkroom;
+    }
+    if (n.contains('elektronik') || n.contains('gadget') || n.contains('komputer')) {
+      return Icons.computer;
+    }
+    if (n.contains('rumah') || n.contains('tangga') || n.contains('dapur') || n.contains('perabot')) {
+      return Icons.home;
+    }
+    if (n.contains('kecantikan') || n.contains('makeup') || n.contains('skincare') || n.contains('beauty')) {
+      return Icons.face;
+    }
+    if (n.contains('kuliner') || n.contains('makanan') || n.contains('minuman')) {
+      return Icons.restaurant;
+    }
+    if (n.contains('olahraga') || n.contains('sport')) {
+      return Icons.sports_basketball;
+    }
+    if (n.contains('aksesoris') || n.contains('accessories')) {
+      return Icons.work;
+    }
+    return Icons.category;
+  }
+
+  Color _colorForCategory(String name) {
+    final n = name.toLowerCase();
+    if (n.contains('pakaian') || n.contains('fashion')) return Colors.blue;
+    if (n.contains('elektronik') || n.contains('gadget')) return Colors.brown;
+    if (n.contains('rumah') || n.contains('dapur') || n.contains('perabot')) return Colors.green;
+    if (n.contains('kecantikan') || n.contains('beauty')) return Colors.red;
+    if (n.contains('kuliner') || n.contains('makanan') || n.contains('minuman')) return Colors.orange;
+    if (n.contains('olahraga') || n.contains('sport')) return Colors.teal;
+    return Colors.blueGrey;
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final activeCount = _categories.where((c) => c.status == 'active').length;
+    final inactiveCount = _categories.where((c) => c.status != 'active').length;
+
     return Scaffold(
       backgroundColor: const Color(0xffF5F6FA),
       body: Padding(
@@ -36,16 +149,16 @@ class FormKategoriSellerWeb extends StatelessWidget {
 
                 const SizedBox(width: 20),
 
-                const Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      "Andi Setiawan",
-                      style: TextStyle(
+                      _sellerName,
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Text(
+                    const Text(
                       "Verified Merchant",
                       style: TextStyle(
                         color: Colors.black54,
@@ -57,9 +170,16 @@ class FormKategoriSellerWeb extends StatelessWidget {
 
                 const SizedBox(width: 10),
 
-                const CircleAvatar(
+                CircleAvatar(
                   radius: 20,
-                  child: Icon(Icons.person),
+                  backgroundColor: const Color(0xff2563EB),
+                  child: Text(
+                    _initial,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -91,33 +211,45 @@ class FormKategoriSellerWeb extends StatelessWidget {
                   ),
                 ),
 
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xff1D4ED8),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 22,
-                      vertical: 18,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () {},
-                  icon: const Icon(
-                    Icons.add,
-                    color: Colors.white,
-                  ),
-                  label: const Text(
-                    "Tambah Kategori Baru",
-                    style: TextStyle(
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
+
               ],
             ),
 
             const SizedBox(height: 24),
+
+            // STAT CARDS
+            if (!_loading)
+              Row(
+                children: [
+                  Expanded(
+                    child: _statCard(
+                      Icons.grid_view_rounded,
+                      "Total Kategori",
+                      _categories.length.toString(),
+                      Colors.blue,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _statCard(
+                      Icons.check_circle_outline,
+                      "Aktif",
+                      activeCount.toString(),
+                      Colors.green,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _statCard(
+                      Icons.cancel_outlined,
+                      "Nonaktif",
+                      inactiveCount.toString(),
+                      Colors.red,
+                    ),
+                  ),
+                ],
+              ),
+            if (!_loading) const SizedBox(height: 24),
 
             Expanded(
               child: Row(
@@ -125,80 +257,40 @@ class FormKategoriSellerWeb extends StatelessWidget {
                 children: [
                   Expanded(
                     flex: 4,
-                    child: Column(
-                      children: [
-                        Expanded(
-                          child: GridView.count(
-                            crossAxisCount: 3,
-                            crossAxisSpacing: 20,
-                            mainAxisSpacing: 20,
-                            childAspectRatio: 1.2,
-                            children: [
-                              _categoryCard(
-                                icon: Icons.checkroom,
-                                iconColor: Colors.blue,
-                                title: "Pakaian",
-                                description:
-                                    "Atasan, bawahan, outerwear, dan pakaian tradisional.",
-                                totalProduct: "1,240",
-                                status: "Aktif",
-                                statusColor: Colors.green,
+                    child: _loading
+                        ? const Center(child: CircularProgressIndicator())
+                        : _categories.isEmpty
+                            ? const Center(
+                                child: Text(
+                                  "Belum ada kategori",
+                                  style: TextStyle(color: Colors.black54),
+                                ),
+                              )
+                            : Column(
+                                children: [
+                                  Expanded(
+                                    child: GridView.count(
+                                      crossAxisCount: 3,
+                                      crossAxisSpacing: 20,
+                                      mainAxisSpacing: 20,
+                                      childAspectRatio: 1.2,
+                                      children: [
+                                        ..._categories.map(
+                                          (cat) => _categoryCard(
+                                            icon: _iconForCategory(cat.name),
+                                            iconColor: _colorForCategory(cat.name),
+                                            title: cat.name,
+                                            description: cat.description,
+                                            totalProduct: '${cat.productCount}',
+                                            status: cat.status == 'active' ? 'Aktif' : 'Nonaktif',
+                                            statusColor: cat.status == 'active' ? Colors.green : Colors.red,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-
-                              _categoryCard(
-                                icon: Icons.computer,
-                                iconColor: Colors.brown,
-                                title: "Elektronik",
-                                description:
-                                    "Gadget, aksesoris komputer, dan peralatan rumah elektronik.",
-                                totalProduct: "856",
-                                status: "Aktif",
-                                statusColor: Colors.green,
-                              ),
-
-                              _categoryCard(
-                                icon: Icons.home,
-                                iconColor: Colors.green,
-                                title: "Rumah Tangga",
-                                description:
-                                    "Perabotan, dekorasi, dan perlengkapan dapur.",
-                                totalProduct: "532",
-                                status: "Aktif",
-                                statusColor: Colors.green,
-                              ),
-
-                              _categoryCard(
-                                icon: Icons.face,
-                                iconColor: Colors.red,
-                                title: "Kecantikan",
-                                description:
-                                    "Skincare, makeup, dan perawatan rambut.",
-                                totalProduct: "312",
-                                status: "Draft",
-                                statusColor: Colors.blueGrey,
-                              ),
-
-                              _categoryCard(
-                                icon: Icons.restaurant,
-                                iconColor: Colors.orange,
-                                title: "Kuliner",
-                                description:
-                                    "Camilan khas, bumbu dapur, dan minuman segar.",
-                                totalProduct: "98",
-                                status: "Aktif",
-                                statusColor: Colors.green,
-                              ),
-
-                              _addCategoryCard(),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        _performanceCard(),
-                      ],
-                    ),
                   ),
 
                   const SizedBox(width: 20),
@@ -212,6 +304,46 @@ class FormKategoriSellerWeb extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _statCard(IconData icon, String title, String value, Color color) {
+    return Container(
+      height: 90,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 22,
+            backgroundColor: color.withValues(alpha: .15),
+            child: Icon(icon, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontSize: 12, color: Colors.black54),
+                ),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -238,27 +370,9 @@ class FormKategoriSellerWeb extends StatelessWidget {
             children: [
               CircleAvatar(
                 backgroundColor: iconColor.withValues(alpha: .15),
-                child: Icon(
-                  icon,
-                  color: iconColor,
-                ),
+                child: Icon(icon, color: iconColor),
               ),
 
-              const Spacer(),
-
-              const Icon(
-                Icons.edit_outlined,
-                size: 18,
-                color: Colors.black54,
-              ),
-
-              const SizedBox(width: 10),
-
-              const Icon(
-                Icons.delete_outline,
-                size: 18,
-                color: Colors.red,
-              ),
             ],
           ),
 
@@ -322,136 +436,6 @@ class FormKategoriSellerWeb extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _addCategoryCard() {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: Colors.blueGrey.shade200,
-          style: BorderStyle.solid,
-        ),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: const Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircleAvatar(
-            radius: 28,
-            backgroundColor: Color(0xffDBEAFE),
-            child: Icon(
-              Icons.add,
-              size: 30,
-              color: Color(0xff1D4ED8),
-            ),
-          ),
-          SizedBox(height: 16),
-          Text(
-            "Kategori Baru",
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(height: 6),
-          Text(
-            "Mulai kelompokkan produk baru Anda",
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _performanceCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "Performa Kategori",
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _performanceItem(
-                  "Kategori Terpopuler",
-                  "Pakaian",
-                  Colors.blue,
-                ),
-              ),
-
-              Expanded(
-                child: _performanceItem(
-                  "Pertumbuhan Tertinggi",
-                  "Elektronik",
-                  Colors.green,
-                ),
-              ),
-
-              Expanded(
-                child: _performanceItem(
-                  "Stok Menipis",
-                  "Kuliner",
-                  Colors.red,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _performanceItem(
-    String title,
-    String value,
-    Color color,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            color: Colors.black54,
-            fontSize: 12,
-          ),
-        ),
-
-        const SizedBox(height: 6),
-
-        Text(
-          value,
-          style: TextStyle(
-            color: color,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
-
-        const SizedBox(height: 8),
-
-        LinearProgressIndicator(
-          value: .6,
-          color: color,
-          backgroundColor: Colors.grey.shade200,
-        ),
-      ],
     );
   }
 

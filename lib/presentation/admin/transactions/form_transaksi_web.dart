@@ -196,7 +196,7 @@ class _FormTransaksiWebState extends State<FormTransaksiWeb> {
             initialValue: ctrl.statusFilter,
             onSelected: ctrl.filterStatus,
             itemBuilder: (_) => const [
-              PopupMenuItem(value: null, child: Text("Semua")),
+              PopupMenuItem(value: '', child: Text("Semua")),
               PopupMenuItem(value: 'berhasil', child: Text("Berhasil")),
               PopupMenuItem(value: 'pending', child: Text("Pending")),
               PopupMenuItem(value: 'gagal', child: Text("Gagal")),
@@ -206,17 +206,20 @@ class _FormTransaksiWebState extends State<FormTransaksiWeb> {
               icon: const Icon(Icons.filter_alt_outlined),
               label: Text(ctrl.statusFilter == null
                   ? "Filter"
-                  : ctrl.statusFilter!),
+                  : _filterLabel(ctrl.statusFilter!)),
             ),
           ),
           const SizedBox(width: 12),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xff2563EB)),
-            onPressed: () {},
-            icon: const Icon(Icons.download, color: Colors.white),
-            label: const Text("Ekspor CSV",
-                style: TextStyle(color: Colors.white)),
+          Visibility(
+            visible: false,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xff2563EB)),
+              onPressed: () {},
+              icon: const Icon(Icons.download, color: Colors.white),
+              label: const Text("Ekspor CSV",
+                  style: TextStyle(color: Colors.white)),
+            ),
           ),
         ],
       ),
@@ -262,23 +265,32 @@ class _FormTransaksiWebState extends State<FormTransaksiWeb> {
       );
     }
 
-    return SingleChildScrollView(
-      child: DataTable(
-        headingRowColor:
-            WidgetStateProperty.all(const Color(0xffF8F9FC)),
-        columns: const [
-          DataColumn(label: Text("ID TRANSAKSI")),
-          DataColumn(label: Text("PELANGGAN")),
-          DataColumn(label: Text("METODE")),
-          DataColumn(label: Text("JUMLAH")),
-          DataColumn(label: Text("TANGGAL")),
-          DataColumn(label: Text("STATUS")),
-          DataColumn(label: Text("AKSI")),
-        ],
-        rows: ctrl.transaksiList
-            .map((trx) => _buildRow(trx, ctrl))
-            .toList(),
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          child: SizedBox(
+            width: constraints.maxWidth,
+            child: DataTable(
+              columnSpacing: 80,
+              horizontalMargin: 24,
+              headingRowColor:
+                  WidgetStateProperty.all(const Color(0xffF8F9FC)),
+              columns: const [
+                DataColumn(label: Text("ID TRANSAKSI")),
+                DataColumn(label: Text("PELANGGAN")),
+                DataColumn(label: Text("METODE")),
+                DataColumn(label: Text("JUMLAH")),
+                DataColumn(label: Text("TANGGAL")),
+                DataColumn(label: Text("STATUS")),
+                DataColumn(label: Text("AKSI")),
+              ],
+              rows: ctrl.transaksiList
+                  .map((trx) => _buildRow(trx, ctrl))
+                  .toList(),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -324,6 +336,8 @@ class _FormTransaksiWebState extends State<FormTransaksiWeb> {
 
   // ─── PAGINATION ──────────────────────────────────────────────────────────
   Widget _buildPagination(TransaksiController ctrl) {
+    if (ctrl.totalPages <= 1) return const SizedBox.shrink();
+
     final from = ((ctrl.currentPage - 1) * ctrl.perPage) + 1;
     final to =
         (ctrl.currentPage * ctrl.perPage).clamp(0, ctrl.totalData);
@@ -400,6 +414,15 @@ class _FormTransaksiWebState extends State<FormTransaksiWeb> {
     }
   }
 
+  String _filterLabel(String status) {
+    switch (status) {
+      case 'berhasil': return 'Berhasil';
+      case 'pending':  return 'Pending';
+      case 'gagal':    return 'Gagal';
+      default:         return status;
+    }
+  }
+
   String _formatDate(DateTime dt) {
     const months = ['','Jan','Feb','Mar','Apr','Mei','Jun',
                     'Jul','Agu','Sep','Okt','Nov','Des'];
@@ -438,7 +461,7 @@ class _FormTransaksiWebState extends State<FormTransaksiWeb> {
     required Color iconColor,
   }) {
     return Container(
-      height: 130,
+      height: 160,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -448,14 +471,17 @@ class _FormTransaksiWebState extends State<FormTransaksiWeb> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CircleAvatar(
+            radius: 20,
             backgroundColor: iconColor.withOpacity(.15),
-            child: Icon(icon, color: iconColor),
+            child: Icon(icon, color: iconColor, size: 22),
           ),
           const SizedBox(height: 12),
           Text(title,
               style: const TextStyle(color: Colors.black54)),
           const SizedBox(height: 6),
           Text(value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                   fontSize: 20, fontWeight: FontWeight.bold)),
         ],

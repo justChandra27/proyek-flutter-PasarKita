@@ -1,8 +1,13 @@
 //lib/presentation/seller/widgets/sidebar_seller_web.dart
 
 import 'package:flutter/material.dart';
+import 'package:appwrite/appwrite.dart';
 
-class SidebarSellerWeb extends StatelessWidget {
+import '../../../core/services/auth_service_appwrite.dart';
+import '../../../core/appwrite/appwrite_config.dart';
+import '../../../core/appwrite/appwrite_service.dart';
+
+class SidebarSellerWeb extends StatefulWidget {
   final int selectedIndex;
   final Function(int) onMenuSelected;
   final VoidCallback onLogout;
@@ -13,6 +18,51 @@ class SidebarSellerWeb extends StatelessWidget {
     required this.onMenuSelected,
     required this.onLogout,
   });
+
+  @override
+  State<SidebarSellerWeb> createState() => _SidebarSellerWebState();
+}
+
+class _SidebarSellerWebState extends State<SidebarSellerWeb> {
+  String _sellerName = 'Seller';
+  String _initial = 'S';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    try {
+      final auth = AuthServiceAppwrite();
+      final account = await auth.getCurrentUser();
+      final name = account.name;
+      final databases = AppwriteService.databases;
+      final result = await databases.listDocuments(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.usersCollectionId,
+        queries: [Query.equal('uid', account.$id)],
+      );
+      if (result.documents.isNotEmpty) {
+        final data = result.documents.first.data;
+        final displayName = (data['storeName'] as String?)?.isNotEmpty == true
+            ? data['storeName'] as String
+            : name;
+        if (!mounted) return;
+        setState(() {
+          _sellerName = displayName;
+          _initial = name.isNotEmpty ? name[0].toUpperCase() : 'S';
+        });
+      } else {
+        if (!mounted) return;
+        setState(() {
+          _sellerName = name;
+          _initial = name.isNotEmpty ? name[0].toUpperCase() : 'S';
+        });
+      }
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,25 +99,32 @@ class SidebarSellerWeb extends StatelessWidget {
               color: const Color(0xffF5F7FB),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Row(
+            child: Row(
               children: [
                 CircleAvatar(
                   radius: 22,
-                  child: Icon(Icons.person),
+                  backgroundColor: const Color(0xff2563EB),
+                  child: Text(
+                    _initial,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-                SizedBox(width: 10),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment:
                         CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "Andi Setiawan",
-                        style: TextStyle(
+                        _sellerName,
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Text(
+                      const Text(
                         "Verified Merchant",
                         style: TextStyle(
                           fontSize: 11,
@@ -107,6 +164,12 @@ class SidebarSellerWeb extends StatelessWidget {
             title: "Kategori",
           ),
 
+          _menu(
+            index: 4,
+            icon: Icons.person_outline,
+            title: "Profil Saya",
+          ),
+
           const Spacer(),
 
           const Divider(),
@@ -122,7 +185,7 @@ class SidebarSellerWeb extends StatelessWidget {
                 color: Colors.red,
               ),
             ),
-            onTap: onLogout,
+            onTap: widget.onLogout,
           ),
 
           const SizedBox(height: 12),
@@ -136,7 +199,7 @@ class SidebarSellerWeb extends StatelessWidget {
     required IconData icon,
     required String title,
   }) {
-    final bool active = selectedIndex == index;
+    final bool active = widget.selectedIndex == index;
 
     return Builder(
       builder: (context) {
@@ -169,10 +232,11 @@ class SidebarSellerWeb extends StatelessWidget {
                     : FontWeight.normal,
               ),
             ),
-            onTap: () => onMenuSelected(index),
+            onTap: () => widget.onMenuSelected(index),
           ),
         );
       },
     );
   }
 }
+

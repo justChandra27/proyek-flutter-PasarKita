@@ -1,11 +1,15 @@
 //lib/presentation/seller/products/form_produk_seller_web.dart
 
 import 'package:flutter/material.dart';
+import 'package:appwrite/appwrite.dart';
 
 // import 'widgets/product_table.dart';
 import 'widgets/seller_product_builder.dart';
 import 'product_form_page.dart';
 import 'widgets/product_table_modern.dart';
+import '../../../core/services/auth_service_appwrite.dart';
+import '../../../core/appwrite/appwrite_config.dart';
+import '../../../core/appwrite/appwrite_service.dart';
 
 class FormProdukSellerWeb extends StatefulWidget {
   const FormProdukSellerWeb({super.key});
@@ -19,6 +23,47 @@ class _FormProdukSellerWebState extends State<FormProdukSellerWeb> {
   String selectedStatus = 'Semua';
   String selectedCategory = 'Semua';
   String sortBy = 'Terbaru';
+  String _sellerName = 'Seller';
+  String _initial = 'S';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSeller();
+  }
+
+  Future<void> _loadSeller() async {
+    try {
+      final auth = AuthServiceAppwrite();
+      final account = await auth.getCurrentUser();
+      final databases = AppwriteService.databases;
+      final result = await databases.listDocuments(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.usersCollectionId,
+        queries: [Query.equal('uid', account.$id)],
+      );
+      final name = account.name;
+      if (result.documents.isNotEmpty) {
+        final data = result.documents.first.data;
+        final displayName = (data['storeName'] as String?)?.isNotEmpty == true
+            ? data['storeName'] as String
+            : name;
+        if (mounted) {
+          setState(() {
+            _sellerName = displayName;
+            _initial = name.isNotEmpty ? name[0].toUpperCase() : 'S';
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _sellerName = name;
+            _initial = name.isNotEmpty ? name[0].toUpperCase() : 'S';
+          });
+        }
+      }
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,14 +101,14 @@ class _FormProdukSellerWebState extends State<FormProdukSellerWeb> {
 
                 const SizedBox(width: 20),
 
-                const Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      "Seller",
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      _sellerName,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    Text(
+                    const Text(
                       "Verified Merchant",
                       style: TextStyle(color: Colors.black54, fontSize: 12),
                     ),
@@ -74,8 +119,14 @@ class _FormProdukSellerWebState extends State<FormProdukSellerWeb> {
 
                 CircleAvatar(
                   radius: 20,
-                  backgroundColor: Colors.grey.shade300,
-                  child: const Icon(Icons.person),
+                  backgroundColor: const Color(0xff2563EB),
+                  child: Text(
+                    _initial,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -443,17 +494,6 @@ class _FormProdukSellerWebState extends State<FormProdukSellerWeb> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _filterButton(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(children: [Text(text), const Icon(Icons.keyboard_arrow_down)]),
     );
   }
 }

@@ -16,14 +16,23 @@ class FormPenggunaWeb extends StatefulWidget {
 
 class _FormPenggunaWebState extends State<FormPenggunaWeb> {
   final Databases databases = AppwriteService.databases;
+  final _searchController = TextEditingController();
 
-  List<UserModel> users = [];
+  List<UserModel> allUsers = [];
+  List<UserModel> filteredUsers = [];
   bool isLoading = true;
+  String? _roleFilter;
 
   @override
   void initState() {
     super.initState();
     loadUsers();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> showEditDialog(UserModel user) async {
@@ -143,17 +152,24 @@ class _FormPenggunaWebState extends State<FormPenggunaWeb> {
   }
 
   Future<void> loadUsers() async {
+    final queries = <String>[];
+    if (_roleFilter != null) {
+      queries.add(Query.equal('role', _roleFilter!));
+    }
+
     try {
       final result = await databases.listDocuments(
         databaseId: AppwriteConfig.databaseId,
         collectionId: AppwriteConfig.usersCollectionId,
+        queries: queries.isNotEmpty ? queries : null,
       );
 
-      users = result.documents
+      allUsers = result.documents
           .map((doc) => UserModel.fromMap(doc.data, doc.$id))
           .toList();
 
       setState(() {
+        _applyUserFilter();
         isLoading = false;
       });
     } catch (e) {
@@ -165,14 +181,24 @@ class _FormPenggunaWebState extends State<FormPenggunaWeb> {
     }
   }
 
+  void _applyUserFilter() {
+    final keyword = _searchController.text.toLowerCase();
+    filteredUsers = keyword.isEmpty
+        ? List.from(allUsers)
+        : allUsers.where((u) =>
+            u.name.toLowerCase().contains(keyword) ||
+            u.email.toLowerCase().contains(keyword)
+          ).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final activeUsers = users.where((u) {
+    final activeUsers = allUsers.where((u) {
       return u.status.toLowerCase() == 'active' ||
           u.status.toLowerCase() == 'aktif';
     }).length;
 
-    final suspendedUsers = users.where((u) {
+    final suspendedUsers = allUsers.where((u) {
       return u.status.toLowerCase() == 'suspended' ||
           u.status.toLowerCase() == 'ditangguhkan';
     }).length;
@@ -191,21 +217,25 @@ class _FormPenggunaWebState extends State<FormPenggunaWeb> {
                     style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                   ),
                 ),
-                SizedBox(
-                  width: 280,
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: "Cari data...",
-                      prefixIcon: const Icon(Icons.search),
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide.none,
+                  SizedBox(
+                    width: 280,
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (_) {
+                        setState(() => _applyUserFilter());
+                      },
+                      decoration: InputDecoration(
+                        hintText: "Cari data...",
+                        prefixIcon: const Icon(Icons.search),
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
                     ),
                   ),
-                ),
               ],
             ),
 
@@ -216,7 +246,7 @@ class _FormPenggunaWebState extends State<FormPenggunaWeb> {
                 Expanded(
                   child: _statCard(
                     "Total Pengguna",
-                    users.length.toString(),
+                    allUsers.length.toString(),
                     Icons.people_alt_outlined,
                     const Color(0xff2563EB),
                   ),
@@ -234,7 +264,7 @@ class _FormPenggunaWebState extends State<FormPenggunaWeb> {
                 Expanded(
                   child: _statCard(
                     "Pending",
-                    users
+                    allUsers
                         .where((u) => u.status.toLowerCase() == 'pending')
                         .length
                         .toString(),
@@ -289,10 +319,63 @@ class _FormPenggunaWebState extends State<FormPenggunaWeb> {
                                     ],
                                   ),
                                 ),
-                                OutlinedButton.icon(
-                                  onPressed: () {},
-                                  icon: const Icon(Icons.filter_list),
-                                  label: const Text("Filter"),
+                                PopupMenuButton<String?>(
+                                  initialValue: _roleFilter,
+                                  onSelected: (v) {
+                                    setState(() => _roleFilter = v);
+                                    loadUsers();
+                                  },
+                                  child: OutlinedButton.icon(
+                                    onPressed: null,
+                                    icon: const Icon(Icons.filter_list),
+                                    label: Text(_roleFilter ?? "Filter"),
+                                  ),
+                                  itemBuilder: (_) => [
+                                    PopupMenuItem(
+                                      value: null,
+                                      child: Text(
+                                        "Semua",
+                                        style: TextStyle(
+                                          fontWeight: _roleFilter == null
+                                              ? FontWeight.bold
+                                              : null,
+                                        ),
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'customer',
+                                      child: Text(
+                                        "Customer",
+                                        style: TextStyle(
+                                          fontWeight: _roleFilter == 'customer'
+                                              ? FontWeight.bold
+                                              : null,
+                                        ),
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'seller',
+                                      child: Text(
+                                        "Seller",
+                                        style: TextStyle(
+                                          fontWeight: _roleFilter == 'seller'
+                                              ? FontWeight.bold
+                                              : null,
+                                        ),
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'admin',
+                                      child: Text(
+                                        "Admin",
+                                        style: TextStyle(
+                                          fontWeight: _roleFilter == 'admin'
+                                              ? FontWeight.bold
+                                              : null,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -360,7 +443,7 @@ class _FormPenggunaWebState extends State<FormPenggunaWeb> {
                                         ),
                                       ],
 
-                                      rows: users.map((user) {
+                                      rows: filteredUsers.map((user) {
                                         return _userRow(user);
                                       }).toList(),
                                     ),

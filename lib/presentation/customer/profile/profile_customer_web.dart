@@ -23,7 +23,16 @@ class _ProfileCustomerWebState
   final AuthServiceAppwrite _authService = AuthServiceAppwrite();
   models.User? _account;
   UserModel? _userModel;
+  int _orderCount = 0;
   bool _loading = true;
+  bool _saving = false;
+
+  final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _cityController = TextEditingController();
+  final _provinceController = TextEditingController();
+  final _postalCodeController = TextEditingController();
 
   @override
   void initState() {
@@ -31,29 +40,59 @@ class _ProfileCustomerWebState
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadUser());
   }
 
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    _addressController.dispose();
+    _cityController.dispose();
+    _provinceController.dispose();
+    _postalCodeController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadUser() async {
     try {
       final account = await _authService.getCurrentUser();
+      final databases = AppwriteService.databases;
 
+      UserModel? userModel;
       try {
-        final databases = AppwriteService.databases;
         final result = await databases.listDocuments(
           databaseId: AppwriteConfig.databaseId,
           collectionId: AppwriteConfig.usersCollectionId,
           queries: [Query.equal('uid', account.$id)],
         );
         if (result.documents.isNotEmpty) {
-          _userModel = UserModel.fromMap(
+          userModel = UserModel.fromMap(
             result.documents.first.data,
             result.documents.first.$id,
           );
         }
       } catch (_) {}
 
+      int orderCount = 0;
+      try {
+        final orderResult = await databases.listDocuments(
+          databaseId: AppwriteConfig.databaseId,
+          collectionId: AppwriteConfig.ordersCollectionId,
+          queries: [Query.equal('customerId', account.$id), Query.limit(1)],
+        );
+        orderCount = orderResult.total;
+      } catch (_) {}
+
       if (!mounted) return;
       setState(() {
         _account = account;
+        _userModel = userModel;
+        _orderCount = orderCount;
         _loading = false;
+        _nameController.text = userModel?.name ?? account.name;
+        _phoneController.text = userModel?.phone ?? '';
+        _addressController.text = userModel?.shippingAddress ?? '';
+        _cityController.text = userModel?.shippingCity ?? '';
+        _provinceController.text = userModel?.shippingProvince ?? '';
+        _postalCodeController.text = userModel?.shippingPostalCode ?? '';
       });
     } catch (e) {
       if (!mounted) return;
@@ -63,6 +102,11 @@ class _ProfileCustomerWebState
         (route) => false,
       );
     }
+  }
+
+  String _initials(String name) {
+    if (name.isEmpty) return '?';
+    return name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join().toUpperCase();
   }
 
   @override
@@ -96,10 +140,15 @@ class _ProfileCustomerWebState
                   ),
                 ),
 
-                const CircleAvatar(
+                CircleAvatar(
                   radius: 22,
-                  backgroundImage: NetworkImage(
-                    "https://i.pravatar.cc/150",
+                  backgroundColor: const Color(0xff2563EB).withValues(alpha: .15),
+                  child: Text(
+                    _initials(name),
+                    style: const TextStyle(
+                      color: Color(0xff2563EB),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
@@ -122,33 +171,35 @@ class _ProfileCustomerWebState
                 children: [
                   Stack(
                     children: [
-                      const CircleAvatar(
+                      CircleAvatar(
                         radius: 45,
-                        backgroundImage:
-                            NetworkImage(
-                          "https://i.pravatar.cc/300",
+                        backgroundColor: const Color(0xff2563EB).withValues(alpha: .15),
+                        child: Text(
+                          _initials(name),
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xff2563EB),
+                          ),
                         ),
                       ),
 
                       Positioned(
                         bottom: 0,
                         right: 0,
-                        child: Container(
-                          padding:
-                              const EdgeInsets.all(
-                                  5),
-                          decoration:
-                              const BoxDecoration(
-                            color:
-                                Color(0xff2563EB),
-                            shape:
-                                BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.edit,
-                            size: 14,
-                            color:
-                                Colors.white,
+                        child: Tooltip(
+                          message: 'Fitur akan diimplementasikan berikutnya',
+                          child: Container(
+                            padding: const EdgeInsets.all(5),
+                            decoration: const BoxDecoration(
+                              color: Color(0xff2563EB),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.edit,
+                              size: 14,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),
@@ -166,16 +217,14 @@ class _ProfileCustomerWebState
                           name,
                           style: const TextStyle(
                             fontSize: 26,
-                            fontWeight:
-                                FontWeight.bold,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                         const SizedBox(height: 4),
                         const Text(
-                          "Gold Member • Sejak 2022",
+                          "Member",
                           style: TextStyle(
-                            color:
-                                Colors.black54,
+                            color: Colors.black54,
                           ),
                         ),
                       ],
@@ -183,21 +232,21 @@ class _ProfileCustomerWebState
                   ),
 
                   _statCard(
-                    "12",
+                    _orderCount.toString(),
                     "PESANAN",
                   ),
 
                   const SizedBox(width: 12),
 
                   _statCard(
-                    "Rp 4.2M",
+                    "0",
                     "TRANSAKSI",
                   ),
 
                   const SizedBox(width: 12),
 
                   _statCard(
-                    "250",
+                    "0",
                     "POIN",
                   ),
                 ],
@@ -206,39 +255,27 @@ class _ProfileCustomerWebState
 
             const SizedBox(height: 24),
 
-            // INFORMASI PRIBADI
+            // INFORMASI PRIBADI & ALAMAT
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius:
-                    BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(18),
                 border: Border.all(
                   color: Colors.grey.shade200,
                 ),
               ),
               child: Column(
                 children: [
-                  Row(
-                    children: [
-                      const Text(
-                        "Informasi Pribadi",
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight:
-                              FontWeight.bold,
-                        ),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      "Informasi Pribadi",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
                       ),
-
-                      const Spacer(),
-
-                      TextButton(
-                        onPressed: () {},
-                        child: const Text(
-                          "Ubah Semua",
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
 
                   const SizedBox(height: 20),
@@ -246,27 +283,23 @@ class _ProfileCustomerWebState
                   Row(
                     children: [
                       Expanded(
-                        child: _inputField(
+                        child: _editableField(
                           "NAMA LENGKAP",
-                          name,
+                          _nameController,
                         ),
                       ),
-
                       const SizedBox(width: 16),
-
                       Expanded(
-                        child: _inputField(
+                        child: _readOnlyField(
                           "ALAMAT EMAIL",
                           email,
                         ),
                       ),
-
                       const SizedBox(width: 16),
-
                       Expanded(
-                        child: _inputField(
+                        child: _editableField(
                           "NOMOR TELEPON",
-                          "+62 812 3456 7890",
+                          _phoneController,
                         ),
                       ),
                     ],
@@ -274,31 +307,46 @@ class _ProfileCustomerWebState
 
                   const SizedBox(height: 20),
 
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      "Alamat Pengiriman",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  _editableField(
+                    "ALAMAT LENGKAP",
+                    _addressController,
+                  ),
+
+                  const SizedBox(height: 16),
+
                   Row(
                     children: [
                       Expanded(
-                        child: _inputField(
-                          "TANGGAL LAHIR",
-                          "08/24/1995",
+                        child: _editableField(
+                          "KOTA",
+                          _cityController,
                         ),
                       ),
-
                       const SizedBox(width: 16),
-
                       Expanded(
-                        child:
-                            _dropdownField(
-                          "JENIS KELAMIN",
-                          "Laki-laki",
+                        child: _editableField(
+                          "PROVINSI",
+                          _provinceController,
                         ),
                       ),
-
                       const SizedBox(width: 16),
-
                       Expanded(
-                        child: _inputField(
-                          "PEKERJAAN",
-                          "Software Engineer",
+                        child: _editableField(
+                          "KODE POS",
+                          _postalCodeController,
                         ),
                       ),
                     ],
@@ -311,84 +359,35 @@ class _ProfileCustomerWebState
                   const SizedBox(height: 20),
 
                   Align(
-                    alignment:
-                        Alignment.centerRight,
+                    alignment: Alignment.centerRight,
                     child: SizedBox(
                       width: 220,
                       height: 50,
-                      child:
-                          ElevatedButton(
-                        style:
-                            ElevatedButton
-                                .styleFrom(
-                          backgroundColor:
-                              const Color(
-                                  0xff2563EB),
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _saving
+                              ? const Color(0xff2563EB).withValues(alpha: .5)
+                              : const Color(0xff2563EB),
                         ),
-                        onPressed: () {},
-                        child: const Text(
-                          "Simpan Perubahan",
-                          style: TextStyle(
-                            color:
-                                Colors.white,
-                            fontWeight:
-                                FontWeight.bold,
-                          ),
-                        ),
+                        onPressed: _saving ? null : _onSave,
+                        child: _saving
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                "Simpan Perubahan",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // ALAMAT
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius:
-                    BorderRadius.circular(18),
-                border: Border.all(
-                  color: Colors.grey.shade200,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Alamat Pengiriman Utama",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight:
-                          FontWeight.bold,
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: _inputField(
-                          "ALAMAT LENGKAP",
-                          "Jl. Sudirman No.123, Kebayoran Baru, Jakarta Selatan",
-                        ),
-                      ),
-
-                      const SizedBox(width: 16),
-
-                      Expanded(
-                        child: _inputField(
-                          "KODE POS",
-                          "12190",
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),
@@ -408,19 +407,16 @@ class _ProfileCustomerWebState
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xffF1F5F9),
-        borderRadius:
-            BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             value,
             style: const TextStyle(
               fontSize: 24,
-              fontWeight:
-                  FontWeight.bold,
+              fontWeight: FontWeight.bold,
               color: Color(0xff2563EB),
             ),
           ),
@@ -430,8 +426,7 @@ class _ProfileCustomerWebState
             style: const TextStyle(
               fontSize: 11,
               color: Colors.black54,
-              fontWeight:
-                  FontWeight.bold,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],
@@ -439,82 +434,91 @@ class _ProfileCustomerWebState
     );
   }
 
-  static Widget _inputField(
+  Future<void> _onSave() async {
+    setState(() => _saving = true);
+    try {
+      await _authService.updateUserData({
+        'name': _nameController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'shippingAddress': _addressController.text.trim(),
+        'shippingCity': _cityController.text.trim(),
+        'shippingProvince': _provinceController.text.trim(),
+        'shippingPostalCode': _postalCodeController.text.trim(),
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Profil berhasil disimpan'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      _loadUser();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal menyimpan: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  static Widget _editableField(
     String label,
-    String value,
+    TextEditingController controller,
   ) {
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
           style: const TextStyle(
             color: Colors.black54,
-            fontWeight:
-                FontWeight.w600,
+            fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: 8),
         TextField(
-          controller:
-              TextEditingController(
-            text: value,
-          ),
+          controller: controller,
           decoration: InputDecoration(
-            border:
-                OutlineInputBorder(
-              borderRadius:
-                  BorderRadius.circular(
-                      10),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
             ),
+            filled: true,
+            fillColor: const Color(0xffF8FAFC),
           ),
         ),
       ],
     );
   }
 
-  static Widget _dropdownField(
+  static Widget _readOnlyField(
     String label,
     String value,
   ) {
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
           style: const TextStyle(
             color: Colors.black54,
-            fontWeight:
-                FontWeight.w600,
+            fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          initialValue: value,
-          items: const [
-            DropdownMenuItem(
-              value: "Laki-laki",
-              child: Text(
-                "Laki-laki",
-              ),
-            ),
-            DropdownMenuItem(
-              value: "Perempuan",
-              child: Text(
-                "Perempuan",
-              ),
-            ),
-          ],
-          onChanged: (value) {},
+        TextField(
+          controller: TextEditingController(text: value),
+          readOnly: true,
           decoration: InputDecoration(
-            border:
-                OutlineInputBorder(
-              borderRadius:
-                  BorderRadius.circular(
-                      10),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
             ),
+            filled: true,
+            fillColor: Color(0xffF1F5F9),
           ),
         ),
       ],

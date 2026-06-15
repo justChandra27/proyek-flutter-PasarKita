@@ -321,7 +321,16 @@ class _DashboardCustomerMobileState
 
   void _showReviews(ProductModel product) async {
     final reviewService = ReviewServiceAppwrite();
-    final stats = await reviewService.getProductStats(product.id);
+    ProductReviewStats stats;
+    try {
+      stats = await reviewService.getProductStats(product.id);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal memuat ulasan: $e')),
+      );
+      stats = ProductReviewStats.empty();
+    }
 
     if (!mounted) return;
 
@@ -461,17 +470,25 @@ class _ReviewBottomSheetState extends State<_ReviewBottomSheet> {
   }
 
   Future<void> _loadFirst() async {
-    final response = await _reviewService.getProductReviewsPage(
-      productId: widget.productId,
-      cursor: null,
-      limit: 10,
-    );
-    if (!mounted) return;
-    setState(() {
-      _reviews = response.items;
-      _cursor = response.nextCursor;
-      _hasMore = response.hasMore;
-    });
+    try {
+      final response = await _reviewService.getProductReviewsPage(
+        productId: widget.productId,
+        cursor: null,
+        limit: 10,
+      );
+      if (!mounted) return;
+      setState(() {
+        _reviews = response.items;
+        _cursor = response.nextCursor;
+        _hasMore = response.hasMore;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _reviews = [];
+        _hasMore = false;
+      });
+    }
   }
 
   Future<void> _loadMore() async {

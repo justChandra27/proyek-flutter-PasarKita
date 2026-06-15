@@ -12,7 +12,8 @@ import '../../core/services/auth_service_appwrite.dart';
 import '../../core/services/notification_service_appwrite.dart';
 
 class CustomerWebPage extends StatefulWidget {
-  const CustomerWebPage({super.key});
+  final int initialIndex;
+  const CustomerWebPage({super.key, this.initialIndex = 0});
 
   @override
   State<CustomerWebPage> createState() => _CustomerWebPageState();
@@ -30,6 +31,7 @@ class _CustomerWebPageState extends State<CustomerWebPage> {
   @override
   void initState() {
     super.initState();
+    selectedIndex = widget.initialIndex;
     pages = [
       const DashboardCustomerWeb(),
       const CartCustomerWeb(),

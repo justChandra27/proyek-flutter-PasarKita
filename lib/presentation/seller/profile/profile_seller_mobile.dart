@@ -1,20 +1,88 @@
 //lib/presentation/seller/profile/profile_seller_mobile.dart
 
 import 'package:flutter/material.dart';
+import 'package:appwrite/appwrite.dart';
+
 import '../../auth/login_page.dart';
 import '../../../core/services/auth_service_appwrite.dart';
+import '../../../data/models/user_model.dart';
+import '../../../core/appwrite/appwrite_config.dart';
+import '../../../core/appwrite/appwrite_service.dart';
 
-class SellerEditProfileMobile extends StatelessWidget {
+class SellerEditProfileMobile extends StatefulWidget {
   const SellerEditProfileMobile({super.key});
 
   @override
+  State<SellerEditProfileMobile> createState() =>
+      _SellerEditProfileMobileState();
+}
+
+class _SellerEditProfileMobileState extends State<SellerEditProfileMobile> {
+  final _authService = AuthServiceAppwrite();
+  UserModel? _userModel;
+  String _accountName = '';
+  String _accountEmail = '';
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    try {
+      final account = await _authService.getCurrentUser();
+      _accountName = account.name;
+      _accountEmail = account.email;
+
+      final databases = AppwriteService.databases;
+      final result = await databases.listDocuments(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.usersCollectionId,
+        queries: [Query.equal('uid', account.$id)],
+      );
+      if (result.documents.isNotEmpty) {
+        _userModel = UserModel.fromMap(
+          result.documents.first.data,
+          result.documents.first.$id,
+        );
+      }
+    } catch (_) {}
+
+    if (!mounted) return;
+    setState(() => _loading = false);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final name = _userModel?.name ?? _accountName;
+    final email = _userModel?.email ?? _accountEmail;
+    final storeName = _userModel?.storeName ?? '';
+    final location = [
+      if (_userModel?.city != null && _userModel!.city.isNotEmpty)
+        _userModel!.city,
+      if (_userModel?.province != null && _userModel!.province.isNotEmpty)
+        _userModel!.province,
+    ].join(', ');
+
     return Scaffold(
       backgroundColor: const Color(0xffF5F7FB),
 
       appBar: AppBar(
         title: const Text("Profil Saya"),
-        actions: [TextButton(onPressed: () {}, child: const Text("Simpan"))],
+        actions: [
+          Tooltip(
+            message: 'Fitur akan diimplementasikan berikutnya',
+            child: TextButton(onPressed: null, child: const Text("Simpan")),
+          ),
+        ],
       ),
 
       body: SingleChildScrollView(
@@ -23,8 +91,15 @@ class SellerEditProfileMobile extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 45,
-              backgroundColor: Colors.grey.shade300,
-              child: const Icon(Icons.person, size: 45),
+              backgroundColor: const Color(0xff2563EB),
+              child: Text(
+                _accountName.isNotEmpty ? _accountName[0].toUpperCase() : 'S',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
 
             const SizedBox(height: 24),
@@ -35,11 +110,9 @@ class SellerEditProfileMobile extends StatelessWidget {
 
             _card(
               children: [
-                _field("Nama Lengkap", "Andi Setiawan"),
-
-                _field("Email", "andi.setiawan@gmail.com"),
-
-                _field("Nomor Telepon", "+62 812-3456-7890"),
+                _field("Nama Lengkap", name),
+                _field("Email", email),
+                _field("Nomor Telepon", "Belum diisi"),
               ],
             ),
 
@@ -51,15 +124,13 @@ class SellerEditProfileMobile extends StatelessWidget {
 
             _card(
               children: [
-                _field("Nama Toko", "Andi Furniture & Design"),
-
+                _field("Nama Toko", storeName.isNotEmpty ? storeName : "Belum diisi"),
                 _field(
                   "Deskripsi Toko",
-                  "Spesialis furniture kayu jati minimalis",
+                  "Belum diisi",
                   maxLines: 4,
                 ),
-
-                _field("Lokasi", "Jl. Merdeka No.123, Bandung"),
+                _field("Lokasi", location.isNotEmpty ? location : "Belum diisi"),
               ],
             ),
             const SizedBox(height: 30),
@@ -140,6 +211,7 @@ class SellerEditProfileMobile extends StatelessWidget {
 
           TextField(
             maxLines: maxLines,
+            readOnly: true,
             controller: TextEditingController(text: value),
             decoration: const InputDecoration(
               filled: true,

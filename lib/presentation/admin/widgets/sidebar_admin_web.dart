@@ -54,17 +54,17 @@ class SidebarAdminWeb extends StatelessWidget {
 
           _menu(icon: Icons.shopping_bag_outlined, title: "Pesanan", index: 4),
 
-          _menu(
-            icon: Icons.receipt_long_outlined,
-            title: "Transaksi",
-            index: 5,
-          ),
+          // _menu(
+          //   icon: Icons.receipt_long_outlined,
+          //   title: "Transaksi",
+          //   index: 5,
+          // ),
 
           _menu(icon: Icons.account_balance_outlined, title: "Penarikan", index: 6),
 
           _menu(icon: Icons.category_outlined, title: "Kategori", index: 7),
 
-          _menu(icon: Icons.local_offer_outlined, title: "Promo", index: 8),
+          // _menu(icon: Icons.local_offer_outlined, title: "Promo", index: 8),
 
           _menu(icon: Icons.bar_chart_outlined, title: "Laporan", index: 9),
 

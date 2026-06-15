@@ -56,6 +56,12 @@ class BottomNavSellerMobile extends StatelessWidget {
             label: "Kategori",
             index: 3,
           ),
+          _navItem(
+            icon: Icons.person_outline,
+            activeIcon: Icons.person,
+            label: "Profil",
+            index: 4,
+          ),
         ],
       ),
     );

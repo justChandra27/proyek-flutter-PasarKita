@@ -1,9 +1,12 @@
+import 'dart:math';
+
 import 'package:appwrite/appwrite.dart';
 
 import '../appwrite/appwrite_config.dart';
 import '../appwrite/appwrite_service.dart';
 import '../../data/models/withdrawal_model.dart';
 import 'balance_service_appwrite.dart';
+import 'stock_lock_service.dart';
 
 class WithdrawalServiceAppwrite {
   final Databases _db = AppwriteService.databases;
@@ -89,45 +92,70 @@ class WithdrawalServiceAppwrite {
 
     final sellerId = doc.data['sellerId'] as String? ?? '';
     final amount = (doc.data['amount'] as num?)?.toInt() ?? 0;
+    final lockService = StockLockService();
+    final sessionId = 'approve-$withdrawalId-${DateTime.now().microsecondsSinceEpoch}-${Random().nextInt(99999)}';
 
-    final balance = await _balanceService.getBalance(sellerId);
-    final currentBalance = balance?.balance ?? 0;
-    if (currentBalance < amount) {
-      throw Exception('Saldo seller tidak mencukupi');
-    }
-
-    await _balanceService.createIfNotExists(sellerId);
-    final balResult = await _db.listDocuments(
-      databaseId: AppwriteConfig.databaseId,
-      collectionId: AppwriteConfig.sellerBalancesCollectionId,
-      queries: [Query.equal('sellerId', sellerId), Query.limit(1)],
+    await lockService.acquireLock(
+      productId: 'balance:$sellerId',
+      sessionId: sessionId,
+      ttlSeconds: 10,
     );
-    if (balResult.documents.isNotEmpty) {
-      final balDoc = balResult.documents.first;
-      final curBalance = (balDoc.data['balance'] as num?)?.toInt() ?? 0;
-      final curWithdrawn = (balDoc.data['totalWithdrawn'] as num?)?.toInt() ?? 0;
-      await _db.updateDocument(
+    try {
+      final freshDoc = await _db.getDocument(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.withdrawalsCollectionId,
+        documentId: withdrawalId,
+      );
+      final freshStatus = freshDoc.data['status'] as String? ?? '';
+      if (freshStatus != 'pending') {
+        throw Exception('Withdrawal sudah diproses');
+      }
+      final freshAmount = (freshDoc.data['amount'] as num?)?.toInt() ?? amount;
+
+      final balance = await _balanceService.getBalance(sellerId);
+      final currentBalance = balance?.balance ?? 0;
+      if (currentBalance < freshAmount) {
+        throw Exception('Saldo seller tidak mencukupi');
+      }
+
+      await _balanceService.createIfNotExists(sellerId);
+      final balResult = await _db.listDocuments(
         databaseId: AppwriteConfig.databaseId,
         collectionId: AppwriteConfig.sellerBalancesCollectionId,
-        documentId: balDoc.$id,
+        queries: [Query.equal('sellerId', sellerId), Query.limit(1)],
+      );
+      if (balResult.documents.isNotEmpty) {
+        final balDoc = balResult.documents.first;
+        final curBalance = (balDoc.data['balance'] as num?)?.toInt() ?? 0;
+        final curWithdrawn = (balDoc.data['totalWithdrawn'] as num?)?.toInt() ?? 0;
+        await _db.updateDocument(
+          databaseId: AppwriteConfig.databaseId,
+          collectionId: AppwriteConfig.sellerBalancesCollectionId,
+          documentId: balDoc.$id,
+          data: {
+            'balance': curBalance - freshAmount,
+            'totalWithdrawn': curWithdrawn + freshAmount,
+          },
+        );
+      }
+
+      final now = DateTime.now().toIso8601String();
+      await _db.updateDocument(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.withdrawalsCollectionId,
+        documentId: withdrawalId,
         data: {
-          'balance': curBalance - amount,
-          'totalWithdrawn': curWithdrawn + amount,
+          'status': 'approved',
+          'processed_at': now,
+          'processed_by': adminId,
         },
       );
+    } finally {
+      await lockService.releaseLock(
+        productId: 'balance:$sellerId',
+        sessionId: sessionId,
+      );
     }
-
-    final now = DateTime.now().toIso8601String();
-    await _db.updateDocument(
-      databaseId: AppwriteConfig.databaseId,
-      collectionId: AppwriteConfig.withdrawalsCollectionId,
-      documentId: withdrawalId,
-      data: {
-        'status': 'approved',
-        'processed_at': now,
-        'processed_by': adminId,
-      },
-    );
   }
 
   Future<void> rejectWithdrawal({
@@ -135,6 +163,15 @@ class WithdrawalServiceAppwrite {
     required String adminId,
     required String note,
   }) async {
+    final doc = await _db.getDocument(
+      databaseId: AppwriteConfig.databaseId,
+      collectionId: AppwriteConfig.withdrawalsCollectionId,
+      documentId: withdrawalId,
+    );
+    final status = doc.data['status'] as String? ?? '';
+    if (status != 'pending') {
+      throw Exception('Withdrawal sudah diproses');
+    }
     final now = DateTime.now().toIso8601String();
     await _db.updateDocument(
       databaseId: AppwriteConfig.databaseId,

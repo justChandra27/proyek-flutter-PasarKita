@@ -44,6 +44,11 @@ class OrderServiceAppwrite {
     required String paymentMethod,
     required List<Map<String, dynamic>> items,
     String notes = '',
+    String phone = '',
+    String shippingAddress = '',
+    String shippingCity = '',
+    String shippingProvince = '',
+    String shippingPostalCode = '',
   }) async {
     final orderCode = 'ORD-${DateTime.now().millisecondsSinceEpoch}';
     final serviceFee = FeeConfig.serviceFee;
@@ -115,6 +120,11 @@ class OrderServiceAppwrite {
           'notes': notes,
           'createdAt': now,
           'updatedAt': now,
+          'phone': phone,
+          'shippingAddress': shippingAddress,
+          'shippingCity': shippingCity,
+          'shippingProvince': shippingProvince,
+          'shippingPostalCode': shippingPostalCode,
         },
       );
       orderId = order.$id;
@@ -273,7 +283,7 @@ class OrderServiceAppwrite {
       queries: [
         Query.equal('customerId', customerId),
         Query.orderDesc('\$createdAt'),
-        Query.limit(100),
+        Query.limit(5000),
       ],
     );
 
@@ -302,7 +312,7 @@ class OrderServiceAppwrite {
     final result = await databases.listDocuments(
       databaseId: AppwriteConfig.databaseId,
       collectionId: AppwriteConfig.orderItemsCollectionId,
-      queries: [Query.equal('sellerId', sellerId), Query.limit(100)],
+      queries: [Query.equal('sellerId', sellerId), Query.limit(5000)],
     );
 
     return result.documents.map((doc) {
@@ -394,25 +404,20 @@ class OrderServiceAppwrite {
       );
     }
 
-    await databases.updateDocument(
-      databaseId:
-          AppwriteConfig.databaseId,
-      collectionId:
-          AppwriteConfig.ordersCollectionId,
-      documentId: orderId,
-      data: {
-        'status': newStatus,
-        'updatedAt':
-            DateTime.now()
-                .toIso8601String(),
-      },
-    );
-
     final notifService = NotificationServiceAppwrite();
     final customerId = current.customerId;
     final orderCode = current.orderCode;
 
     if (newStatus == 'processing') {
+      await databases.updateDocument(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.ordersCollectionId,
+        documentId: orderId,
+        data: {
+          'status': newStatus,
+          'updatedAt': DateTime.now().toIso8601String(),
+        },
+      );
       await notifService.createNotification(
         userId: customerId,
         title: 'Pesanan Diproses',
@@ -421,6 +426,15 @@ class OrderServiceAppwrite {
         orderId: orderId,
       );
     } else if (newStatus == 'shipped') {
+      await databases.updateDocument(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.ordersCollectionId,
+        documentId: orderId,
+        data: {
+          'status': newStatus,
+          'updatedAt': DateTime.now().toIso8601String(),
+        },
+      );
       await notifService.createNotification(
         userId: customerId,
         title: 'Pesanan Dikirim',
@@ -429,56 +443,202 @@ class OrderServiceAppwrite {
         orderId: orderId,
       );
     } else if (newStatus == 'completed') {
-      final items = await getOrderItems(orderId);
-      for (final item in items) {
-        final productDoc = await databases.getDocument(
-          databaseId: AppwriteConfig.databaseId,
-          collectionId: AppwriteConfig.productsCollectionId,
-          documentId: item.productId,
-        );
-        final currentSold = productDoc.data['soldCount'] as int? ?? 0;
-        await databases.updateDocument(
-          databaseId: AppwriteConfig.databaseId,
-          collectionId: AppwriteConfig.productsCollectionId,
-          documentId: item.productId,
-          data: {'soldCount': currentSold + item.quantity},
-        );
-        await BalanceServiceAppwrite().addEarnings(
-          item.sellerId,
-          item.sellerAmount > 0 ? item.sellerAmount : item.subtotal,
-        );
-      }
-      await notifService.createNotification(
-        userId: customerId,
-        title: 'Pesanan Selesai',
-        message: 'Pesanan #$orderCode telah selesai. Terima kasih telah berbelanja.',
-        type: 'status_update',
-        orderId: orderId,
-      );
-    } else if (newStatus == 'cancelled') {
-      final items = await getOrderItems(orderId);
-      for (final item in items) {
-        final productDoc = await databases.getDocument(
-          databaseId: AppwriteConfig.databaseId,
-          collectionId: AppwriteConfig.productsCollectionId,
-          documentId: item.productId,
-        );
-        final currentStock = productDoc.data['stock'] as int? ?? 0;
-        await databases.updateDocument(
-          databaseId: AppwriteConfig.databaseId,
-          collectionId: AppwriteConfig.productsCollectionId,
-          documentId: item.productId,
-          data: {'stock': currentStock + item.quantity},
-        );
-      }
+      final lockService = StockLockService();
+      final sessionId = 'complete-$orderId-${DateTime.now().microsecondsSinceEpoch}-${Random().nextInt(99999)}';
 
-      await notifService.createNotification(
-        userId: customerId,
-        title: 'Pesanan Dibatalkan',
-        message: 'Pesanan #$orderCode telah dibatalkan.',
-        type: 'status_update',
-        orderId: orderId,
+      await lockService.acquireLock(
+        productId: 'order:$orderId',
+        sessionId: sessionId,
+        ttlSeconds: 10,
       );
+      try {
+        final recheck = await getOrderById(orderId);
+        if (recheck == null || recheck.status.toLowerCase() != 'shipped') {
+          throw AppwriteException('Pesanan sudah diproses', 400, 'invalid_status_transition');
+        }
+
+        await databases.updateDocument(
+          databaseId: AppwriteConfig.databaseId,
+          collectionId: AppwriteConfig.ordersCollectionId,
+          documentId: orderId,
+          data: {
+            'status': newStatus,
+            'updatedAt': DateTime.now().toIso8601String(),
+          },
+        );
+
+        final items = await getOrderItems(orderId);
+        for (final item in items) {
+          final productDoc = await databases.getDocument(
+            databaseId: AppwriteConfig.databaseId,
+            collectionId: AppwriteConfig.productsCollectionId,
+            documentId: item.productId,
+          );
+          final currentSold = productDoc.data['soldCount'] as int? ?? 0;
+          await databases.updateDocument(
+            databaseId: AppwriteConfig.databaseId,
+            collectionId: AppwriteConfig.productsCollectionId,
+            documentId: item.productId,
+            data: {'soldCount': currentSold + item.quantity},
+          );
+          await BalanceServiceAppwrite().addEarnings(
+            item.sellerId,
+            item.sellerAmount > 0 ? item.sellerAmount : item.subtotal,
+          );
+        }
+
+        await notifService.createNotification(
+          userId: customerId,
+          title: 'Pesanan Selesai',
+          message: 'Pesanan #$orderCode telah selesai. Terima kasih telah berbelanja.',
+          type: 'status_update',
+          orderId: orderId,
+        );
+      } finally {
+        await lockService.releaseLock(
+          productId: 'order:$orderId',
+          sessionId: sessionId,
+        );
+      }
+    } else if (newStatus == 'cancelled') {
+      final lockService = StockLockService();
+      final sessionId = 'cancel-$orderId-${DateTime.now().microsecondsSinceEpoch}-${Random().nextInt(99999)}';
+
+      await lockService.acquireLock(
+        productId: 'order:$orderId',
+        sessionId: sessionId,
+        ttlSeconds: 10,
+      );
+      try {
+        final recheck = await getOrderById(orderId);
+        if (recheck == null || !{'pending', 'processing'}.contains(recheck.status.toLowerCase())) {
+          throw AppwriteException('Pesanan sudah diproses', 400, 'invalid_status_transition');
+        }
+
+        await databases.updateDocument(
+          databaseId: AppwriteConfig.databaseId,
+          collectionId: AppwriteConfig.ordersCollectionId,
+          documentId: orderId,
+          data: {
+            'status': newStatus,
+            'updatedAt': DateTime.now().toIso8601String(),
+          },
+        );
+
+        final items = await getOrderItems(orderId);
+        for (final item in items) {
+          final productDoc = await databases.getDocument(
+            databaseId: AppwriteConfig.databaseId,
+            collectionId: AppwriteConfig.productsCollectionId,
+            documentId: item.productId,
+          );
+          final currentStock = productDoc.data['stock'] as int? ?? 0;
+          await databases.updateDocument(
+            databaseId: AppwriteConfig.databaseId,
+            collectionId: AppwriteConfig.productsCollectionId,
+            documentId: item.productId,
+            data: {'stock': currentStock + item.quantity},
+          );
+        }
+
+        await notifService.createNotification(
+          userId: customerId,
+          title: 'Pesanan Dibatalkan',
+          message: 'Pesanan #$orderCode telah dibatalkan.',
+          type: 'status_update',
+          orderId: orderId,
+        );
+      } finally {
+        await lockService.releaseLock(
+          productId: 'order:$orderId',
+          sessionId: sessionId,
+        );
+      }
     }
+  }
+}
+
+class AdminOrdersPage {
+  final List<OrderModel> orders;
+  final int total;
+
+  AdminOrdersPage({required this.orders, required this.total});
+}
+
+extension OrderServiceAdmin on OrderServiceAppwrite {
+  Future<Map<String, int>> getOrderStatistics() async {
+    final results = await Future.wait([
+      databases.listDocuments(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.ordersCollectionId,
+        queries: [Query.limit(1)],
+      ),
+      databases.listDocuments(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.ordersCollectionId,
+        queries: [Query.equal('status', 'pending'), Query.limit(1)],
+      ),
+      databases.listDocuments(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.ordersCollectionId,
+        queries: [Query.equal('status', 'processing'), Query.limit(1)],
+      ),
+      databases.listDocuments(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.ordersCollectionId,
+        queries: [Query.equal('status', 'shipped'), Query.limit(1)],
+      ),
+      databases.listDocuments(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.ordersCollectionId,
+        queries: [Query.equal('status', 'completed'), Query.limit(1)],
+      ),
+      databases.listDocuments(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.ordersCollectionId,
+        queries: [Query.equal('status', 'cancelled'), Query.limit(1)],
+      ),
+    ]);
+
+    return {
+      'total': results[0].total,
+      'pending': results[1].total,
+      'processing': results[2].total,
+      'shipped': results[3].total,
+      'completed': results[4].total,
+      'cancelled': results[5].total,
+    };
+  }
+
+  Future<AdminOrdersPage> getAdminOrdersPage({
+    int limit = 25,
+    String? cursor,
+    String? status,
+    String? search,
+  }) async {
+    final queries = <String>[];
+    if (status != null && status.isNotEmpty) {
+      queries.add(Query.equal('status', status));
+    }
+    if (search != null && search.isNotEmpty) {
+      queries.add(Query.contains('orderCode', search));
+    }
+    if (cursor != null && cursor.isNotEmpty) {
+      queries.add(Query.cursorAfter(cursor));
+    }
+    queries.add(Query.limit(limit.clamp(1, 100)));
+    queries.add(Query.orderDesc('\$createdAt'));
+
+    final result = await databases.listDocuments(
+      databaseId: AppwriteConfig.databaseId,
+      collectionId: AppwriteConfig.ordersCollectionId,
+      queries: queries,
+    );
+
+    final orders = result.documents.map((doc) {
+      return OrderModel.fromMap(doc.$id, doc.data);
+    }).toList();
+
+    return AdminOrdersPage(orders: orders, total: result.total);
   }
 }

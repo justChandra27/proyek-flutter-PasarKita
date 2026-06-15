@@ -12,7 +12,8 @@ import '../../core/services/notification_service_appwrite.dart';
 
 class CustomerMobilePage
     extends StatefulWidget {
-  const CustomerMobilePage({super.key});
+  final int initialIndex;
+  const CustomerMobilePage({super.key, this.initialIndex = 0});
 
   @override
   State<CustomerMobilePage> createState() =>
@@ -32,6 +33,7 @@ class _CustomerMobilePageState
   @override
   void initState() {
     super.initState();
+    selectedIndex = widget.initialIndex;
     pages = [
       const DashboardCustomerMobile(),
       const CartCustomerMobile(),

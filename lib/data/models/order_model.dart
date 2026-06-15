@@ -13,6 +13,11 @@ class OrderModel {
   final String notes;
   final String createdAt;
   final String updatedAt;
+  final String phone;
+  final String shippingAddress;
+  final String shippingCity;
+  final String shippingProvince;
+  final String shippingPostalCode;
 
   OrderModel({
     required this.id,
@@ -29,6 +34,11 @@ class OrderModel {
     required this.notes,
     required this.createdAt,
     required this.updatedAt,
+    this.phone = '',
+    this.shippingAddress = '',
+    this.shippingCity = '',
+    this.shippingProvince = '',
+    this.shippingPostalCode = '',
   });
 
   factory OrderModel.fromMap(
@@ -50,6 +60,11 @@ class OrderModel {
       notes: data['notes'] ?? '',
       createdAt: data['createdAt'] ?? '',
       updatedAt: data['updatedAt'] ?? '',
+      phone: data['phone'] ?? '',
+      shippingAddress: data['shippingAddress'] ?? '',
+      shippingCity: data['shippingCity'] ?? '',
+      shippingProvince: data['shippingProvince'] ?? '',
+      shippingPostalCode: data['shippingPostalCode'] ?? '',
     );
   }
 
@@ -68,6 +83,11 @@ class OrderModel {
       'notes': notes,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
+      'phone': phone,
+      'shippingAddress': shippingAddress,
+      'shippingCity': shippingCity,
+      'shippingProvince': shippingProvince,
+      'shippingPostalCode': shippingPostalCode,
     };
   }
 }

@@ -225,7 +225,13 @@ class AdminAnalyticsService {
     );
     final names = <String, String>{};
     for (final d in result.documents) {
-      names[d.$id] = (d.data['name'] as String?) ?? 'Unknown';
+      final uid = d.data['uid'] as String?;
+      if (uid != null && uid.isNotEmpty) {
+        names[uid] =
+            (d.data['storeName'] as String?) ??
+            (d.data['name'] as String?) ??
+            'Unknown';
+      }
     }
     return names;
   }

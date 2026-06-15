@@ -11,6 +11,11 @@ class UserModel {
   final String storeAddress;
   final String city;
   final String province;
+  final String phone;
+  final String shippingAddress;
+  final String shippingCity;
+  final String shippingProvince;
+  final String shippingPostalCode;
 
   UserModel({
     required this.documentId,
@@ -23,6 +28,11 @@ class UserModel {
     required this.storeAddress,
     required this.city,
     required this.province,
+    this.phone = '',
+    this.shippingAddress = '',
+    this.shippingCity = '',
+    this.shippingProvince = '',
+    this.shippingPostalCode = '',
   });
 
   factory UserModel.fromMap(
@@ -40,6 +50,23 @@ class UserModel {
       storeAddress: map['storeAddress'] ?? '',
       city: map['city'] ?? '',
       province: map['province'] ?? '',
+      phone: map['phone'] ?? '',
+      shippingAddress: map['shippingAddress'] ?? '',
+      shippingCity: map['shippingCity'] ?? '',
+      shippingProvince: map['shippingProvince'] ?? '',
+      shippingPostalCode: map['shippingPostalCode'] ?? '',
     );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'name': name,
+      'email': email,
+      'phone': phone,
+      'shippingAddress': shippingAddress,
+      'shippingCity': shippingCity,
+      'shippingProvince': shippingProvince,
+      'shippingPostalCode': shippingPostalCode,
+    };
   }
 }

@@ -23,6 +23,7 @@ class _ProfileCustomerMobileState
   final AuthServiceAppwrite _authService = AuthServiceAppwrite();
   models.User? _account;
   UserModel? _userModel;
+  int _orderCount = 0;
   bool _loading = true;
 
   @override
@@ -34,25 +35,38 @@ class _ProfileCustomerMobileState
   Future<void> _loadUser() async {
     try {
       final account = await _authService.getCurrentUser();
+      final databases = AppwriteService.databases;
 
+      UserModel? userModel;
       try {
-        final databases = AppwriteService.databases;
         final result = await databases.listDocuments(
           databaseId: AppwriteConfig.databaseId,
           collectionId: AppwriteConfig.usersCollectionId,
           queries: [Query.equal('uid', account.$id)],
         );
         if (result.documents.isNotEmpty) {
-          _userModel = UserModel.fromMap(
+          userModel = UserModel.fromMap(
             result.documents.first.data,
             result.documents.first.$id,
           );
         }
       } catch (_) {}
 
+      int orderCount = 0;
+      try {
+        final orderResult = await databases.listDocuments(
+          databaseId: AppwriteConfig.databaseId,
+          collectionId: AppwriteConfig.ordersCollectionId,
+          queries: [Query.equal('customerId', account.$id), Query.limit(1)],
+        );
+        orderCount = orderResult.total;
+      } catch (_) {}
+
       if (!mounted) return;
       setState(() {
         _account = account;
+        _userModel = userModel;
+        _orderCount = orderCount;
         _loading = false;
       });
     } catch (e) {
@@ -131,17 +145,20 @@ class _ProfileCustomerMobileState
                         Positioned(
                           right: 0,
                           bottom: 0,
-                          child: Container(
-                            width: 30,
-                            height: 30,
-                            decoration: BoxDecoration(
-                              color: const Color(0xff2563EB),
-                              borderRadius: BorderRadius.circular(50),
-                            ),
-                            child: const Icon(
-                              Icons.edit,
-                              color: Colors.white,
-                              size: 16,
+                          child: Tooltip(
+                            message: 'Fitur akan diimplementasikan berikutnya',
+                            child: Container(
+                              width: 30,
+                              height: 30,
+                              decoration: BoxDecoration(
+                                color: const Color(0xff2563EB),
+                                borderRadius: BorderRadius.circular(50),
+                              ),
+                              child: const Icon(
+                                Icons.edit,
+                                color: Colors.white,
+                                size: 16,
+                              ),
                             ),
                           ),
                         ),
@@ -176,17 +193,17 @@ class _ProfileCustomerMobileState
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Column(
+                      child: Column(
                         children: [
                           Text(
-                            "12",
-                            style: TextStyle(
+                            _orderCount.toString(),
+                            style: const TextStyle(
                               color: Color(0xff2563EB),
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          Text("Orders"),
+                          const Text("Orders"),
                         ],
                       ),
                     ),
@@ -228,7 +245,8 @@ class _ProfileCustomerMobileState
                       icon: Icons.person_outline,
                       title: "Personal Information",
                       subtitle: "Update your name, email, and phone",
-                      onTap: () {},
+                      enabled: true,
+                      onTap: () => _showPersonalInfoDialog(),
                     ),
 
                     const Divider(height: 1),
@@ -237,7 +255,8 @@ class _ProfileCustomerMobileState
                       icon: Icons.location_on_outlined,
                       title: "Address Book",
                       subtitle: "Manage your primary and shipping address",
-                      onTap: () {},
+                      enabled: true,
+                      onTap: () => _showAddressDialog(),
                     ),
 
                     const Divider(height: 1),
@@ -246,7 +265,7 @@ class _ProfileCustomerMobileState
                       icon: Icons.account_balance_wallet_outlined,
                       title: "Payment Methods",
                       subtitle: "Saved cards and digital wallets",
-                      onTap: () {},
+                      enabled: false,
                     ),
                   ],
                 ),
@@ -300,19 +319,158 @@ class _ProfileCustomerMobileState
     );
   }
 
+  void _showPersonalInfoDialog() {
+    final nameCtrl = TextEditingController(text: _userModel?.name ?? _account?.name ?? '');
+    final phoneCtrl = TextEditingController(text: _userModel?.phone ?? '');
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Personal Information'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameCtrl,
+              decoration: const InputDecoration(labelText: 'Nama Lengkap'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: phoneCtrl,
+              decoration: const InputDecoration(labelText: 'Nomor Telepon'),
+              keyboardType: TextInputType.phone,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await AuthServiceAppwrite().updateUserData({
+                  'name': nameCtrl.text.trim(),
+                  'phone': phoneCtrl.text.trim(),
+                });
+                if (!ctx.mounted) return;
+                Navigator.pop(ctx);
+                _loadUser();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Profil tersimpan'), backgroundColor: Colors.green),
+                );
+              } catch (e) {
+                if (!ctx.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Gagal: $e'), backgroundColor: Colors.red),
+                );
+              }
+            },
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddressDialog() {
+    final addressCtrl = TextEditingController(text: _userModel?.shippingAddress ?? '');
+    final cityCtrl = TextEditingController(text: _userModel?.shippingCity ?? '');
+    final provinceCtrl = TextEditingController(text: _userModel?.shippingProvince ?? '');
+    final postalCtrl = TextEditingController(text: _userModel?.shippingPostalCode ?? '');
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Address Book'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: addressCtrl,
+              decoration: const InputDecoration(labelText: 'Alamat Lengkap'),
+              maxLines: 2,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: cityCtrl,
+              decoration: const InputDecoration(labelText: 'Kota'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: provinceCtrl,
+              decoration: const InputDecoration(labelText: 'Provinsi'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: postalCtrl,
+              decoration: const InputDecoration(labelText: 'Kode Pos'),
+              keyboardType: TextInputType.number,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await AuthServiceAppwrite().updateUserData({
+                  'shippingAddress': addressCtrl.text.trim(),
+                  'shippingCity': cityCtrl.text.trim(),
+                  'shippingProvince': provinceCtrl.text.trim(),
+                  'shippingPostalCode': postalCtrl.text.trim(),
+                });
+                if (!ctx.mounted) return;
+                Navigator.pop(ctx);
+                _loadUser();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Alamat tersimpan'), backgroundColor: Colors.green),
+                );
+              } catch (e) {
+                if (!ctx.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Gagal: $e'), backgroundColor: Colors.red),
+                );
+              }
+            },
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _menuItem({
     required IconData icon,
     required String title,
     required String subtitle,
-    required VoidCallback onTap,
+    bool enabled = true,
+    VoidCallback? onTap,
   }) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      leading: Icon(icon, color: Colors.black54),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: onTap,
+      leading: Icon(icon, color: enabled ? Colors.black54 : Colors.black26),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: enabled ? Colors.black : Colors.black38,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(
+          fontSize: 12,
+          color: enabled ? null : Colors.black26,
+        ),
+      ),
+      trailing: Icon(
+        Icons.chevron_right,
+        color: enabled ? null : Colors.black26,
+      ),
+      onTap: enabled ? onTap : null,
     );
   }
 }
