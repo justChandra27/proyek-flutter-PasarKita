@@ -19,7 +19,7 @@ class ProductServiceAppwrite {
     final result = await databases.listDocuments(
       databaseId: AppwriteConfig.databaseId,
       collectionId: AppwriteConfig.productsCollectionId,
-      queries: [Query.limit(100)],
+      queries: [Query.limit(5000)],
     );
 
     return result.documents.map((doc) {
@@ -44,7 +44,7 @@ class ProductServiceAppwrite {
     final result = await databases.listDocuments(
       databaseId: AppwriteConfig.databaseId,
       collectionId: AppwriteConfig.productsCollectionId,
-      queries: [Query.equal('active', true), Query.limit(100)],
+      queries: [Query.equal('active', true), Query.limit(5000)],
     );
 
     return result.documents.map((doc) {

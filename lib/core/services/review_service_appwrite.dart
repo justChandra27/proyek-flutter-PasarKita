@@ -52,7 +52,7 @@ class ReviewServiceAppwrite {
       queries: [
         Query.equal('productId', productId),
         Query.orderDesc('\$createdAt'),
-        Query.limit(100),
+        Query.limit(5000),
       ],
     );
     return result.documents
@@ -95,7 +95,7 @@ class ReviewServiceAppwrite {
     final result = await databases.listDocuments(
       databaseId: AppwriteConfig.databaseId,
       collectionId: AppwriteConfig.reviewsCollectionId,
-      queries: [Query.equal('productId', productId), Query.limit(100)],
+      queries: [Query.equal('productId', productId), Query.limit(5000)],
     );
 
     if (result.documents.isEmpty) {

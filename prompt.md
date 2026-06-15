@@ -1,72 +1,54 @@
-﻿# Production Readiness Batch 1 Report
+﻿# Order Service Scalability Audit
 
-## Files Modified (7 files)
+## Caller Map
 
-| # | File | Method(s) | Change |
-|---|------|-----------|--------|
-| 1 | `lib/core/services/auth_service_appwrite.dart` | `login()`, `getCurrentUserData()`, `updateUserData()` | +`Query.limit(1)` |
-| 2 | `lib/core/services/category_service_appwrite.dart` | `getAllCategories()` | +`Query.limit(5000)` |
-| 3 | `lib/core/services/notification_service_appwrite.dart` | `getNotifications()`, `markAllAsRead()` | +`Query.limit(5000)` |
-| 4 | `lib/core/services/stock_lock_service.dart` | `releaseAllLocks()` | +`Query.limit(5000)` |
-| 5 | `lib/presentation/admin/users/form_pengguna_web.dart` | `loadUsers()` | +`Query.limit(5000)` |
-| 6 | `lib/presentation/admin/categories/form_kategori_web.dart` | `loadCategories()` | +`Query.limit(5000)` |
-| 7 | `lib/presentation/admin/verification/form_verifikasi_web.dart` | `getPendingUsers()` | +`Query.limit(5000)` |
+### `OrderServiceAppwrite.getOrders()` (line 22)
 
-## Query Changes Detail
+| Caller | File | Tujuan |
+|--------|------|--------|
+| **Tidak ada** | — | Dead code — tidak dipanggil oleh screen/service mana pun |
 
-### AuthServiceAppwrite (3 methods)
-- **`login()`** — `[equal('username', username), limit(1)]`
-- **`getCurrentUserData()`** — `[equal('email', email), limit(1)]`
-- **`updateUserData()`** — `[equal('uid', uid), limit(1)]`
+### `OrderServiceAppwrite.getOrderItems(String orderId)` (line 295)
 
-Semua field unique — `limit(1)` mencegah silent truncation di >25 user.
+| # | Caller | File:Line | Tujuan | Role |
+|---|--------|-----------|--------|------|
+| 1 | `_loadData` | `lib/presentation/checkout/success_page.dart:51` | Menampilkan item order di halaman sukses checkout | Customer |
+| 2 | `_loadOrderDetail` | `lib/presentation/customer/orders/detail_pesanan_customer.dart:31` | Menampilkan detail item di halaman detail pesanan | Customer |
+| 3 | `updateOrderStatus` | `lib/core/services/order_service_appwrite.dart:381` | Verifikasi kepemilikan seller sebelum update status | Seller |
+| 4 | `updateOrderStatus` (completed) | `lib/core/services/order_service_appwrite.dart:470` | Ambil items untuk update `soldCount` + `addEarnings` | Seller/System |
+| 5 | `updateOrderStatus` (cancelled) | `lib/core/services/order_service_appwrite.dart:528` | Ambil items untuk restock | Seller/System |
 
-### CategoryServiceAppwrite
-- **`getAllCategories()`** — `[limit(5000)]` menggantikan default limit 25.
-  Dipakai di: seller product form (web+mobile), product create form, customer dashboard.
+## Current State
 
-### NotificationServiceAppwrite (2 methods)
-- **`getNotifications()`** — `[equal('userId'), orderDesc('$createdAt'), limit(5000)]`
-- **`markAllAsRead()`** — `[equal('userId'), equal('isRead', false), limit(5000)]`
+### `getOrders()`
+- **Query:** `listDocuments(ordersCollectionId)` — tanpa limit, tanpa filter.
+- **Limit default:** 25 (Appwrite SDK default).
+- **External caller:** **Tidak ada** — method ini dead code.
+- **Verdict:** Hanya perlu `limit(5000)` untuk jaga-jaga jika dipakai di masa depan.
 
-Mencegah notifikasi pengguna terpotong di 25.
+### `getOrderItems(String orderId)`
+- **Query:** `listDocuments(orderItemsCollectionId, [equal('orderId', orderId)])` — tanpa limit.
+- **Limit default:** 25.
+- **Data scope:** Scoped ke satu `orderId` — satu order biasanya 1-20 items.
+- **Risiko:** Sangat rendah — order dengan >25 items sangat jarang.
+- **Verdict:** Cukup `limit(5000)` — cursor pagination tidak diperlukan karena query sudah spesifik per order.
 
-### StockLockService
-- **`releaseAllLocks(String sessionId)`** — `[equal('sessionId'), limit(5000)]`
-  Mencegah stock lock tidak ter-release karena hasil terpotong.
+## Recommended Fix
 
-### FormPenggunaWeb
-- **`loadUsers()`** — queries sekarang selalu berisi `[limit(5000), ...roleFilter]`.
-  Sebelumnya `queries` bisa `null` → default 25.
+| Method | Fix | Alasan |
+|--------|-----|--------|
+| `getOrders()` | `Query.limit(5000)` | Dead code — minimal guard |
+| `getOrderItems()` | `Query.limit(5000)` | Scoped per order — sangat jarang >25 items |
 
-### FormKategoriWeb
-- **`loadCategories()`** — `[limit(5000)]` menggantikan default 25.
+## Files To Modify
 
-### FormVerifikasiWeb
-- **`getPendingUsers()`** — `[equal('status', 'pending'), limit(5000)]` menggantikan default 25.
+1. `lib/core/services/order_service_appwrite.dart` — 2 method
 
 ## Risks
 
-- Tidak ada risiko. Semua perubahan hanya menambah `Query.limit()` pada query yang sebelumnya tanpa limit. Tidak ada perubahan logika bisnis, database schema, atau data flow.
-- `FormPenggunaWeb.loadUsers()` sebelumnya passing `null` sebagai queries saat filter kosong → sekarang selalu array. Appwrite `listDocuments` dengan `queries: []` ekuivalen dengan `queries: null`, jadi aman.
+- Tidak ada risiko. `getOrderItems()` sudah scoped per `orderId`. `getOrders()` adalah dead code.
+- Performa tetap aman karena data per order dibatasi oleh `orderId`.
 
-## Manual Testing Checklist
+## Prioritas
 
-- [ ] Login dengan username valid masih berhasil
-- [ ] Login dengan username tidak valid tetap menampilkan "Username tidak ditemukan"
-- [ ] Profil customer/seller/admin masih tampil
-- [ ] Update profil masih berfungsi
-- [ ] Kategori masih muncul di seller form web & mobile
-- [ ] Kategori muncul di customer dashboard filter
-- [ ] Notifikasi user masih tampil
-- [ ] Mark all as read masih berfungsi
-- [ ] Checkout masih berfungsi (stock lock)
-- [ ] Admin users page masih menampilkan semua user
-- [ ] Admin categories page masih menampilkan semua kategori
-- [ ] Admin verification page masih menampilkan pending users
-
-## flutter analyze
-
-```
-25 issues — 0 error, 1 warning, 24 info (semua pre-existing)
-```
+**Rendah** — Tidak ada dampak langsung ke user. Bisa dikerjakan bersamaan Batch 3 sederhana.
