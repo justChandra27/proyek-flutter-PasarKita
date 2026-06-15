@@ -259,7 +259,9 @@ class _FormProdukSellerWebState extends State<FormProdukSellerWeb> {
                           const SizedBox(width: 10),
 
                           DropdownButton<String>(
-                            value: selectedCategory,
+                            value: selectedCategory == 'Semua' || (!_isLoadingCategories && _categories.any((c) => c.name == selectedCategory))
+                                ? selectedCategory
+                                : 'Semua',
                             items: [
                               const DropdownMenuItem(
                                 value: 'Semua',
