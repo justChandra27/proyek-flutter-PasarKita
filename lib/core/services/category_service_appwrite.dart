@@ -13,6 +13,7 @@ class CategoryServiceAppwrite {
     final result = await databases.listDocuments(
       databaseId: AppwriteConfig.databaseId,
       collectionId: AppwriteConfig.categoriesCollectionId,
+      queries: [Query.limit(5000)],
     );
 
     return result.documents

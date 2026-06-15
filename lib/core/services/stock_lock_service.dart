@@ -113,6 +113,7 @@ class StockLockService {
         collectionId: AppwriteConfig.stockLocksCollectionId,
         queries: [
           Query.equal('sessionId', sessionId),
+          Query.limit(5000),
         ],
       );
       for (final doc in result.documents) {

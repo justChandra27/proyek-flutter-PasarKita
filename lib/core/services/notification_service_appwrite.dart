@@ -39,6 +39,7 @@ class NotificationServiceAppwrite {
       queries: [
         Query.equal('userId', userId),
         Query.orderDesc('\$createdAt'),
+        Query.limit(5000),
       ],
     );
 
@@ -107,6 +108,7 @@ class NotificationServiceAppwrite {
       queries: [
         Query.equal('userId', userId),
         Query.equal('isRead', false),
+        Query.limit(5000),
       ],
     );
     for (final doc in unread.documents) {

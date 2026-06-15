@@ -68,7 +68,10 @@ class AuthServiceAppwrite {
       final result = await databases.listDocuments(
         databaseId: AppwriteConfig.databaseId,
         collectionId: AppwriteConfig.usersCollectionId,
-        queries: [Query.equal('username', username.toLowerCase())],
+        queries: [
+          Query.equal('username', username.toLowerCase()),
+          Query.limit(1),
+        ],
       );
 
       if (result.documents.isEmpty) {
@@ -129,7 +132,10 @@ class AuthServiceAppwrite {
       final result = await databases.listDocuments(
         databaseId: AppwriteConfig.databaseId,
         collectionId: AppwriteConfig.usersCollectionId,
-        queries: [Query.equal('email', user.email)],
+        queries: [
+          Query.equal('email', user.email),
+          Query.limit(1),
+        ],
       );
       if (result.documents.isEmpty) return null;
       return result.documents.first.data;
@@ -148,7 +154,10 @@ class AuthServiceAppwrite {
       final result = await databases.listDocuments(
         databaseId: AppwriteConfig.databaseId,
         collectionId: AppwriteConfig.usersCollectionId,
-        queries: [Query.equal('uid', user.$id)],
+        queries: [
+          Query.equal('uid', user.$id),
+          Query.limit(1),
+        ],
       );
       if (result.documents.isEmpty) return;
       final docId = result.documents.first.$id;

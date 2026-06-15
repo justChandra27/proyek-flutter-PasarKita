@@ -152,7 +152,7 @@ class _FormPenggunaWebState extends State<FormPenggunaWeb> {
   }
 
   Future<void> loadUsers() async {
-    final queries = <String>[];
+    final queries = <String>[Query.limit(5000)];
     if (_roleFilter != null) {
       queries.add(Query.equal('role', _roleFilter!));
     }
@@ -161,7 +161,7 @@ class _FormPenggunaWebState extends State<FormPenggunaWeb> {
       final result = await databases.listDocuments(
         databaseId: AppwriteConfig.databaseId,
         collectionId: AppwriteConfig.usersCollectionId,
-        queries: queries.isNotEmpty ? queries : null,
+        queries: queries,
       );
 
       allUsers = result.documents

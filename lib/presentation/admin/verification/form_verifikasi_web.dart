@@ -23,7 +23,10 @@ class _FormVerifikasiWebState extends State<FormVerifikasiWeb> {
       final result = await databases.listDocuments(
         databaseId: AppwriteConfig.databaseId,
         collectionId: AppwriteConfig.usersCollectionId,
-        queries: [Query.equal('status', 'pending')],
+        queries: [
+          Query.equal('status', 'pending'),
+          Query.limit(5000),
+        ],
       );
 
       yield result.documents.map((e) => {...e.data, '\$id': e.$id}).toList();
