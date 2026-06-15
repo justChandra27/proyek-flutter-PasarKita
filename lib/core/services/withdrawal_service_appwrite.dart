@@ -6,6 +6,7 @@ import '../appwrite/appwrite_config.dart';
 import '../appwrite/appwrite_service.dart';
 import '../../data/models/withdrawal_model.dart';
 import 'balance_service_appwrite.dart';
+import 'notification_service_appwrite.dart';
 import 'stock_lock_service.dart';
 
 class WithdrawalServiceAppwrite {
@@ -150,6 +151,14 @@ class WithdrawalServiceAppwrite {
           'processed_by': adminId,
         },
       );
+
+      await NotificationServiceAppwrite().createNotification(
+        userId: sellerId,
+        title: 'Penarikan Disetujui',
+        message: 'Penarikan saldo sebesar Rp ${_formatAmount(freshAmount)} telah disetujui dan sedang diproses.',
+        type: 'withdrawal',
+        orderId: '',
+      );
     } finally {
       await lockService.releaseLock(
         productId: 'balance:$sellerId',
@@ -172,6 +181,8 @@ class WithdrawalServiceAppwrite {
     if (status != 'pending') {
       throw Exception('Withdrawal sudah diproses');
     }
+    final sellerId = doc.data['sellerId'] as String? ?? '';
+    final amount = (doc.data['amount'] as num?)?.toInt() ?? 0;
     final now = DateTime.now().toIso8601String();
     await _db.updateDocument(
       databaseId: AppwriteConfig.databaseId,
@@ -184,5 +195,25 @@ class WithdrawalServiceAppwrite {
         'processed_by': adminId,
       },
     );
+
+    await NotificationServiceAppwrite().createNotification(
+      userId: sellerId,
+      title: 'Penarikan Ditolak',
+      message: 'Penarikan saldo sebesar Rp ${_formatAmount(amount)} ditolak.\nAlasan: $note',
+      type: 'withdrawal',
+      orderId: '',
+    );
+  }
+
+  String _formatAmount(int amount) {
+    final str = amount.toString();
+    final parts = <String>[];
+    int end = str.length;
+    while (end > 0) {
+      final start = (end - 3).clamp(0, end);
+      parts.insert(0, str.substring(start, end));
+      end = start;
+    }
+    return parts.join('.');
   }
 }

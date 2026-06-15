@@ -1,47 +1,62 @@
-﻿# Withdrawal Rejection Reason Fix Report
+﻿# Withdrawal Notification Implementation Report
+
+## Existing Notification Pattern
+
+`NotificationServiceAppwrite.createNotification()` requires: `userId`, `title`, `message`, `type`, `orderId`. Used by `OrderServiceAppwrite.updateOrderStatus()` with `type: 'status_update'` and a real `orderId`. Withdrawal has no order — passes `orderId: ''` (valid since `NotificationModel.orderId` defaults to `''`).
+
+New type value: `'withdrawal'` (safe — `NotificationModel.type` is a free String).
 
 ## Files Modified
 
 | File | Change |
 |---|---|
-| `lib/presentation/seller/withdrawal/withdrawal_page.dart` (line 313) | Appended `adminNote` to `ListTile` subtitle when `status == 'rejected'` and `adminNote.isNotEmpty` |
+| `lib/core/services/withdrawal_service_appwrite.dart` | Added `import 'notification_service_appwrite.dart'`; added `_formatAmount()` helper; added `createNotification()` call in `approveWithdrawal()` and `rejectWithdrawal()`; extracted `sellerId`/`amount` in `rejectWithdrawal()` |
 
-## Before
+## Approval Notification
 
-```
-subtitle: Text(
-  '${item.bankName} - ${item.bankAccount}\n${_statusLabel(item.status)}',
-),
-```
+Added inside `approveWithdrawal()` after the document update + balance deduction (inside the `try` block, before `finally`):
 
-Seller saw:
-```
-BCA - 123456
-Ditolak
-```
-
-## After
-
-```
-subtitle: Text(
-  '${item.bankName} - ${item.bankAccount}\n${_statusLabel(item.status)}'
-  '${item.status == 'rejected' && item.adminNote.isNotEmpty ? '\nAlasan Penolakan: ${item.adminNote}' : ''}',
-),
+```dart
+await NotificationServiceAppwrite().createNotification(
+  userId: sellerId,
+  title: 'Penarikan Disetujui',
+  message: 'Penarikan saldo sebesar Rp X telah disetujui dan sedang diproses.',
+  type: 'withdrawal',
+  orderId: '',
+);
 ```
 
-Seller now sees (when rejected with reason):
-```
-BCA - 123456
-Ditolak
-Alasan Penolakan: Saldo tidak mencukupi minimum penarikan
+- Uses `sellerId` (line 93) and `freshAmount` (line 113) already extracted from the withdrawal doc
+- Sent only after successful approval + balance deduction
+- No flow changes to approval logic
+
+## Rejection Notification
+
+Added inside `rejectWithdrawal()` after the document update:
+
+```dart
+await NotificationServiceAppwrite().createNotification(
+  userId: sellerId,
+  title: 'Penarikan Ditolak',
+  message: 'Penarikan saldo sebesar Rp X ditolak.\nAlasan: $note',
+  type: 'withdrawal',
+  orderId: '',
+);
 ```
 
-Approved/pending items are unchanged. Items with empty `adminNote` are unchanged.
+- `sellerId` and `amount` extracted from withdrawal doc (new lines added)
+- `note` is the rejection reason already passed to the method
+- Sent only after successful document update
+- No flow changes to rejection logic
+
+## Risks
+
+- `NotificationServiceAppwrite.createNotification()` is called inside the lock-protected section of `approveWithdrawal()`. If the notification service is down, the lock remains held for the full TTL (10s). Acceptable since the notification is sent after all critical DB updates are complete.
+- `orderId: ''` is passed for withdrawal notifications — this is consistent with the model default and doesn't break any existing query.
 
 ## Manual Testing Checklist
 
-- [ ] Withdrawal with `status: 'rejected'` and non-empty `adminNote` → shows "Alasan Penolakan: ..." in subtitle
-- [ ] Withdrawal with `status: 'rejected'` and empty `adminNote` → no extra line (same as before)
-- [ ] Withdrawal with `status: 'approved'` → no extra line (same as before)
-- [ ] Withdrawal with `status: 'pending'` → no extra line (same as before)
+- [ ] Admin approves withdrawal → seller receives notification "Penarikan Disetujui" with amount
+- [ ] Admin rejects withdrawal with reason → seller receives notification "Penarikan Ditolak" with amount + reason
+- [ ] Notification appears in seller's notification list (`type: 'withdrawal'`)
 - [ ] `flutter analyze` — 0 errors, 0 new issues
