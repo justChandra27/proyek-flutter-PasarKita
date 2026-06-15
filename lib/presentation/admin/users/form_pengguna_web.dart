@@ -21,7 +21,7 @@ class _FormPenggunaWebState extends State<FormPenggunaWeb> {
   List<UserModel> allUsers = [];
   List<UserModel> filteredUsers = [];
   bool isLoading = true;
-  String? _roleFilter;
+  String _roleFilter = '';
 
   @override
   void initState() {
@@ -153,8 +153,8 @@ class _FormPenggunaWebState extends State<FormPenggunaWeb> {
 
   Future<void> loadUsers() async {
     final queries = <String>[Query.limit(5000)];
-    if (_roleFilter != null) {
-      queries.add(Query.equal('role', _roleFilter!));
+    if (_roleFilter.isNotEmpty) {
+      queries.add(Query.equal('role', _roleFilter));
     }
 
     try {
@@ -319,7 +319,7 @@ class _FormPenggunaWebState extends State<FormPenggunaWeb> {
                                     ],
                                   ),
                                 ),
-                                PopupMenuButton<String?>(
+                                PopupMenuButton<String>(
                                   initialValue: _roleFilter,
                                   onSelected: (v) {
                                     setState(() => _roleFilter = v);
@@ -328,15 +328,15 @@ class _FormPenggunaWebState extends State<FormPenggunaWeb> {
                                   child: OutlinedButton.icon(
                                     onPressed: null,
                                     icon: const Icon(Icons.filter_list),
-                                    label: Text(_roleFilter ?? "Filter"),
+                                    label: Text(_roleFilter.isEmpty ? "Filter" : _roleFilter),
                                   ),
                                   itemBuilder: (_) => [
                                     PopupMenuItem(
-                                      value: null,
+                                      value: '',
                                       child: Text(
                                         "Semua",
                                         style: TextStyle(
-                                          fontWeight: _roleFilter == null
+                                          fontWeight: _roleFilter.isEmpty
                                               ? FontWeight.bold
                                               : null,
                                         ),

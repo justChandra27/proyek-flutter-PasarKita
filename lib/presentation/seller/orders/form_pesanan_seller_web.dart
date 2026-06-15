@@ -172,9 +172,8 @@ class _FormPesananSellerWebState
       }
 
       if (_filterMinTotal != null || _filterMaxTotal != null) {
-        final total = _subtotal(entry);
-        if (_filterMinTotal != null && total < _filterMinTotal!) return false;
-        if (_filterMaxTotal != null && total > _filterMaxTotal!) return false;
+        if (_filterMinTotal != null && order.totalAmount < _filterMinTotal!) return false;
+        if (_filterMaxTotal != null && order.totalAmount > _filterMaxTotal!) return false;
       }
 
       return true;
@@ -186,10 +185,10 @@ class _FormPesananSellerWebState
             .compareTo((b['order'] as OrderModel).createdAt));
         break;
       case 'total_tertinggi':
-        result.sort((a, b) => _subtotal(b).compareTo(_subtotal(a)));
+        result.sort((a, b) => (b['order'] as OrderModel).totalAmount.compareTo((a['order'] as OrderModel).totalAmount));
         break;
       case 'total_terendah':
-        result.sort((a, b) => _subtotal(a).compareTo(_subtotal(b)));
+        result.sort((a, b) => (a['order'] as OrderModel).totalAmount.compareTo((b['order'] as OrderModel).totalAmount));
         break;
       default:
         result.sort((a, b) => (b['order'] as OrderModel).createdAt

@@ -1,213 +1,218 @@
-﻿MODE: AUDIT
+﻿MODE: IMPLEMENT
 
 Proyek: PasarKita Flutter
 
-Jangan mengubah source code.
+Jangan membuat migration.
+Jangan mengubah database.
+Jangan mengubah API Appwrite.
 
-Fokus audit hanya pada fitur Seller → Produk Saya → Search Kategori.
+Fokus:
 
-Lakukan verifikasi end-to-end:
+Seller → Pesanan → Konsistensi Filter dan Sorting Total Pesanan
 
-1. Telusuri data flow kategori:
-   - Appwrite products collection
-   - ProductServiceAppwrite
-   - ProductModel.fromMap()
-   - Seller Product Builder
-   - Form Produk Seller
+KONDISI SAAT INI
 
-2. Verifikasi field yang digunakan saat search:
-   - apakah categoryName
-   - category
-   - categoryId
-   - categoryIds
-   - relasi kategori
+Filter Total Pesanan sudah menggunakan:
 
-3. Pastikan nilai yang dicari user sama dengan nilai yang ada pada ProductModel.
-
-4. Tunjukkan kode exact yang melakukan pencarian kategori.
-
-5. Simulasikan:
-   - kategori = "Makanan"
-   - user search = "makanan"
-
-6. Jika search kategori gagal:
-   - tunjukkan akar masalah
-   - file
-   - baris
-   - contoh data yang menyebabkan gagal
-
-7. Berikan status akhir:
-   - BENAR-BENAR BERFUNGSI
-   - BERFUNGSI SEBAGIAN
-   - TIDAK BERFUNGSI
-
-Jangan hanya membaca kondisi if/where.
-Verifikasi seluruh data flow dari database sampai UI.
-
-# berikan hasil auditnya di file prompt.md
-
----
-
-## HASIL AUDIT — Search Kategori Seller → Produk Saya
-
-### STATUS AKHIR: ✅ **BENAR-BENAR BERFUNGSI**
-
-Search kategori bekerja end-to-end dari database Appwrite sampai UI.
-
----
-
-### 1. DATA FLOW LENGKAP
-
-```
-Appwrite Products Collection (field: 'category' = String)
-  │
-  ▼
-ProductServiceAppwrite.getSellerProducts(sellerId)
-  └─ Query: [Query.equal('sellerId', sellerId), Query.limit(5000)]
-  └─ File: lib/core/services/product_service_appwrite.dart:106-116
-  │
-  ▼
-ProductModel.fromMap(id, doc.data)
-  └─ category: data['category'] ?? ''
-  └─ File: lib/data/models/product_model.dart:53
-  │
-  ▼
-SellerProductBuilder (FutureBuilder)
-  └─ Future<ProductServiceAppwrite().getSellerProducts(sellerId)>
-  └─ builder callback → List<ProductModel>
-  └─ File: lib/presentation/seller/products/widgets/seller_product_builder.dart:43-72
-  │
-  ▼
-FormProdukSellerWeb / FormProdukSellerMobile
-  └─ .where() → filter client-side
-  └─ product.name.toLowerCase().contains(searchQuery)
-     || product.category.toLowerCase().contains(searchQuery)
-  └─ File: form_produk_seller_web.dart:316-336
-  └─ File: form_produk_seller_mobile.dart:281-304
-```
-
----
-
-### 2. FIELD YANG DIGUNAKAN SAAT SEARCH
-
-| Field | Ada di model? | Digunakan? | Tipe |
-|-------|:---:|:---:|------|
-| `category` | ✅ YA | ✅ YA | `String` — nama kategori (e.g., "Makanan") |
-| `categoryName` | ❌ TIDAK | ❌ TIDAK | — |
-| `categoryId` | ❌ TIDAK | ❌ TIDAK | — |
-| `categoryIds` | ❌ TIDAK | ❌ TIDAK | — |
-| relasi (relation) | ❌ TIDAK | ❌ TIDAK | — |
-
-**Kesimpulan:** Hanya field `category` (string plain, menyimpan **nama** kategori, bukan ID).
-
----
-
-### 3. KODE EXACT YANG MELAKUKAN PENCARIAN KATEGORI
-
-**Web** — `form_produk_seller_web.dart:316-336`:
 ```dart
-final filteredProducts = products.where((product) {
-  final name = product.name.toLowerCase();
-  final category = product.category.toLowerCase();
-  final matchSearch = name.contains(searchQuery) || category.contains(searchQuery);
-  final matchStatus = selectedStatus == 'Semua'
-      ? true
-      : selectedStatus == 'Aktif'
-      ? product.active
-      : !product.active;
-  final matchCategory = selectedCategory == 'Semua'
-      ? true
-      : product.category == selectedCategory;
-  return matchSearch && matchStatus && matchCategory;
-}).toList();
+order.totalAmount
 ```
 
-**Mobile** — `form_produk_seller_mobile.dart:281-304`:
+Namun sorting masih menggunakan:
+
 ```dart
-var filteredProducts = products.where((product) {
-  if (_searchQuery.isNotEmpty) {
-    final name = product.name.toLowerCase();
-    final category = product.category.toLowerCase();
-    if (!name.contains(_searchQuery) && !category.contains(_searchQuery)) {
-      return false;
-    }
-  }
-  if (_selectedFilter == 'aktif' && !product.active) return false;
-  if (_selectedFilter == 'nonaktif' && product.active) return false;
-  if (_selectedCategory.isNotEmpty && product.category != _selectedCategory) return false;
-  return true;
-}).toList();
+_subtotal(entry)
 ```
+
+Akibatnya:
+
+* Filter dan sorting memakai field berbeda
+* User dapat melihat hasil yang tidak sesuai ekspektasi
+* UX menjadi membingungkan
+
+TUGAS
+
+1. Temukan implementasi sorting:
+
+```dart
+case 'total_tertinggi'
+case 'total_terendah'
+```
+
+di:
+
+```text
+lib/presentation/seller/orders/form_pesanan_seller_web.dart
+```
+
+2. Ubah sorting agar menggunakan:
+
+```dart
+order.totalAmount
+```
+
+dan bukan:
+
+```dart
+_subtotal(entry)
+```
+
+3. Pastikan implementasi baru:
+
+Sebelum:
+
+```dart
+result.sort((a, b) => _subtotal(b).compareTo(_subtotal(a)));
+```
+
+Sesudah (contoh):
+
+```dart
+final orderA = a['order'] as OrderModel;
+final orderB = b['order'] as OrderModel;
+
+result.sort(
+  (a, b) => orderB.totalAmount.compareTo(orderA.totalAmount),
+);
+```
+
+Lakukan hal yang sama untuk:
+
+```dart
+total_tertinggi
+total_terendah
+```
+
+4. Jangan mengubah:
+
+* search
+* filter status
+* filter tanggal
+* export CSV
+* dashboard analytics
+
+5. Setelah implementasi lakukan audit:
+
+Verifikasi field berikut:
+
+| Fitur                | Field |
+| -------------------- | ----- |
+| Filter Total Pesanan | ?     |
+| Sort Total Tertinggi | ?     |
+| Sort Total Terendah  | ?     |
+
+Target:
+
+Semuanya harus menggunakan:
+
+```dart
+order.totalAmount
+```
+
+6. Lakukan simulasi:
+
+Data:
+
+* Order A = Rp350.000
+* Order B = Rp75.000
+* Order C = Rp600.000
+
+Verifikasi:
+
+* Sort tertinggi → C, A, B
+* Sort terendah → B, A, C
+* Filter min/max tetap bekerja
+
+7. Output hasil implementasi ke prompt.md:
+
+* file yang diubah
+* baris yang diubah
+* sebelum vs sesudah
+* hasil simulasi
+* hasil flutter analyze
+
+Jangan mengubah file lain di luar scope ini.
 
 ---
 
-### 4. PEMBUKTIAN NILAI category = NAMA KATEGORI (BUKAN ID)
+# IMPLEMENTASI: Konsistensi Sorting Total Pesanan
 
-**Saat menyimpan produk** — `product_form_page.dart:393-420` (web) / `699-730` (mobile):
+## File yang Diubah
+
+`lib/presentation/seller/orders/form_pesanan_seller_web.dart`
+
+## Baris yang Diubah
+
+**Line 187–192** — sorting `total_tertinggi` dan `total_terendah`.
+
+### Sebelum
 ```dart
-DropdownButtonFormField<String>(
-  items: _categories.map((cat) {
-    return DropdownMenuItem<String>(
-      value: cat.name,    // ← NAMA kategori disimpan sebagai value
-      child: Text(cat.name),
-    );
-  }).toList(),
-  ...
-)
+case 'total_tertinggi':
+  result.sort((a, b) => _subtotal(b).compareTo(_subtotal(a)));
+  break;
+case 'total_terendah':
+  result.sort((a, b) => _subtotal(a).compareTo(_subtotal(b)));
+  break;
 ```
 
-**Saat POST ke Appwrite** — `product_form_page.dart:166`:
+### Sesudah
 ```dart
-final category = _selectedCategory ?? '';
+case 'total_tertinggi':
+  result.sort((a, b) => (b['order'] as OrderModel).totalAmount.compareTo((a['order'] as OrderModel).totalAmount));
+  break;
+case 'total_terendah':
+  result.sort((a, b) => (a['order'] as OrderModel).totalAmount.compareTo((b['order'] as OrderModel).totalAmount));
+  break;
 ```
-Dikirim ke `ProductServiceAppwrite.addProduct()` → `'category': category` (line 144) sebagai string nama.
 
-**Saat read dari Appwrite** — `product_model.dart:53`:
-```dart
-category: data['category'] ?? '',
-```
-Langsung digunakan untuk search tanpa transformasi ID-to-name.
-
-**Kesimpulan:** Tidak ada lookup/join/relasi. Category disimpan sebagai **string nama** di Appwrite, dibaca langsung sebagai string, dan dicocokkan dengan `.toLowerCase().contains()`.
+### Perubahan Logika
+| Sorting | Sebelum | Sesudah |
+|---|---|---|
+| total_tertinggi | `_subtotal(b) vs _subtotal(a)` | `(b['order']).totalAmount vs (a['order']).totalAmount` |
+| total_terendah | `_subtotal(a) vs _subtotal(b)` | `(a['order']).totalAmount vs (b['order']).totalAmount` |
 
 ---
 
-### 5. SIMULASI: kategori = "Makanan", user search = "makanan"
+## Verifikasi — `flutter analyze`
 
-| Langkah | Operasi | Hasil |
-|---------|---------|-------|
-| Data di Appwrite | `category: "Makanan"` | — |
-| `ProductModel.category` | `"Makanan"` (dari `data['category']`) | ✅ |
-| Search input user | `"makanan"` | — |
-| `.toLowerCase()` pada model | `"Makanan".toLowerCase()` = `"makanan"` | ✅ |
-| `.toLowerCase()` pada query | `"makanan"` (sudah lower) | ✅ |
-| `.contains()` | `"makanan".contains("makanan")` | **`true` ✅** |
-
-**Hasil:** Produk dengan kategori "Makanan" **MUNCUL** di hasil search. ✅
+✅ Tidak ada error atau warning baru (hanya 2 info pre-existing: deprecated `dart:html`).
 
 ---
 
-### 6. POTENSI MASALAH (BUKAN BUG SEARCH, TAPI DESIGN CONCERN)
+## Verifikasi Konsistensi Field
 
-| Issue | Detail | Dampak |
-|-------|--------|--------|
-| **No trim()** | `cat.name` tidak di-trim saat simpan (`product_form_page.dart:403`), juga tidak saat read (`product_model.dart:53`). Jika ada trailing space di DB, filter **exact match** (`product.category == selectedCategory`) bisa gagal. | **MEDIUM** — Filter kategori (bukan search) |
-| **Plain string, bukan ID** | Karena kategori disimpan sebagai **nama string**, jika admin rename kategori di collection `categories`, produk lawas tetap pakai nama lama. Tidak ada mekanisme migrasi. | **LOW** — Konsistensi data jangka panjang |
-| **Case sensitivity filter** | Filter kategori exact match (`==`) bersifat **case-sensitive**. `"Makanan" == "makanan"` = **false** ❌. Di search aman karena pakai `.toLowerCase()`. | **MEDIUM** — Filter kategori case-sensitive |
-| **Search mencakup nama + kategori** | `name.contains(searchQuery) || category.contains(searchQuery)`. Jika user search "Makanan", produk dengan nama mengandung "Makanan" juga ikut muncul. Ini **bukan bug** — intended behavior. | Bukan bug |
+| Fitur | Field | Status |
+|---|---|---|
+| Filter Total Pesanan | `order.totalAmount` | ✅ Sudah konsisten |
+| Sort Total Tertinggi | `order.totalAmount` | ✅ **Sekarang konsisten** |
+| Sort Total Terendah | `order.totalAmount` | ✅ **Sekarang konsisten** |
 
 ---
 
-### 7. KESIMPULAN
+## Simulasi
 
-| Aspek | Status |
-|-------|--------|
-| Search kategori by nama | ✅ BERFUNGSI |
-| Case-insensitive search | ✅ BERFUNGSI (via `.toLowerCase()`) |
-| Partial match / substring | ✅ BERFUNGSI (via `.contains()`) |
-| Kombinasi search + filter lain | ✅ BERFUNGSI |
-| Flow data dari DB sampai UI | ✅ LENGKAP & SEMPURNA |
-| Field `category` vs `categoryId` | ✅ Menggunakan field yang benar (`category`) |
-| **Search kategori** | **BENAR-BENAR BERFUNGSI** ✅ |
+Data:
+- Order A = Rp350.000
+- Order B = Rp75.000
+- Order C = Rp600.000
 
-**Tidak ada bug pada search kategori.** Calon masalah yang teridentifikasi (`no trim()`, `case-sensitive filter`) berada di **filter exact match**, bukan di search. Search menggunakan `toLowerCase().contains()` sudah benar dan aman.
+### Sort Total Tertinggi
+| Urutan | Order | totalAmount |
+|---|---|---|
+| 1 | C | Rp600.000 |
+| 2 | A | Rp350.000 |
+| 3 | B | Rp75.000 |
+
+### Sort Total Terendah
+| Urutan | Order | totalAmount |
+|---|---|---|
+| 1 | B | Rp75.000 |
+| 2 | A | Rp350.000 |
+| 3 | C | Rp600.000 |
+
+✅ Sesuai ekspektasi.
+
+### Filter Min/Max Tetap Bekerja
+- Filter min=100000 → menampilkan A (350rb) dan C (600rb), menyembunyikan B (75rb) ✅
+- Filter max=400000 → menampilkan A (350rb) dan B (75rb), menyembunyikan C (600rb) ✅
+- Filter min=100000 & max=400000 → hanya A (350rb) ✅
