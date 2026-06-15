@@ -171,13 +171,40 @@ class AdminAnalyticsService {
     );
   }
 
+  Future<List<Map<String, dynamic>>> _fetchAllDocs(
+    String collectionId, {
+    List<String>? baseQueries,
+  }) async {
+    const pageSize = 5000;
+    final allDocs = <Map<String, dynamic>>[];
+    String? cursorId;
+
+    while (true) {
+      final queries = <String>[];
+      if (baseQueries != null) queries.addAll(baseQueries);
+      queries.add(Query.orderAsc('\$id'));
+      queries.add(Query.limit(pageSize));
+      if (cursorId != null) queries.add(Query.cursorAfter(cursorId));
+
+      final result = await _db.listDocuments(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: collectionId,
+        queries: queries,
+      );
+
+      for (final d in result.documents) {
+        allDocs.add(d.data..['\$id'] = d.$id);
+      }
+
+      if (result.documents.length < pageSize) break;
+      cursorId = result.documents.last.$id;
+    }
+
+    return allDocs;
+  }
+
   Future<List<Map<String, dynamic>>> _fetchOrders() async {
-    final result = await _db.listDocuments(
-      databaseId: AppwriteConfig.databaseId,
-      collectionId: AppwriteConfig.ordersCollectionId,
-      queries: [Query.limit(100)],
-    );
-    return result.documents.map((d) => d.data..['\$id'] = d.$id).toList();
+    return _fetchAllDocs(AppwriteConfig.ordersCollectionId);
   }
 
   Future<int> _fetchProductCount() async {
@@ -190,12 +217,7 @@ class AdminAnalyticsService {
   }
 
   Future<List<Map<String, dynamic>>> _fetchOrderItems() async {
-    final result = await _db.listDocuments(
-      databaseId: AppwriteConfig.databaseId,
-      collectionId: AppwriteConfig.orderItemsCollectionId,
-      queries: [Query.limit(100)],
-    );
-    return result.documents.map((d) => d.data..['\$id'] = d.$id).toList();
+    return _fetchAllDocs(AppwriteConfig.orderItemsCollectionId);
   }
 
   Future<Map<String, int>> _fetchUserCounts() async {
@@ -218,18 +240,17 @@ class AdminAnalyticsService {
   }
 
   Future<Map<String, String>> _fetchSellerNames() async {
-    final result = await _db.listDocuments(
-      databaseId: AppwriteConfig.databaseId,
-      collectionId: AppwriteConfig.usersCollectionId,
-      queries: [Query.equal('role', 'seller'), Query.limit(100)],
+    final docs = await _fetchAllDocs(
+      AppwriteConfig.usersCollectionId,
+      baseQueries: [Query.equal('role', 'seller')],
     );
     final names = <String, String>{};
-    for (final d in result.documents) {
-      final uid = d.data['uid'] as String?;
+    for (final d in docs) {
+      final uid = d['uid'] as String?;
       if (uid != null && uid.isNotEmpty) {
         names[uid] =
-            (d.data['storeName'] as String?) ??
-            (d.data['name'] as String?) ??
+            (d['storeName'] as String?) ??
+            (d['name'] as String?) ??
             'Unknown';
       }
     }
