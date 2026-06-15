@@ -1,26 +1,38 @@
-﻿# Seller Dropdown Assertion Fix Report
+﻿# Seller Mobile Back Navigation Audit
 
-## Root Cause
+## Current Structure
 
-`selectedCategory` menerima `initialCategory` (`"Fashion"`) di `initState` sebelum `_loadCategories()` selesai. Build pertama hanya punya item `"Semua"` di dropdown, tapi `value` sudah `"Fashion"` → assertion error.
+| Aspek | Detail |
+|---|---|
+| AppBar? | ❌ Tidak — pakai custom `Container` header |
+| Back button saat ini? | ❌ Tidak ada |
+| Header components | `Row` with "PasarKita" + profile avatar + title + search + filter chips |
+
+## Entry Points
+
+| Dari | Kode | initialCategory |
+|---|---|---|
+| Menu seller | `seller_mobile_page.dart:27` → `FormProdukSellerMobile()` | `null` |
+| Kategori (card klik) | `form_kategori_seller_mobile.dart:213` → `FormProdukSellerMobile(initialCategory: category)` | `"Fashion"` dll |
+
+## Strategy
+
+Gunakan `widget.initialCategory != null` sebagai trigger:
+
+- **`null`** (dari menu) → tidak ada back button (perilaku existing)
+- **`"Fashion"`** (dari kategori) → tampilkan `Icon(arrow_back)` di kiri header
 
 ## Files Modified
 
-| # | File | Diubah? | Alasan |
-|---|---|---|---|
-| 1 | `form_produk_seller_web.dart` | ✅ **Ya** | DropdownButton dengan value dari `selectedCategory` |
-| 2 | `form_produk_seller_mobile.dart` | ❌ Tidak | Tidak punya DropdownButton — `_selectedCategory` cuma untuk filter in-memory |
-| 3 | `product_form_page.dart` | ❌ Tidak | Pakai `initialValue` (bukan `value`), dan items di-null saat loading — aman |
+1 file: `lib/presentation/seller/products/form_produk_seller_mobile.dart`
 
 ## Before
 
 ```dart
-// form_produk_seller_web.dart — line 262
-DropdownButton<String>(
-  value: selectedCategory,  // ← BISA "Fashion" saat items cuma ["Semua"]
-  items: [
-    DropdownMenuItem(value: 'Semua', child: Text('Semua Kategori')),
-    if (!_isLoadingCategories) ...  // ← loading → spread skip → items = ["Semua" saja]
+Row(
+  children: [
+    const Expanded(child: Text("PasarKita", ...)),
+    GestureDetector(child: CircleAvatar(...)),
   ],
 )
 ```
@@ -28,33 +40,27 @@ DropdownButton<String>(
 ## After
 
 ```dart
-DropdownButton<String>(
-  value: selectedCategory == 'Semua' ||
-        (!_isLoadingCategories && _categories.any((c) => c.name == selectedCategory))
-      ? selectedCategory
-      : 'Semua',  // ← fallback aman
-  items: [
-    DropdownMenuItem(value: 'Semua', child: Text('Semua Kategori')),
-    if (!_isLoadingCategories) ...
+Row(
+  children: [
+    if (widget.initialCategory != null) ...[
+      GestureDetector(
+        onTap: () => Navigator.pop(context),
+        child: Icon(Icons.arrow_back, ...),
+      ),
+      SizedBox(width: 8),
+    ],
+    const Expanded(child: Text("PasarKita", ...)),
+    GestureDetector(child: CircleAvatar(...)),
   ],
 )
 ```
 
-## Edge Cases Covered
+## Edge Cases
 
-| Skenario | Behavior | Status |
-|---|---|---|
-| Klik card → loading → value = "Fashion" | Fallback ke "Semua", tidak error | ✅ |
-| Selesai load, kategori valid | Dropdown pindah ke "Fashion" | ✅ |
-| Kategori sudah dihapus admin | Dropdown tetap di "Semua", produk tidak terfilter | ✅ |
-| Klik dropdown, pilih kategori lain | `onChanged` → `selectedCategory` di-update | ✅ |
-| Mobile — initialCategory di-set | Filter produk berjalan, tidak ada dropdown | ✅ (not affected) |
+| Skenario | initialCategory | Back button? | Perilaku |
+|---|---|---|---|
+| Menu → Produk Saya | `null` | ❌ | Sama seperti sebelum perubahan |
+| Kategori → klik card → Produk Saya | `"Fashion"` | ✅ | `Navigator.pop` → kembali ke kategori |
+| Refresh/rebuild | tetap `initialCategory` | ✅ konsisten | Sesuai parameter widget |
 
-## Manual Testing Checklist
-
-- [ ] Seller → Kategori → klik card → tidak ada assertion error
-- [ ] Setelah load, dropdown menunjukkan kategori yang benar
-- [ ] Filter produk bekerja sesuai kategori yang dipilih
-- [ ] Klik "Semua Kategori" → semua produk tampil
-- [ ] Admin hapus kategori → seller klik card kategori itu → fallback ke "Semua"
-- [ ] `flutter analyze` — 0 issues
+`flutter analyze` — 0 issues.

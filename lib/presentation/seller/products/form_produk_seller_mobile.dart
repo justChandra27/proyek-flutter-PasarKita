@@ -56,6 +56,16 @@ class _FormProdukSellerMobileState extends State<FormProdukSellerMobile> {
                 children: [
                   Row(
                     children: [
+                      if (widget.initialCategory != null) ...[
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: const Icon(
+                            Icons.arrow_back,
+                            color: Color(0xff2563EB),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
                       const Expanded(
                         child: Text(
                           "PasarKita",
