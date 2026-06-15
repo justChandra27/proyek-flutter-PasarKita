@@ -10,6 +10,8 @@ import 'widgets/product_table_modern.dart';
 import '../../../core/services/auth_service_appwrite.dart';
 import '../../../core/appwrite/appwrite_config.dart';
 import '../../../core/appwrite/appwrite_service.dart';
+import '../../../core/services/category_service_appwrite.dart';
+import '../../../data/models/category_model.dart';
 
 class FormProdukSellerWeb extends StatefulWidget {
   const FormProdukSellerWeb({super.key});
@@ -25,11 +27,32 @@ class _FormProdukSellerWebState extends State<FormProdukSellerWeb> {
   String sortBy = 'Terbaru';
   String _sellerName = 'Seller';
   String _initial = 'S';
+  List<CategoryModel> _categories = [];
+  bool _isLoadingCategories = true;
 
   @override
   void initState() {
     super.initState();
     _loadSeller();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final categories = await CategoryServiceAppwrite().getAllCategories();
+      if (mounted) {
+        setState(() {
+          _categories = categories;
+          _isLoadingCategories = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isLoadingCategories = false;
+        });
+      }
+    }
   }
 
   Future<void> _loadSeller() async {
@@ -232,23 +255,16 @@ class _FormProdukSellerWebState extends State<FormProdukSellerWeb> {
 
                           DropdownButton<String>(
                             value: selectedCategory,
-                            items: const [
-                              DropdownMenuItem(
+                            items: [
+                              const DropdownMenuItem(
                                 value: 'Semua',
                                 child: Text('Semua Kategori'),
                               ),
-                              DropdownMenuItem(
-                                value: 'Pakaian',
-                                child: Text('Pakaian'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'Sepatu',
-                                child: Text('Sepatu'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'Aksesoris',
-                                child: Text('Aksesoris'),
-                              ),
+                              if (!_isLoadingCategories)
+                                ..._categories.map((cat) => DropdownMenuItem(
+                                      value: cat.name,
+                                      child: Text(cat.name),
+                                    )),
                             ],
                             onChanged: (value) {
                               setState(() {

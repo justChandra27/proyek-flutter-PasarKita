@@ -1,92 +1,147 @@
-﻿# Admin Analytics Pagination Verification
+﻿# Seller Category Filter Sync Report
 
-## Existing Pagination Pattern
+## Root Cause
 
-Empat service menggunakan cursor-based pagination; tiga dengan pola identik:
+Filter kategori di Seller → Produk Saya (`form_produk_seller_web.dart`) menggunakan **hardcoded list** `['Pakaian', 'Sepatu', 'Aksesoris']` sebagai opsi dropdown, bukan membaca dari Appwrite `categories` collection.
 
-| Service | Method | Query order | Return type |
-|---|---|---|---|
-| `product_service_appwrite` | `getProductsPage()` | `[equal, orderAsc('name'), limit, cursorAfter]` | `PaginatedResponse<ProductModel>` |
-| `review_service_appwrite` | `getProductReviewsPage()` | `[equal, orderDesc('\$createdAt'), limit, cursorAfter]` | `PaginatedResponse<ReviewModel>` |
-| `notification_service_appwrite` | `getNotificationsPage()` | `[equal, orderDesc('\$createdAt'), limit, cursorAfter]` | `PaginatedResponse<NotificationModel>` |
-| `order_service_appwrite` | `getAdminOrdersPage()` | `[equal, cursorAfter, limit, orderDesc]` — **BUG: order after limit** | `AdminOrdersPage` (no nextCursor) |
+Akibatnya:
+- Admin menambah kategori baru → filter seller **tidak menampilkannya**
+- Admin menghapus kategori → filter seller **masih menampilkannya**
+- Seller tidak bisa memfilter produk dengan kategori yang bukan di list tersebut
 
-**Pattern konvensi:** `[filters..., order, limit, cursor]`
+## Audit Findings
 
----
+### 1. Apakah filter kategori juga ada di mobile?
 
-## Appwrite Compatibility
+**Tidak.** `form_produk_seller_mobile.dart` hanya memiliki search, status filter (Semua/aktif/nonaktif), dan sort — **tidak ada** dropdown filter kategori. Hanya web yang memiliki filter kategori hardcoded.
 
-`Query.orderAsc('\$id')` dan `Query.cursorAfter(documentId)` **didukung penuh** oleh Appwrite SDK. Bukti:
-- `\$createdAt` digunakan di 9 tempat (review, order, notification, transaksi, withdrawal) — system attributes bisa di-query
-- `Query.cursorAfter()` digunakan di 5 metode pagination
-- `Query.orderAsc()` digunakan di `product_service_appwrite` dan `admin_analytics_service`
+### 2. Bagaimana Product Form mengambil kategori?
 
----
-
-## Verifikasi Implementasi
-
-### `_fetchAllDocs()` — query order
-
+`product_form_page.dart:93-109` — `_loadCategories()`:
 ```dart
-// BEFORE (bug): filter setelah limit
-final queries = <String>[
-  Query.orderAsc('\$id'),          // 1
-  Query.limit(pageSize),           // 2 — limit TERLANJUT sebelum filter
-];
-if (baseQueries != null) queries.addAll(baseQueries);  // 3 — filter setelah limit
-if (cursorId != null) queries.add(Query.cursorAfter(cursorId));  // 4
-
-// AFTER (fixed): filter sebelum limit
-final queries = <String>[];
-if (baseQueries != null) queries.addAll(baseQueries);  // 1 — filter dulu
-queries.add(Query.orderAsc('\$id'));                    // 2 — sort
-queries.add(Query.limit(pageSize));                     // 3 — limit
-if (cursorId != null) queries.add(Query.cursorAfter(cursorId));  // 4 — cursor
+final categories = await CategoryServiceAppwrite().getAllCategories();
 ```
 
-**Query order sekarang:** `[equal('role', 'seller'), orderAsc('\$id'), limit(5000), cursorAfter(id)]` — konsisten dengan konvensi `[filter, order, limit, cursor]`.
+Pattern: async load di `initState`, simpan di `List<CategoryModel> _categories`, tampilkan di `DropdownButtonFormField` via `_categories.map((cat) => DropdownMenuItem(value: cat.name, child: Text(cat.name)))`.
 
-### Perbandingan detail
+Implementasi baru menggunakan **pola yang sama persis**.
 
-| Aspek | Existing Pattern | `_fetchAllDocs` | Match? |
-|---|---|---|---|
-| Cursor input | `String? cursor` dari parameter | `cursorId` dari iterasi sebelumnya | ✅ |
-| Cursor output | `items.last.id` (model's `.id`) | `result.documents.last.\$id` (raw) | ✅ — keduanya referensi `$id` |
-| Limit | `int limit` parameter (10/20/25) | `const pageSize = 5000` | ✅ — berbeda tujuan (UI vs bulk) |
-| Stop condition | `items.length >= limit` → `hasMore` | `result.documents.length < pageSize` → break | ✅ |
-| Return type | `PaginatedResponse<T>` | `List<Map<String, dynamic>>` (all docs) | ✅ — berbeda tujuan |
-| Error handling | none | none | ✅ konsisten |
-| Order field | `name` / `\$createdAt` | `\$id` | ✅ — `$id` unique & indexed, aman untuk bulk fetch |
+## Files Modified
 
-### Keunikan `_fetchAllDocs`
+Hanya 1 file:
+- `lib/presentation/seller/products/form_produk_seller_web.dart`
 
-Satu-satunya method di codebase yang:
-1. Menggunakan `Query.orderAsc('\$id')` (yang lain pakai `name` atau `\$createdAt`)
-2. Meng-iterate loop untuk collect >5000 dokumen
-3. Mengembalikan raw `List<Map<String, dynamic>>` (bukan model/`PaginatedResponse`)
+## Before
 
-Ketiga perbedaan ini **valid** karena `_fetchAllDocs` adalah internal helper untuk bulk computation, bukan UI pagination.
+```dart
+// form_produk_seller_web.dart
+class _FormProdukSellerWebState extends State<FormProdukSellerWeb> {
+  String selectedCategory = 'Semua';
+  // TIDAK ADA _categories atau _loadCategories
 
----
+  @override
+  void initState() {
+    super.initState();
+    _loadSeller();  // HANYA load seller
+  }
+
+  // Di build method:
+  DropdownButton<String>(
+    value: selectedCategory,
+    items: const [
+      DropdownMenuItem(value: 'Semua', child: Text('Semua Kategori')),
+      DropdownMenuItem(value: 'Pakaian', child: Text('Pakaian')),      // HARDCODED
+      DropdownMenuItem(value: 'Sepatu', child: Text('Sepatu')),        // HARDCODED
+      DropdownMenuItem(value: 'Aksesoris', child: Text('Aksesoris')),  // HARDCODED
+    ],
+    onChanged: (value) { setState(() { selectedCategory = value!; }); },
+  ),
+```
+
+## After
+
+```dart
+class _FormProdukSellerWebState extends State<FormProdukSellerWeb> {
+  String selectedCategory = 'Semua';
+  List<CategoryModel> _categories = [];     // BARU
+  bool _isLoadingCategories = true;         // BARU
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSeller();
+    _loadCategories();                      // BARU
+  }
+
+  Future<void> _loadCategories() async {    // BARU — pola dari product_form_page
+    try {
+      final categories = await CategoryServiceAppwrite().getAllCategories();
+      if (mounted) {
+        setState(() {
+          _categories = categories;
+          _isLoadingCategories = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() { _isLoadingCategories = false; });
+    }
+  }
+
+  // Di build method:
+  DropdownButton<String>(
+    value: selectedCategory,
+    items: [
+      const DropdownMenuItem(value: 'Semua', child: Text('Semua Kategori')),
+      if (!_isLoadingCategories)                              // BARU
+        ..._categories.map((cat) => DropdownMenuItem(          // BARU — dari collection
+          value: cat.name,
+          child: Text(cat.name),
+        )),
+    ],
+    onChanged: (value) { setState(() { selectedCategory = value!; }); },
+  ),
+```
+
+## Data Flow
+
+```
+Admin creates/edits/deletes categories
+        │
+        ▼
+Appwrite "categories" collection
+        │
+        ▼
+CategoryServiceAppwrite.getAllCategories()
+        │
+        ▼
+form_produk_seller_web.dart _loadCategories()
+        │
+        ▼
+Dropdown items ← _categories.map((cat) => cat.name)
+        │
+        ▼
+Seller selects category → filter: product.category == selectedCategory
+```
+
+Tidak ada perubahan pada logika filtering (line 349-351). String comparison `product.category == selectedCategory` sudah bekerja untuk nama kategori apapun.
 
 ## Risks
 
-| Risk | Status | Mitigation |
-|---|---|---|
-| Filter setelah limit (fixed) | ✅ Fixed | baseQueries sekarang sebelum limit |
-| Extra query saat docs.length == 5000 | ✅ Accepted | 1 empty round trip, overhead minimal |
-| `\$id` sort berbeda dari `\$createdAt` | ✅ No impact | All docs tetap diambil regardless of order |
-| Option `onError: (e)` tidak ada di listDocuments | ⚠️ Existing | Sama seperti service lain — exception akan propagate |
+| Risk | Mitigation |
+|---|---|
+| Category collection kosong → dropdown hanya "Semua Kategori" | ✅ Diterima — filter tetap berfungsi, tidak error |
+| Kategori dihapus admin saat seller sedang di halaman ini | ✅ Minimal — hanya dropdown yang tidak update (perlu refresh) |
+| Nama kategori berubah → produk tetap menggunakan nama lama | ✅ Pre-existing — tidak ada FK constraint, bukan masalah baru |
+| `_isLoadingCategories` = true → dropdown tidak nampak | ✅ Aman — hanya "Semua Kategori" yang muncul sementara loading |
+| Network error saat load categories | ✅ Caught by try/catch — dropdown tetap berfungsi dengan "Semua Kategori" |
 
----
+## Manual Testing Checklist
 
-## Verdict
-
-**✅ IMPLEMENTASI OK.**
-
-- Tidak ada isu blokir.
-- Query order sudah sesuai konvensi `[filter, order, limit, cursor]`.
-- Pattern konsisten dengan 3 service lain yang sudah ada.
-
-**Minor note (opsional):** `_fetchAllDocs` tidak menangani exception dari `listDocuments`. Jika koneksi terputus di tengah pagination loop, exception akan propagate ke `getAnalytics()` dan dashboard akan error. Ini sama dengan service lain — bisa ditambahkan di sprint berikutnya jika perlu.
+- [ ] Buka Seller → Produk Saya → dropdown kategori menampilkan "Semua Kategori" + semua dari `categories` collection
+- [ ] Tidak ada kategori hardcoded (Pakaian, Sepatu, Aksesoris tidak muncul di kode)
+- [ ] Pilih kategori → produk terfilter sesuai
+- [ ] Pilih "Semua Kategori" → semua produk tampil
+- [ ] Admin tambah kategori baru → muncul di dropdown seller (setelah refresh halaman)
+- [ ] Admin hapus kategori → hilang dari dropdown seller (setelah refresh halaman)
+- [ ] Error saat load → dropdown hanya "Semua Kategori", tidak crash
+- [ ] `flutter analyze` — 0 issues (divalidasi)
