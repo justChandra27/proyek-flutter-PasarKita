@@ -310,7 +310,8 @@ class _WithdrawalPageState extends State<WithdrawalPage> {
                           ),
                           title: Text(_formatPrice(item.amount)),
                           subtitle: Text(
-                            '${item.bankName} - ${item.bankAccount}\n${_statusLabel(item.status)}',
+                            '${item.bankName} - ${item.bankAccount}\n${_statusLabel(item.status)}'
+                            '${item.status == 'rejected' && item.adminNote.isNotEmpty ? '\nAlasan Penolakan: ${item.adminNote}' : ''}',
                           ),
                           trailing: Text(
                             item.status == 'pending'
