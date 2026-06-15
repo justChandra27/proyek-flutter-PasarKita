@@ -19,4 +19,20 @@ class CategoryServiceAppwrite {
         .map((doc) => CategoryModel.fromMap(doc.data, doc.$id))
         .toList();
   }
+
+  Future<void> updateCategory({
+    required String documentId,
+    required String name,
+    required String description,
+  }) async {
+    await databases.updateDocument(
+      databaseId: AppwriteConfig.databaseId,
+      collectionId: AppwriteConfig.categoriesCollectionId,
+      documentId: documentId,
+      data: {
+        "name": name,
+        "description": description,
+      },
+    );
+  }
 }

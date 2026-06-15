@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../core/services/admin_analytics_service.dart';
 
 class FormLaporanWeb extends StatefulWidget {
-  const FormLaporanWeb({super.key});
+  final void Function(int index)? onNavigate;
+
+  const FormLaporanWeb({super.key, this.onNavigate});
 
   @override
   State<FormLaporanWeb> createState() => _FormLaporanWebState();
@@ -123,6 +125,7 @@ class _FormLaporanWebState extends State<FormLaporanWeb> {
 
   Widget _buildStatCards() {
     final analytics = _analytics;
+    final navigate = widget.onNavigate;
     return Row(
       children: [
         Expanded(
@@ -150,6 +153,7 @@ class _FormLaporanWebState extends State<FormLaporanWeb> {
             'Dari ${analytics != null ? _formatNumber(analytics.totalOrders) : "0"} total pesanan',
             Colors.green,
             Colors.purple,
+            onTap: navigate != null ? () => navigate(4) : null,
           ),
         ),
         const SizedBox(width: 16),
@@ -163,6 +167,7 @@ class _FormLaporanWebState extends State<FormLaporanWeb> {
             '${analytics != null ? _formatNumber(analytics.totalSellers) : "0"} penjual',
             Colors.black54,
             Colors.orange,
+            onTap: navigate != null ? () => navigate(1) : null,
           ),
         ),
         const SizedBox(width: 16),
@@ -178,6 +183,7 @@ class _FormLaporanWebState extends State<FormLaporanWeb> {
                 : "Belum ada data",
             Colors.grey,
             Colors.green,
+            onTap: navigate != null ? () => navigate(3) : null,
           ),
         ),
       ],
@@ -220,7 +226,7 @@ class _FormLaporanWebState extends State<FormLaporanWeb> {
             style: TextButton.styleFrom(
               foregroundColor: const Color(0xff2563EB),
             ),
-            onPressed: () {},
+            onPressed: () => widget.onNavigate?.call(3),
             icon: const Icon(Icons.arrow_forward, size: 18),
             label: const Text("Lihat Semua Produk"),
           ),
@@ -235,56 +241,60 @@ class _FormLaporanWebState extends State<FormLaporanWeb> {
     String value,
     String subtitle,
     Color subtitleColor,
-    Color iconColor,
-  ) {
-    return Container(
-      height: 160,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: iconColor.withValues(alpha: .15),
-            child: Icon(icon, color: iconColor),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.black54,
-                  ),
-                ),
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: subtitleColor,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
+    Color iconColor, {
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 160,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: iconColor.withValues(alpha: .15),
+              child: Icon(icon, color: iconColor),
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.black54,
+                    ),
+                  ),
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: subtitleColor,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

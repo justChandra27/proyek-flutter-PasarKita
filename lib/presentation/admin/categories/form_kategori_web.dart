@@ -5,6 +5,7 @@ import 'package:appwrite/appwrite.dart';
 
 import '../../../core/appwrite/appwrite_config.dart';
 import '../../../core/appwrite/appwrite_service.dart';
+import '../../../core/services/category_service_appwrite.dart';
 import '../../../data/models/category_model.dart';
 
 class FormKategoriWeb extends StatefulWidget {
@@ -74,6 +75,106 @@ class _FormKategoriWebState extends State<FormKategoriWeb> {
     } catch (e) {
       debugPrint(e.toString());
     }
+  }
+
+  Future<void> showEditCategoryDialog(CategoryModel category) async {
+    final nameController = TextEditingController(text: category.name);
+    final descriptionController = TextEditingController(text: category.description);
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Edit Kategori"),
+          content: SizedBox(
+            width: 450,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: "Nama Kategori"),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(labelText: "Deskripsi"),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Batal"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (nameController.text.trim().isEmpty) return;
+
+                await CategoryServiceAppwrite().updateCategory(
+                  documentId: category.documentId,
+                  name: nameController.text.trim(),
+                  description: descriptionController.text.trim(),
+                );
+
+                if (!mounted) return;
+                Navigator.pop(context);
+                await loadCategories();
+              },
+              child: const Text("Simpan"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> showDetailDialog(CategoryModel category) async {
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Detail Kategori"),
+          content: SizedBox(
+            width: 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _detailRow("Nama", category.name),
+                const SizedBox(height: 12),
+                _detailRow("Deskripsi", category.description),
+                const SizedBox(height: 12),
+                _detailRow("Jumlah Produk", "${category.productCount}"),
+                const SizedBox(height: 12),
+                _detailRow("Status", category.status),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Tutup"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _detailRow(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, color: Colors.black54, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 4),
+        Text(value, style: const TextStyle(fontSize: 16)),
+      ],
+    );
   }
 
   Future<void> showAddCategoryDialog() async {
@@ -359,6 +460,8 @@ class _FormKategoriWebState extends State<FormKategoriWeb> {
                           onDelete: () {
                             confirmDeleteCategory(category);
                           },
+                          onViewDetail: () => showDetailDialog(category),
+                          onEdit: () => showEditCategoryDialog(category),
                         );
                       },
                     ),
@@ -462,6 +565,8 @@ class CategoryCard extends StatelessWidget {
   final String description;
   final IconData iconData;
   final VoidCallback? onDelete;
+  final VoidCallback? onViewDetail;
+  final VoidCallback? onEdit;
 
   const CategoryCard({
     super.key,
@@ -470,6 +575,8 @@ class CategoryCard extends StatelessWidget {
     required this.description,
     this.iconData = Icons.category,
     this.onDelete,
+    this.onViewDetail,
+    this.onEdit,
   });
 
   @override
@@ -539,7 +646,33 @@ class CategoryCard extends StatelessWidget {
                       ),
                     ),
 
-                    const Icon(Icons.more_vert),
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert),
+                      onSelected: (value) {
+                        if (value == 'edit') onEdit?.call();
+                        if (value == 'delete') onDelete?.call();
+                      },
+                      itemBuilder: (_) => [
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: ListTile(
+                            leading: Icon(Icons.edit_outlined),
+                            title: Text('Edit'),
+                            contentPadding: EdgeInsets.zero,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: ListTile(
+                            leading: Icon(Icons.delete_outline, color: Colors.red),
+                            title: Text('Hapus', style: TextStyle(color: Colors.red)),
+                            contentPadding: EdgeInsets.zero,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
 
@@ -562,7 +695,7 @@ class CategoryCard extends StatelessWidget {
                           backgroundColor: const Color(0xffF1F5F9),
                           elevation: 0,
                         ),
-                        onPressed: () {},
+                        onPressed: onViewDetail,
                         child: const Text(
                           "Lihat Detail",
                           style: TextStyle(color: Colors.black87),

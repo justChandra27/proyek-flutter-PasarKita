@@ -28,7 +28,7 @@ class AdminPage extends StatefulWidget {
 class _AdminPageState extends State<AdminPage> {
   int selectedIndex = 0;
 
-  final List<Widget> pages = [
+  List<Widget> get _pages => [
     const DashboardAdminWeb(),
     const FormPenggunaWeb(),
     const FormVerifikasiWeb(),
@@ -38,7 +38,9 @@ class _AdminPageState extends State<AdminPage> {
     const FormWithdrawalAdmin(),
     const FormKategoriWeb(),
     const FormPromoWeb(),
-    const FormLaporanWeb(),
+    FormLaporanWeb(
+      onNavigate: (index) => setState(() => selectedIndex = index),
+    ),
   ];
 
   @override
@@ -73,7 +75,7 @@ class _AdminPageState extends State<AdminPage> {
             },
           ),
 
-          Expanded(child: pages[selectedIndex]),
+          Expanded(child: _pages[selectedIndex]),
         ],
       ),
     );
