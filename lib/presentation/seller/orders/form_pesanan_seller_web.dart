@@ -1,7 +1,5 @@
 //lib/presentation/seller/orders/form_pesanan_seller_web.dart
 
-import 'dart:html' show AnchorElement, Blob, Url;
-
 import 'package:flutter/material.dart';
 
 import 'package:appwrite/appwrite.dart';
@@ -11,6 +9,7 @@ import '../../../data/models/order_model.dart';
 import '../../../data/models/order_item_model.dart';
 import '../../../core/appwrite/appwrite_config.dart';
 import '../../../core/appwrite/appwrite_service.dart';
+import '../../../core/services/csv_export_service.dart';
 
 class FormPesananSellerWeb extends StatefulWidget {
   const FormPesananSellerWeb({super.key});
@@ -883,22 +882,21 @@ class _FormPesananSellerWebState
         }
       }
 
-      final blob = Blob([buffer.toString()], 'text/csv');
-      final url = Url.createObjectUrlFromBlob(blob);
       final now = DateTime.now();
       final filename =
           'rekap_pesanan_seller_${now.year}${_pad(now.month)}${_pad(now.day)}_'
           '${_pad(now.hour)}${_pad(now.minute)}${_pad(now.second)}.csv';
 
-      AnchorElement(href: url)
-        ..setAttribute('download', filename)
-        ..click();
-      Url.revokeObjectUrl(url);
+      CsvExportService.export(buffer.toString(), filename);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Rekap berhasil diekspor'),
+        SnackBar(
+          content: Text(
+            CsvExportService.isExportSupported
+                ? 'Rekap berhasil diekspor'
+                : 'Rekap disimpan ke folder temp',
+          ),
           backgroundColor: Colors.green,
         ),
       );

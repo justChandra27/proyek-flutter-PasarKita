@@ -1,4 +1,4 @@
-package com.example.pasarkita
+package com.pasarkita.app
 
 import io.flutter.embedding.android.FlutterActivity
 
