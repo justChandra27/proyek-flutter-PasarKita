@@ -1,85 +1,58 @@
-﻿MODE: IMPLEMENT
+﻿# SMTP CLEANUP REPORT
 
-Proyek: PasarKita Flutter + Appwrite
+## Files Modified
 
-Jangan mengubah file selain:
+- `functions/email_receipt/index.js`
 
-* functions/email_receipt/index.js
-* functions/email_receipt/package.json
+## Logs Removed
 
-Tujuan:
+All debug logs from previous investigation (16 lines removed):
 
-Audit dan perbaiki dependency Nodemailer agar dapat dimuat oleh Appwrite Function Node.js 22.
+| Location | Log Statement |
+|---|---|
+| After payload parse | `REQ_BODY_EXISTS=` |
+| After payload parse | `REQ_BODY_TYPE=` |
+| After payload parse | `REQ_BODY_STRING=` |
+| After payload parse | `PAYLOAD=` |
+| After payload parse | `TO_VALUE=` |
+| After payload parse | `CUSTOMER_NAME=` |
+| After payload parse | `ORDER_CODE=` |
+| After payload parse | `ITEMS_COUNT=` |
+| After payload parse | `SUBTOTAL=` |
+| After payload parse | `TOTAL=` |
+| After payload parse | `// REQUEST DEBUG START/END` banners |
+| Before sendMail | `// MAIL OPTIONS DEBUG` banners |
+| Before sendMail | `FROM=` (commented) |
+| Before sendMail | `TO=` (commented) |
+| Before sendMail | `SUBJECT=` (commented) |
 
-Perubahan:
+## Logs Retained
 
-1. Ubah package.json:
+Essential production logs preserved:
 
-{
-"name": "pasarkita-email-receipt",
-"version": "1.0.0",
-"type": "module",
-"main": "index.js",
-"dependencies": {
-"nodemailer": "^6.9.14"
-}
-}
+| Line | Log | Purpose |
+|---|---|---|
+| 6 | `EMAIL RECEIPT FUNCTION START` | Function entry marker |
+| 40 | `SMTP VERIFY SUCCESS` | Confirms SMTP credentials valid |
+| 64 | `Sending to: {to}` | Shows recipient (after fallback) |
+| 65 | `Order: {orderCode}` | Shows order being processed |
+| 169 | `SENDING EMAIL...` | Just before SMTP send |
+| 171 | `EMAIL SENT SUCCESSFULLY` | Confirms send success |
+| 172 | `MESSAGE_ID={id}` | SMTP message ID for tracing |
+| 183 | `EMAIL RECEIPT FUNCTION ERROR` | Error entry marker |
+| 184–188 | Error details (message, code, command, response, stack) | Full error diagnostics |
 
-2. Ganti index.js menjadi test dependency sederhana:
+## Production Logging Status
 
-import nodemailer from 'nodemailer';
+**CLEAN.** File kembali ke 199 lines (sama dengan sebelum investigasi). Tidak ada log debug yang bocor ke production.
 
-export default async ({ res, log }) => {
-log('Nodemailer loaded');
+## Final SMTP Status
 
-return res.json({
-success: true,
-version: nodemailer.version || 'loaded'
-});
-};
+| Aspek | Status |
+|---|---|
+| Source code (Flutter) | READY — 0 lint errors |
+| Source code (Function) | READY — production logging only |
+| Deployment | PENDING — perlu deploy ke Appwrite Cloud |
+| SMTP env vars | PENDING — perlu diset di Appwrite Console |
 
-3. Jangan tambahkan SMTP.
-4. Jangan tambahkan transporter.
-5. Jangan tambahkan sendMail.
-6. Jangan membaca environment variable.
-
-Output ke prompt.md:
-
-* File yang diubah
-* Perubahan dependency
-* Cara deploy ulang
-* Cara test execute
-* Cara memastikan nodemailer berhasil dimuat
-
-==================================================
-OUTPUT — HASIL IMPLEMENTASI
-==================================================
-
-1. File yang diubah
-   - functions/email_receipt/index.js
-   - functions/email_receipt/package.json
-
-2. Perubahan dependency
-   package.json: nodemailer "^9.0.0" -> "^6.9.14"
-   Alasan: versi 6.x adalah seri LTS stabil yang sudah teruji kompatibel
-   dengan berbagai runtime Node.js (6.x s.d. 22.x).
-
-3. Cara deploy ulang
-   Upload folder functions/email_receipt via Appwrite Console:
-   - Functions → pilih function → Deploy
-   - Upload file index.js + package.json
-   - Set entrypoint: index.js
-   - Build & activate
-
-4. Cara test execute
-   Appwrite Console → Functions → pilih function → Execute Now
-   Body bebas (tidak dibaca)
-   Cek Execution Logs untuk hasilnya.
-
-5. Cara memastikan nodemailer berhasil dimuat
-   - Cek Execution Logs: harus muncul log "Nodemailer loaded"
-   - Cek response JSON: {"success":true,"version":"6.x.x"}
-   - Jika response 503/500 dan tidak ada log "Nodemailer loaded":
-     berarti nodemailer 6.9.14 gagal dimuat oleh Runtime Node.js 22
-     → eksperimen dengan versi lebih lama (6.9.0, 6.8.0, dll)
-     → atau coba tanpa "type": "module" (pakai require)
+**Kesimpulan:** Kode siap production. Tinggal deploy function dan set environment variables.

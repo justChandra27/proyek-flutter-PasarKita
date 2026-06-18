@@ -17,4 +17,7 @@ class AppwriteService {
 
   static final Storage storage =
       Storage(client);
+
+  static final Functions functions =
+      Functions(client);
 }

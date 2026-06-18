@@ -7,6 +7,7 @@ import '../../providers/cart_provider.dart';
 import '../../core/constants/fee_config.dart';
 import '../../core/services/auth_service_appwrite.dart';
 import '../../core/services/bank_service.dart';
+import '../../core/services/email_service_appwrite.dart';
 import '../../core/services/order_service_appwrite.dart';
 import '../../core/services/product_service_appwrite.dart';
 import '../../data/models/bank_model.dart';
@@ -203,12 +204,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
         };
       }).toList();
 
+      final orderCode = 'ORD-${DateTime.now().millisecondsSinceEpoch}';
       final orderId = await _orderService.createOrder(
         customerId: account.$id,
         customerName: account.name,
         customerEmail: account.email,
         address: address,
         paymentMethod: 'Transfer Bank',
+        orderCode: orderCode,
         items: items,
         phone: _phoneController.text.trim(),
         shippingAddress: _profileShippingAddress,
@@ -235,6 +238,20 @@ class _CheckoutPageState extends State<CheckoutPage> {
       if (!isBuyNow) {
         context.read<CartProvider>().clear();
       }
+
+      // Fire-and-forget: email tidak boleh menjadi blocker checkout
+      final emailService = EmailServiceAppwrite();
+      emailService.sendReceiptEmail(
+        orderId: orderId,
+        orderCode: orderCode,
+        customerName: account.name,
+        customerEmail: account.email,
+        items: orderItems,
+        subtotal: totalPrice,
+        total: totalPrice + FeeConfig.serviceFee,
+        shippingCost: 0,
+        orderDate: DateTime.now().toIso8601String(),
+      );
 
       if (!mounted) return;
       Navigator.pushReplacement(

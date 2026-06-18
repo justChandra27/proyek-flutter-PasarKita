@@ -44,6 +44,7 @@ class OrderServiceAppwrite {
     required String address,
     required String paymentMethod,
     required List<Map<String, dynamic>> items,
+    String orderCode = '',
     String notes = '',
     String phone = '',
     String shippingAddress = '',
@@ -53,7 +54,9 @@ class OrderServiceAppwrite {
     String bankName = '',
     String senderName = '',
   }) async {
-    final orderCode = 'ORD-${DateTime.now().millisecondsSinceEpoch}';
+    final code = orderCode.isNotEmpty
+        ? orderCode
+        : 'ORD-${DateTime.now().millisecondsSinceEpoch}';
     final serviceFee = FeeConfig.serviceFee;
     final itemsSubtotal = items.fold<int>(
       0,
@@ -110,7 +113,7 @@ class OrderServiceAppwrite {
         collectionId: AppwriteConfig.ordersCollectionId,
         documentId: ID.unique(),
         data: {
-          'orderCode': orderCode,
+          'orderCode': code,
           'customerId': customerId,
           'customerName': customerName,
           'customerEmail': customerEmail,

@@ -51,4 +51,7 @@ class AppwriteConfig {
   static const String productBucketId =
       'product_images';
 
+  // Functions
+  static const String emailReceiptFunctionId =
+      'email_receipt';
 }

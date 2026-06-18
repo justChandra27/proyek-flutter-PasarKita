@@ -1,5 +1,3 @@
-# skills/pasarkita_skill.md
-
 # PasarKita AI Skill
 
 ## Objective
@@ -13,9 +11,10 @@ Membantu pengembangan marketplace PasarKita tanpa merusak struktur proyek.
 Selalu lakukan:
 
 1. Analisis file yang sudah ada.
-2. Cari service yang sudah tersedia.
-3. Cari model yang sudah tersedia.
+2. Cari service yang sudah tersedia (18 services).
+3. Cari model yang sudah tersedia (14 models).
 4. Cari widget yang sudah tersedia.
+5. Baca `AGENTS.md`, `PROJECT_STATUS.md`, dan `penjelasan_struktur.md` untuk konteks.
 
 Baru kemudian menulis kode.
 
@@ -24,102 +23,58 @@ Baru kemudian menulis kode.
 ## Forbidden Actions
 
 Dilarang:
-
-* overwrite seluruh file
-* membuat versi file baru
-* membuat duplicate service
-* membuat duplicate model
-* membuat duplicate widget
-* menghapus file
-
----
-
-## Existing Services
-
-Gunakan:
-
-ProductServiceAppwrite
-
-Untuk:
-
-* list produk
-* tambah produk
-* edit produk
-* hapus produk
+- overwrite seluruh file
+- membuat versi file baru (_v2, _new)
+- membuat duplicate service/model/widget
+- menghapus file tanpa konfirmasi
+- membuat file stub/stub baru
+- menggunakan Firebase (Appwrite adalah backend aktif)
 
 ---
 
-OrderServiceAppwrite
+## Existing Services (18 total)
 
-Untuk:
-
-* create order
-* get orders
-* update status
-
----
-
-StorageServiceAppwrite
-
-Untuk:
-
-* upload gambar produk
-
----
-
-TransaksiService
-
-Untuk:
-
-* transaksi admin
-* statistik transaksi
-
----
-
-## Customer Development Rules
-
-Dashboard Customer:
-
-Harus membaca products collection dari Appwrite.
-
-Jangan gunakan data hardcoded.
+| Service | Untuk |
+|---|---|
+| AuthServiceAppwrite | Register, login, logout, current user |
+| ProductServiceAppwrite | CRUD produk, pagination, moderation |
+| OrderServiceAppwrite | Create order (stock lock), get orders, update status |
+| TransaksiService | Transaksi admin, statistik |
+| CategoryServiceAppwrite | CRUD kategori |
+| StorageServiceAppwrite | Upload/delete gambar & PDF |
+| ReceiptServiceAppwrite | Generate PDF receipt + QR code |
+| ReviewServiceAppwrite | CRUD review, stats produk |
+| EmailServiceAppwrite | Send receipt email via Appwrite Function |
+| NotificationServiceAppwrite | Create notif, unread count |
+| BankService | Get banks list |
+| BalanceServiceAppwrite | Add seller earnings |
+| WithdrawalServiceAppwrite | Pending withdrawals |
+| StockLockService | Lock stok saat checkout (TTL) |
+| AdminAnalyticsService | Admin analytics dashboard |
+| SellerAnalyticsService | Seller analytics dashboard |
+| CsvExportService | Abstraksi CSV export |
+| CsvExportServiceMobile | CSV export mobile |
+| CsvExportServiceWeb | CSV export web |
 
 ---
 
-Cart Customer:
+## Customer Module Rules
 
-Harus membaca data database.
+- **Dashboard**: SUDAH terhubung Appwrite via ProductFilterProvider
+- **Product Detail**: SUDAH terhubung Appwrite via ProductServiceAppwrite
+- **Cart**: Menggunakan SharedPreferences (local) via CartProvider — **bukan Appwrite**
+- **Checkout**: SUDAH terhubung Appwrite via OrderServiceAppwrite (stock lock + rollback)
+- **Orders**: SUDAH terhubung Appwrite via OrderServiceAppwrite
+- **Notifications**: Belum diverifikasi
+- **Profile**: Belum diverifikasi
 
-Jangan gunakan list lokal.
-
----
-
-Orders Customer:
-
-Harus membaca order berdasarkan customerId.
-
-Jangan gunakan data statis.
-
----
-
-Profile Customer:
-
-Harus membaca akun login Appwrite.
-
-Gunakan:
-
-AppwriteService.account.get()
+Jangan gunakan data hardcoded/dummy untuk customer — semua dashboard, produk, dan order sudah dari Appwrite.
 
 ---
 
 ## Output Rules
 
-Sebelum mengubah kode:
-
-Tampilkan:
-
-* file yang akan diubah
-* alasan perubahan
-* risiko perubahan
-
-Setelah itu baru berikan implementasi.
+Sebelum mengubah kode, tampilkan:
+- file yang akan diubah
+- alasan perubahan
+- risiko perubahan
