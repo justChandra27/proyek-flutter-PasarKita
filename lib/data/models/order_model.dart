@@ -18,6 +18,14 @@ class OrderModel {
   final String shippingCity;
   final String shippingProvince;
   final String shippingPostalCode;
+  final String bankName;
+  final String senderName;
+  final String paymentReceiptImage;
+  final String paymentConfirmedAt;
+  final String paymentConfirmedBy;
+  final String receiptNumber;
+  final String receiptPdfFileId;
+  final String receiptGeneratedAt;
 
   OrderModel({
     required this.id,
@@ -39,6 +47,14 @@ class OrderModel {
     this.shippingCity = '',
     this.shippingProvince = '',
     this.shippingPostalCode = '',
+    this.bankName = '',
+    this.senderName = '',
+    this.paymentReceiptImage = '',
+    this.paymentConfirmedAt = '',
+    this.paymentConfirmedBy = '',
+    this.receiptNumber = '',
+    this.receiptPdfFileId = '',
+    this.receiptGeneratedAt = '',
   });
 
   factory OrderModel.fromMap(
@@ -65,6 +81,14 @@ class OrderModel {
       shippingCity: data['shippingCity'] ?? '',
       shippingProvince: data['shippingProvince'] ?? '',
       shippingPostalCode: data['shippingPostalCode'] ?? '',
+      bankName: data['bankName'] ?? '',
+      senderName: data['senderName'] ?? '',
+      paymentReceiptImage: data['paymentReceiptImage'] ?? '',
+      paymentConfirmedAt: data['paymentConfirmedAt'] ?? '',
+      paymentConfirmedBy: data['paymentConfirmedBy'] ?? '',
+      receiptNumber: data['receiptNumber'] ?? '',
+      receiptPdfFileId: data['receiptPdfFileId'] ?? '',
+      receiptGeneratedAt: data['receiptGeneratedAt'] ?? '',
     );
   }
 
@@ -88,6 +112,14 @@ class OrderModel {
       'shippingCity': shippingCity,
       'shippingProvince': shippingProvince,
       'shippingPostalCode': shippingPostalCode,
+      'bankName': bankName,
+      'senderName': senderName,
+      'paymentReceiptImage': paymentReceiptImage,
+      'paymentConfirmedAt': paymentConfirmedAt,
+      'paymentConfirmedBy': paymentConfirmedBy,
+      'receiptNumber': receiptNumber,
+      'receiptPdfFileId': receiptPdfFileId,
+      'receiptGeneratedAt': receiptGeneratedAt,
     };
   }
 }

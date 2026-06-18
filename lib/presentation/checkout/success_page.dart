@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../core/appwrite/appwrite_config.dart';
 import '../../core/appwrite/appwrite_service.dart';
 import '../../core/services/order_service_appwrite.dart';
+import '../../core/services/storage_service_appwrite.dart';
 import '../../data/models/order_model.dart';
 import '../../data/models/order_item_model.dart';
 import '../customer/customer_page.dart';
@@ -14,6 +16,10 @@ class SuccessPage extends StatefulWidget {
   final String paymentMethod;
   final int totalAmount;
   final List<Map<String, dynamic>> items;
+  final String? bankName;
+  final String? bankAccountNumber;
+  final String? bankAccountName;
+  final String? senderName;
 
   const SuccessPage({
     super.key,
@@ -23,6 +29,10 @@ class SuccessPage extends StatefulWidget {
     required this.paymentMethod,
     required this.totalAmount,
     required this.items,
+    this.bankName,
+    this.bankAccountNumber,
+    this.bankAccountName,
+    this.senderName,
   });
 
   @override
@@ -31,6 +41,7 @@ class SuccessPage extends StatefulWidget {
 
 class _SuccessPageState extends State<SuccessPage> {
   late Future<Map<String, dynamic>> _orderFuture;
+  bool _uploading = false;
 
   @override
   void initState() {
@@ -180,7 +191,16 @@ class _SuccessPageState extends State<SuccessPage> {
                           'Metode Pembayaran',
                           widget.paymentMethod,
                         ),
-                        _infoRow('Status', order.paymentStatus),
+                        if (widget.bankName != null)
+                          _infoRow('Bank Tujuan', widget.bankName!),
+                        if (widget.bankAccountNumber != null)
+                          _infoRow('No. Rekening', widget.bankAccountNumber!),
+                        if (widget.bankAccountName != null)
+                          _infoRow('Atas Nama', widget.bankAccountName!),
+                        if (widget.senderName != null)
+                          _infoRow('Nama Pengirim', widget.senderName!),
+                        _infoRow('Total Transfer', _formatPrice(order.totalAmount)),
+                        _infoRow('Status', _paymentStatusLabel(order.paymentStatus)),
                         _infoRow('Tanggal', _formatDate(order.createdAt)),
                       ],
                     ),
@@ -290,6 +310,129 @@ class _SuccessPageState extends State<SuccessPage> {
                     ),
                     const SizedBox(height: 32),
                     _timelineCard(order),
+                    if (order.paymentStatus == 'paid') ...[
+                      const SizedBox(height: 24),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.green.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.check_circle, color: Colors.green.shade700),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Pembayaran Berhasil',
+                              style: TextStyle(
+                                color: Colors.green.shade700,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    if (order.paymentStatus == 'rejected') ...[
+                      const SizedBox(height: 24),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.red.shade200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.cancel, color: Colors.red.shade700),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'Bukti Transfer Ditolak',
+                                  style: TextStyle(
+                                    color: Colors.red.shade700,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 52,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: _uploading ? null : () => _uploadReceipt(order),
+                                icon: _uploading
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Icon(Icons.upload_file),
+                                label: Text(
+                                  _uploading ? 'Mengupload...' : 'Upload Bukti Transfer Ulang',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    if (order.paymentStatus == 'unpaid') ...[
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: _uploading ? null : () => _uploadReceipt(order),
+                          icon: _uploading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(Icons.upload_file),
+                          label: Text(
+                            _uploading ? 'Mengupload...' : 'Upload Bukti Transfer',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 32),
                     SizedBox(
                       width: double.infinity,
@@ -355,6 +498,83 @@ class _SuccessPageState extends State<SuccessPage> {
         },
       ),
     );
+  }
+
+  String _paymentStatusLabel(String status) {
+    switch (status.toLowerCase()) {
+      case 'unpaid':
+        return 'Menunggu Pembayaran';
+      case 'verification':
+        return 'Menunggu Verifikasi';
+      case 'paid':
+        return 'Pembayaran Berhasil';
+      case 'rejected':
+        return 'Bukti Transfer Ditolak';
+      default:
+        return status;
+    }
+  }
+
+  Future<void> _uploadReceipt(OrderModel order) async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1920,
+      maxHeight: 1920,
+    );
+
+    if (picked == null || !mounted) return;
+
+    setState(() => _uploading = true);
+
+    try {
+      final bytes = await picked.readAsBytes();
+      final ext = picked.path.split('.').last.toLowerCase();
+      final allowed = ['jpg', 'jpeg', 'png', 'webp'];
+      if (!allowed.contains(ext)) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Format file harus JPG, PNG, atau WEBP'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() => _uploading = false);
+        return;
+      }
+
+      final storage = StorageServiceAppwrite();
+      final fileId = await storage.uploadImage(
+        bytes: bytes,
+        fileName: 'payment_${order.orderCode}_${DateTime.now().millisecondsSinceEpoch}.$ext',
+      );
+
+      await OrderServiceAppwrite().updatePaymentReceipt(
+        orderId: widget.orderId,
+        receiptFileId: fileId,
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bukti transfer berhasil diupload'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      _orderFuture = _loadOrder();
+      setState(() {});
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal upload: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
   }
 
   Widget _infoCard({

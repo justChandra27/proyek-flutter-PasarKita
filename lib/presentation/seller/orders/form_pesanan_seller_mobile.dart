@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/services/auth_service_appwrite.dart';
 import '../../../core/services/order_service_appwrite.dart';
+import '../../../core/services/storage_service_appwrite.dart';
 import '../../../data/models/order_model.dart';
 import '../../../data/models/order_item_model.dart';
 import '../profile/profile_seller_mobile.dart';
@@ -159,6 +160,53 @@ class _FormPesananSellerMobileState
       default:
         return status;
     }
+  }
+
+  String _paymentStatusLabel(String status) {
+    switch (status.toLowerCase()) {
+      case 'unpaid':
+        return 'Menunggu Pembayaran';
+      case 'verification':
+        return 'Perlu Verifikasi';
+      case 'paid':
+        return 'Pembayaran Berhasil';
+      case 'rejected':
+        return 'Ditolak';
+      default:
+        return status;
+    }
+  }
+
+  void _viewReceipt(BuildContext context, String fileId) {
+    final url = StorageServiceAppwrite().getImageUrl(fileId);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Bukti Transfer'),
+        content: SizedBox(
+          width: 400,
+          child: InteractiveViewer(
+            child: Image.network(
+              url,
+              fit: BoxFit.contain,
+              errorBuilder: (_, _, _) => const Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.broken_image, size: 64, color: Colors.grey),
+                  Text('Gagal memuat gambar', style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Tutup'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -444,6 +492,20 @@ class _FormPesananSellerMobileState
                         _infoRow("Customer", order.customerName),
                         if (order.customerEmail.isNotEmpty)
                           _infoRow("Email", order.customerEmail),
+                        _infoRow("Pembayaran", _paymentStatusLabel(order.paymentStatus)),
+                        if (order.bankName.isNotEmpty)
+                          _infoRow("Bank", order.bankName),
+                        if (order.senderName.isNotEmpty)
+                          _infoRow("Pengirim", order.senderName),
+                        if (order.paymentReceiptImage.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: TextButton.icon(
+                              onPressed: () => _viewReceipt(context, order.paymentReceiptImage),
+                              icon: const Icon(Icons.image, size: 18),
+                              label: const Text('Lihat Bukti Transfer'),
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -514,6 +576,76 @@ class _FormPesananSellerMobileState
                       ),
                     ],
                   ),
+                  if (order.paymentStatus == 'verification') ...[
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: () async {
+                              Navigator.pop(context);
+                              try {
+                                await _orderService.approvePayment(order.id);
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Pembayaran #${order.orderCode} disetujui'),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                                _loadOrders();
+                              } catch (e) {
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Gagal: $e')),
+                                );
+                              }
+                            },
+                            child: const Text('Setujui Pembayaran'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: () async {
+                              Navigator.pop(context);
+                              try {
+                                await _orderService.rejectPayment(order.id);
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Pembayaran #${order.orderCode} ditolak'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                                _loadOrders();
+                              } catch (e) {
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Gagal: $e')),
+                                );
+                              }
+                            },
+                            child: const Text('Tolak Pembayaran'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             );

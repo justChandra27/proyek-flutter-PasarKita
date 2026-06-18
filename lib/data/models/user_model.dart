@@ -16,6 +16,8 @@ class UserModel {
   final String shippingCity;
   final String shippingProvince;
   final String shippingPostalCode;
+  final String receiptEmail;
+  final bool receiveReceipt;
 
   UserModel({
     required this.documentId,
@@ -33,6 +35,8 @@ class UserModel {
     this.shippingCity = '',
     this.shippingProvince = '',
     this.shippingPostalCode = '',
+    this.receiptEmail = '',
+    this.receiveReceipt = false,
   });
 
   factory UserModel.fromMap(
@@ -55,6 +59,8 @@ class UserModel {
       shippingCity: map['shippingCity'] ?? '',
       shippingProvince: map['shippingProvince'] ?? '',
       shippingPostalCode: map['shippingPostalCode'] ?? '',
+      receiptEmail: map['receiptEmail'] ?? '',
+      receiveReceipt: map['receiveReceipt'] ?? false,
     );
   }
 
@@ -67,6 +73,8 @@ class UserModel {
       'shippingCity': shippingCity,
       'shippingProvince': shippingProvince,
       'shippingPostalCode': shippingPostalCode,
+      'receiptEmail': receiptEmail,
+      'receiveReceipt': receiveReceipt,
     };
   }
 }

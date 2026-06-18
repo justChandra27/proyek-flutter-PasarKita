@@ -44,6 +44,9 @@ class AppwriteConfig {
   static const String stockLocksCollectionId =
       'stock_locks';
 
+  static const String banksCollectionId =
+      'banks';
+
   // Storage
   static const String productBucketId =
       'product_images';

@@ -203,8 +203,39 @@ class PesananCustomerMobileState
     );
   }
 
+  Color _paymentStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'unpaid':
+        return Colors.orange;
+      case 'verification':
+        return Colors.blue;
+      case 'paid':
+        return Colors.green;
+      case 'rejected':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _paymentStatusLabel(String status) {
+    switch (status.toLowerCase()) {
+      case 'unpaid':
+        return 'Menunggu Pembayaran';
+      case 'verification':
+        return 'Menunggu Verifikasi';
+      case 'paid':
+        return 'Pembayaran Berhasil';
+      case 'rejected':
+        return 'Bukti Transfer Ditolak';
+      default:
+        return status;
+    }
+  }
+
   Widget _orderCard(OrderModel order) {
     final color = _statusColor(order.status);
+    final paymentColor = _paymentStatusColor(order.paymentStatus);
 
     return GestureDetector(
       onTap: () async {
@@ -259,6 +290,28 @@ class PesananCustomerMobileState
                 ),
               ],
             ),
+            if (order.paymentStatus.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: paymentColor.withValues(alpha: .15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      _paymentStatusLabel(order.paymentStatus),
+                      style: TextStyle(
+                        color: paymentColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 16),
             Row(
               children: [

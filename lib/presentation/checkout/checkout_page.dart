@@ -6,8 +6,10 @@ import 'success_page.dart';
 import '../../providers/cart_provider.dart';
 import '../../core/constants/fee_config.dart';
 import '../../core/services/auth_service_appwrite.dart';
+import '../../core/services/bank_service.dart';
 import '../../core/services/order_service_appwrite.dart';
 import '../../core/services/product_service_appwrite.dart';
+import '../../data/models/bank_model.dart';
 import '../../data/models/cart_model.dart';
 
 class CheckoutPage extends StatefulWidget {
@@ -22,25 +24,35 @@ class CheckoutPage extends StatefulWidget {
 class _CheckoutPageState extends State<CheckoutPage> {
   final _addressController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _senderNameController = TextEditingController();
   final _orderService = OrderServiceAppwrite();
+  final _bankService = BankService();
   bool _loading = false;
-  String _selectedPayment = 'Transfer Bank';
+  bool _banksLoading = true;
+  List<BankModel> _banks = [];
+  BankModel? _selectedBank;
 
   String _profileShippingAddress = '';
   String _profileShippingCity = '';
   String _profileShippingProvince = '';
   String _profileShippingPostalCode = '';
 
-  final _paymentMethods = [
-    {'label': 'Kartu Kredit', 'icon': Icons.credit_card},
-    {'label': 'Transfer Bank', 'icon': Icons.account_balance},
-    {'label': 'E-Wallet', 'icon': Icons.wallet},
-  ];
-
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadProfile());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadProfile();
+      _loadBanks();
+    });
+  }
+
+  Future<void> _loadBanks() async {
+    try {
+      final banks = await _bankService.getBanks();
+      if (mounted) setState(() { _banks = banks; _banksLoading = false; });
+    } catch (_) {
+      if (mounted) setState(() { _banksLoading = false; });
+    }
   }
 
   Future<void> _loadProfile() async {
@@ -73,6 +85,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   void dispose() {
     _addressController.dispose();
     _phoneController.dispose();
+    _senderNameController.dispose();
     super.dispose();
   }
 
@@ -91,6 +104,21 @@ class _CheckoutPageState extends State<CheckoutPage> {
     if (address.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Harap isi alamat pengiriman')),
+      );
+      return;
+    }
+
+    if (_selectedBank == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Harap pilih bank tujuan')),
+      );
+      return;
+    }
+
+    final senderName = _senderNameController.text.trim();
+    if (senderName.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Harap isi nama pengirim transfer')),
       );
       return;
     }
@@ -180,13 +208,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
         customerName: account.name,
         customerEmail: account.email,
         address: address,
-        paymentMethod: _selectedPayment,
+        paymentMethod: 'Transfer Bank',
         items: items,
         phone: _phoneController.text.trim(),
         shippingAddress: _profileShippingAddress,
         shippingCity: _profileShippingCity,
         shippingProvince: _profileShippingProvince,
         shippingPostalCode: _profileShippingPostalCode,
+        bankName: _selectedBank!.name,
+        senderName: senderName,
       );
 
       final orderItems = checkoutItems.map((item) {
@@ -214,9 +244,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
             orderId: orderId,
             customerName: account.name,
             address: address,
-            paymentMethod: _selectedPayment,
+            paymentMethod: 'Transfer Bank',
             totalAmount: totalPrice,
             items: orderItems,
+            bankName: _selectedBank!.name,
+            bankAccountNumber: _selectedBank!.accountNumber,
+            bankAccountName: _selectedBank!.accountName,
+            senderName: senderName,
           ),
         ),
       );
@@ -396,61 +430,106 @@ class _CheckoutPageState extends State<CheckoutPage> {
         ),
         const SizedBox(height: 32),
         _sectionTitle('Metode Pembayaran'),
-        const SizedBox(height: 12),
-        ..._paymentMethods.map((method) {
-          final label = method['label'] as String;
-          final icon = method['icon'] as IconData;
-          final selected = _selectedPayment == label;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: GestureDetector(
-              onTap: () => setState(() => _selectedPayment = label),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: selected
-                      ? const Color(0xffEFF6FF)
-                      : Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: selected
-                        ? const Color(0xff2563EB)
-                        : Colors.grey.shade200,
-                    width: selected ? 2 : 1,
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.account_balance, size: 20, color: Color(0xff2563EB)),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Transfer Bank',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      icon,
-                      color: selected
-                          ? const Color(0xff2563EB)
-                          : Colors.grey,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        label,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                          color: selected
-                              ? const Color(0xff2563EB)
-                              : Colors.black87,
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (_banksLoading)
+                const Center(child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: CircularProgressIndicator(),
+                ))
+              else if (_banks.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text('Belum ada bank tersedia', style: TextStyle(color: Colors.grey)),
+                )
+              else
+                ..._banks.map((bank) {
+                  final selected = _selectedBank?.id == bank.id;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: GestureDetector(
+                      onTap: () => setState(() => _selectedBank = bank),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: selected ? const Color(0xffEFF6FF) : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: selected ? const Color(0xff2563EB) : Colors.grey.shade200,
+                            width: selected ? 2 : 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    bank.name,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 16,
+                                      color: selected ? const Color(0xff2563EB) : Colors.black87,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${bank.accountNumber} a.n. ${bank.accountName}',
+                                    style: const TextStyle(color: Colors.grey, fontSize: 13),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (selected)
+                              const Icon(Icons.check_circle, color: Color(0xff2563EB)),
+                          ],
                         ),
                       ),
                     ),
-                    if (selected)
-                      const Icon(
-                        Icons.check_circle,
-                        color: Color(0xff2563EB),
-                      ),
-                  ],
+                  );
+                }),
+              const SizedBox(height: 16),
+              const Text(
+                'Nama Pengirim Transfer',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _senderNameController,
+                decoration: InputDecoration(
+                  hintText: 'Masukkan nama pengirim sesuai rekening',
+                  filled: true,
+                  fillColor: const Color(0xffF1F5F9),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
               ),
-            ),
-          );
-        }),
+            ],
+          ),
+        ),
       ],
     );
   }

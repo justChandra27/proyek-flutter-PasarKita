@@ -49,6 +49,8 @@ class OrderServiceAppwrite {
     String shippingCity = '',
     String shippingProvince = '',
     String shippingPostalCode = '',
+    String bankName = '',
+    String senderName = '',
   }) async {
     final orderCode = 'ORD-${DateTime.now().millisecondsSinceEpoch}';
     final serviceFee = FeeConfig.serviceFee;
@@ -125,6 +127,8 @@ class OrderServiceAppwrite {
           'shippingCity': shippingCity,
           'shippingProvince': shippingProvince,
           'shippingPostalCode': shippingPostalCode,
+          'bankName': bankName,
+          'senderName': senderName,
         },
       );
       orderId = order.$id;
@@ -369,6 +373,22 @@ class OrderServiceAppwrite {
     return results;
   }
 
+  Future<void> updatePaymentReceipt({
+    required String orderId,
+    required String receiptFileId,
+  }) async {
+    await databases.updateDocument(
+      databaseId: AppwriteConfig.databaseId,
+      collectionId: AppwriteConfig.ordersCollectionId,
+      documentId: orderId,
+      data: {
+        'paymentReceiptImage': receiptFileId,
+        'paymentStatus': 'verification',
+        'updatedAt': DateTime.now().toIso8601String(),
+      },
+    );
+  }
+
   Future<OrderModel?> getOrderById(String orderId) async {
     try {
       final doc = await databases.getDocument(
@@ -573,6 +593,38 @@ class OrderServiceAppwrite {
         );
       }
     }
+  }
+
+  Future<void> approvePayment(String orderId) async {
+    final now = DateTime.now().toIso8601String();
+    final user = await AppwriteService.account.get();
+    await databases.updateDocument(
+      databaseId: AppwriteConfig.databaseId,
+      collectionId: AppwriteConfig.ordersCollectionId,
+      documentId: orderId,
+      data: {
+        'paymentStatus': 'paid',
+        'paymentConfirmedAt': now,
+        'paymentConfirmedBy': user.$id,
+        'updatedAt': now,
+      },
+    );
+  }
+
+  Future<void> rejectPayment(String orderId) async {
+    final now = DateTime.now().toIso8601String();
+    final user = await AppwriteService.account.get();
+    await databases.updateDocument(
+      databaseId: AppwriteConfig.databaseId,
+      collectionId: AppwriteConfig.ordersCollectionId,
+      documentId: orderId,
+      data: {
+        'paymentStatus': 'rejected',
+        'paymentConfirmedAt': now,
+        'paymentConfirmedBy': user.$id,
+        'updatedAt': now,
+      },
+    );
   }
 }
 

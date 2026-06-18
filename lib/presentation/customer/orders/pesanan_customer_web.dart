@@ -197,6 +197,36 @@ class _OrderCard extends StatelessWidget {
 
   const _OrderCard({required this.order, this.onDetailClosed});
 
+  Color _paymentStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'unpaid':
+        return Colors.orange;
+      case 'verification':
+        return Colors.blue;
+      case 'paid':
+        return Colors.green;
+      case 'rejected':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _paymentStatusLabel(String status) {
+    switch (status.toLowerCase()) {
+      case 'unpaid':
+        return 'Menunggu Pembayaran';
+      case 'verification':
+        return 'Menunggu Verifikasi';
+      case 'paid':
+        return 'Pembayaran Berhasil';
+      case 'rejected':
+        return 'Bukti Transfer Ditolak';
+      default:
+        return status;
+    }
+  }
+
   Color _statusColor(String status) {
     switch (status.toLowerCase()) {
       case 'pending':
@@ -321,6 +351,24 @@ class _OrderCard extends StatelessWidget {
               ),
             ],
           ),
+          if (order.paymentStatus.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: _paymentStatusColor(order.paymentStatus).withValues(alpha: .15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                _paymentStatusLabel(order.paymentStatus),
+                style: TextStyle(
+                  color: _paymentStatusColor(order.paymentStatus),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 18),
           Container(
             padding: const EdgeInsets.all(12),
