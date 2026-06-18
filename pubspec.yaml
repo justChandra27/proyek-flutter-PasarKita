@@ -34,6 +34,8 @@ dependencies:
 
   # Persistence
   shared_preferences: ^2.3.0
+  qr: ^3.0.2
+  image: ^4.8.0
 
 dev_dependencies:
   flutter_test:

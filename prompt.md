@@ -2,109 +2,84 @@
 
 Proyek: PasarKita Flutter + Appwrite
 
-==================================================
-FASE 6
-QR VERIFICATION RECEIPT
-=======================
+Jangan mengubah file selain:
 
-Lanjutkan implementasi setelah PDF Receipt selesai.
+* functions/email_receipt/index.js
+* functions/email_receipt/package.json
 
-Jangan membuat migration.
+Tujuan:
 
-Jangan mengubah struktur database.
+Audit dan perbaiki dependency Nodemailer agar dapat dimuat oleh Appwrite Function Node.js 22.
 
-==================================================
-TUJUAN
-======
+Perubahan:
 
-Setiap struk PDF memiliki QR Verification.
-
-QR digunakan untuk memverifikasi keaslian struk.
-
-==================================================
-DEPENDENCY
-==========
-
-Gunakan:
-
-qr_flutter
-
-Jika belum ada.
-
-==================================================
-QR CONTENT
-==========
-
-Masukkan data:
-
-receiptNumber
-orderId
-paymentStatus
-
-Format JSON.
-
-Contoh:
+1. Ubah package.json:
 
 {
-"receiptNumber":"PKT-20260618-0001",
-"orderId":"ORD202606180001",
-"paymentStatus":"paid"
+"name": "pasarkita-email-receipt",
+"version": "1.0.0",
+"type": "module",
+"main": "index.js",
+"dependencies": {
+"nodemailer": "^6.9.14"
+}
 }
 
-==================================================
-PDF RECEIPT
-===========
+2. Ganti index.js menjadi test dependency sederhana:
 
-Pada bagian bawah struk:
+import nodemailer from 'nodemailer';
 
-QR VERIFICATION
+export default async ({ res, log }) => {
+log('Nodemailer loaded');
 
-[ QR CODE ]
+return res.json({
+success: true,
+version: nodemailer.version || 'loaded'
+});
+};
 
-Scan untuk memverifikasi transaksi.
+3. Jangan tambahkan SMTP.
+4. Jangan tambahkan transporter.
+5. Jangan tambahkan sendMail.
+6. Jangan membaca environment variable.
 
-==================================================
-VIEW RECEIPT
-============
+Output ke prompt.md:
 
-Customer:
-
-* tetap bisa lihat struk
-
-Seller:
-
-* tetap bisa lihat struk
-
-Admin:
-
-* tetap bisa lihat struk
+* File yang diubah
+* Perubahan dependency
+* Cara deploy ulang
+* Cara test execute
+* Cara memastikan nodemailer berhasil dimuat
 
 ==================================================
-ERROR HANDLING
-==============
-
-Jika QR gagal dibuat:
-
-Tetap generate PDF.
-
-Gunakan placeholder text:
-
-QR GENERATION FAILED
-
+OUTPUT — HASIL IMPLEMENTASI
 ==================================================
-OUTPUT
-======
 
-Lakukan implementasi.
+1. File yang diubah
+   - functions/email_receipt/index.js
+   - functions/email_receipt/package.json
 
-Tulis ke prompt.md:
+2. Perubahan dependency
+   package.json: nodemailer "^9.0.0" -> "^6.9.14"
+   Alasan: versi 6.x adalah seri LTS stabil yang sudah teruji kompatibel
+   dengan berbagai runtime Node.js (6.x s.d. 22.x).
 
-1. File yang diubah.
-2. Dependency yang ditambah.
-3. Cara QR dibuat.
-4. Testing checklist.
-5. Potensi bug.
+3. Cara deploy ulang
+   Upload folder functions/email_receipt via Appwrite Console:
+   - Functions → pilih function → Deploy
+   - Upload file index.js + package.json
+   - Set entrypoint: index.js
+   - Build & activate
 
-Fokus hanya pada QR Verification.
+4. Cara test execute
+   Appwrite Console → Functions → pilih function → Execute Now
+   Body bebas (tidak dibaca)
+   Cek Execution Logs untuk hasilnya.
 
-Jangan implementasi Email.
+5. Cara memastikan nodemailer berhasil dimuat
+   - Cek Execution Logs: harus muncul log "Nodemailer loaded"
+   - Cek response JSON: {"success":true,"version":"6.x.x"}
+   - Jika response 503/500 dan tidak ada log "Nodemailer loaded":
+     berarti nodemailer 6.9.14 gagal dimuat oleh Runtime Node.js 22
+     → eksperimen dengan versi lebih lama (6.9.0, 6.8.0, dll)
+     → atau coba tanpa "type": "module" (pakai require)
