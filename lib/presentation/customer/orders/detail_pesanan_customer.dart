@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:appwrite/appwrite.dart';
+import 'package:printing/printing.dart';
 
+import '../../../core/appwrite/appwrite_config.dart';
+import '../../../core/appwrite/appwrite_service.dart';
 import '../../../core/services/order_service_appwrite.dart';
 import '../../../core/services/review_service_appwrite.dart';
 import '../../../core/services/storage_service_appwrite.dart';
@@ -223,6 +226,28 @@ class _DetailPesananCustomerState extends State<DetailPesananCustomer> {
                         ),
                       ],
                     ),
+                  ),
+                ],
+                if (order.receiptPdfFileId.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _viewReceiptPdf(order.receiptPdfFileId),
+                          icon: const Icon(Icons.description, size: 18),
+                          label: const Text('Lihat Struk'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _downloadReceiptPdf(order.receiptPdfFileId),
+                          icon: const Icon(Icons.download, size: 18),
+                          label: const Text('Download Struk'),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
                 if (order.paymentStatus == 'rejected') ...[
@@ -884,6 +909,43 @@ class _DetailPesananCustomerState extends State<DetailPesananCustomer> {
         ],
       ),
     );
+  }
+
+  void _viewReceiptPdf(String fileId) async {
+    try {
+      final bytes = await AppwriteService.storage.getFileDownload(
+        bucketId: AppwriteConfig.productBucketId,
+        fileId: fileId,
+      );
+      if (!mounted) return;
+      await Printing.layoutPdf(
+        onLayout: (_) => bytes,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal membuka struk: $e')),
+      );
+    }
+  }
+
+  void _downloadReceiptPdf(String fileId) async {
+    try {
+      final bytes = await AppwriteService.storage.getFileDownload(
+        bucketId: AppwriteConfig.productBucketId,
+        fileId: fileId,
+      );
+      if (!mounted) return;
+      await Printing.sharePdf(
+        bytes: bytes,
+        filename: 'struk_pembayaran_$fileId.pdf',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal mendownload struk: $e')),
+      );
+    }
   }
 
   Widget _timelineCard(OrderModel order) {

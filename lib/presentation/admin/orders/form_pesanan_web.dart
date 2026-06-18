@@ -1,7 +1,10 @@
 //lib/presentation/admin/orders/form_pesanan_web.dart
 //Elsyana
 import 'package:flutter/material.dart';
+import 'package:printing/printing.dart';
 
+import '../../../core/appwrite/appwrite_config.dart';
+import '../../../core/appwrite/appwrite_service.dart';
 import '../../../core/services/order_service_appwrite.dart';
 import '../../../core/services/storage_service_appwrite.dart';
 import '../../../data/models/order_model.dart';
@@ -250,6 +253,24 @@ class _FormPesananWebState extends State<FormPesananWeb> {
     );
   }
 
+  void _viewReceiptPdf(String fileId) async {
+    try {
+      final bytes = await AppwriteService.storage.getFileDownload(
+        bucketId: AppwriteConfig.productBucketId,
+        fileId: fileId,
+      );
+      if (!mounted) return;
+      await Printing.layoutPdf(
+        onLayout: (_) => bytes,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal membuka struk: $e')),
+      );
+    }
+  }
+
   void _showDetailDialog(OrderModel order) {
     showDialog(
       context: context,
@@ -278,6 +299,15 @@ class _FormPesananWebState extends State<FormPesananWeb> {
                     onPressed: () => _viewReceipt(order.paymentReceiptImage),
                     icon: const Icon(Icons.image, size: 18),
                     label: const Text('Lihat Bukti Transfer'),
+                  ),
+                ),
+              if (order.receiptPdfFileId.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: TextButton.icon(
+                    onPressed: () => _viewReceiptPdf(order.receiptPdfFileId),
+                    icon: const Icon(Icons.description, size: 18),
+                    label: const Text('Lihat Struk'),
                   ),
                 ),
             ],

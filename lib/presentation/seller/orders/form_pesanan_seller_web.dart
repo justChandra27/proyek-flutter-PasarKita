@@ -1,6 +1,7 @@
 //lib/presentation/seller/orders/form_pesanan_seller_web.dart
 
 import 'package:flutter/material.dart';
+import 'package:printing/printing.dart';
 
 import 'package:appwrite/appwrite.dart';
 import '../../../core/services/auth_service_appwrite.dart';
@@ -299,6 +300,24 @@ class _FormPesananSellerWebState
         ],
       ),
     );
+  }
+
+  void _viewReceiptPdf(String fileId) async {
+    try {
+      final bytes = await AppwriteService.storage.getFileDownload(
+        bucketId: AppwriteConfig.productBucketId,
+        fileId: fileId,
+      );
+      if (!mounted) return;
+      await Printing.layoutPdf(
+        onLayout: (_) => bytes,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal membuka struk: $e')),
+      );
+    }
   }
 
   @override
@@ -843,6 +862,15 @@ class _FormPesananSellerWebState
                       onPressed: () => _viewReceipt(order.paymentReceiptImage),
                       icon: const Icon(Icons.image, size: 18),
                       label: const Text('Lihat Bukti Transfer'),
+                    ),
+                  ),
+                if (order.receiptPdfFileId.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: TextButton.icon(
+                      onPressed: () => _viewReceiptPdf(order.receiptPdfFileId),
+                      icon: const Icon(Icons.description, size: 18),
+                      label: const Text('Lihat Struk'),
                     ),
                   ),
                 const Divider(height: 24),

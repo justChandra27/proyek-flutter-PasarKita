@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:printing/printing.dart';
 
 import '../../core/appwrite/appwrite_config.dart';
 import '../../core/appwrite/appwrite_service.dart';
@@ -433,6 +434,44 @@ class _SuccessPageState extends State<SuccessPage> {
                         ),
                       ),
                     ],
+                    if (order.receiptPdfFileId.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: SizedBox(
+                              height: 52,
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: () => _viewReceiptPdf(order.receiptPdfFileId),
+                                icon: const Icon(Icons.description, size: 18),
+                                label: const Text('Lihat Struk'),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: SizedBox(
+                              height: 52,
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: () => _downloadReceiptPdf(order.receiptPdfFileId),
+                                icon: const Icon(Icons.download, size: 18),
+                                label: const Text('Download Struk'),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                     const SizedBox(height: 32),
                     SizedBox(
                       width: double.infinity,
@@ -574,6 +613,43 @@ class _SuccessPageState extends State<SuccessPage> {
       );
     } finally {
       if (mounted) setState(() => _uploading = false);
+    }
+  }
+
+  void _viewReceiptPdf(String fileId) async {
+    try {
+      final bytes = await AppwriteService.storage.getFileDownload(
+        bucketId: AppwriteConfig.productBucketId,
+        fileId: fileId,
+      );
+      if (!mounted) return;
+      await Printing.layoutPdf(
+        onLayout: (_) => bytes,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal membuka struk: $e')),
+      );
+    }
+  }
+
+  void _downloadReceiptPdf(String fileId) async {
+    try {
+      final bytes = await AppwriteService.storage.getFileDownload(
+        bucketId: AppwriteConfig.productBucketId,
+        fileId: fileId,
+      );
+      if (!mounted) return;
+      await Printing.sharePdf(
+        bytes: bytes,
+        filename: 'struk_pembayaran_$fileId.pdf',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal mendownload struk: $e')),
+      );
     }
   }
 
