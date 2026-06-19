@@ -116,7 +116,6 @@ PasarKita adalah aplikasi marketplace berbasis Flutter dengan backend Appwrite.
 - Payment page (static QR code — no payment processing)
 - Unit tests (all tests commented out)
 - 18 stub files need implementation or cleanup
-- SMTP email receipt delivery to customers
 - `AppTheme.darkTheme` not applied in `MaterialApp`
 - Register `skills/pasarkita_skill.md` in `opencode.json`
 
@@ -192,7 +191,7 @@ Gunakan service yang sudah ada. JANGAN membuat service baru jika fungsi sudah te
 
 Gunakan model yang sudah ada. JANGAN membuat model duplikat.
 
-**Available (14 models):**
+**Available (15 models):**
 - ProductModel
 - UserModel
 - OrderModel
@@ -204,9 +203,10 @@ Gunakan model yang sudah ada. JANGAN membuat model duplikat.
 - NotificationModel
 - SellerBalanceModel
 - WithdrawalModel
-- StockLockModel
 - BankModel
-- PaginatedResponse
+- ProcessingPhase
+- ModerationStatus
+- PaginatedResponse (core/models)
 
 ---
 

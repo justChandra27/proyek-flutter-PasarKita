@@ -26,7 +26,7 @@ Appwrite Cloud (sgp.cloud.appwrite.io, project `marketplacedb`)
 - `product_images` — Product images & PDF receipts
 
 ### Appwrite Functions:
-- `email_receipt` — SMTP email via Node.js + nodemailer (not yet integrated with Flutter)
+- `email_receipt` — SMTP email via Node.js + nodemailer (integrated with Flutter)
 
 ---
 
@@ -39,7 +39,7 @@ lib/
 │   ├── constants/         # fee_config.dart (active), app_colors.dart (STUB)
 │   ├── controllers/       # transaksi_controller.dart
 │   ├── models/            # paginated_response.dart
-│   ├── services/          # 18 Appwrite services (ALL ACTIVE)
+│   ├── services/          # 19 Appwrite services (ALL ACTIVE)
 │   ├── theme/             # app_theme.dart (dark theme defined but not applied)
 │   ├── utils/             # format_rupiah.dart (active), currency_formatter.dart (STUB)
 │   └── widgets/           # custom_button, custom_textfield, loading_widget (ALL STUBS)
@@ -102,9 +102,9 @@ lib/
 - NotificationModel
 - SellerBalanceModel
 - WithdrawalModel
-- StockLockModel
 - BankModel
-- PaginatedResponse
+- ProcessingPhase
+- ModerationStatus
 
 Model tidak berisi logika Appwrite — hanya data classes.
 
@@ -170,7 +170,7 @@ Berisi seluruh UI berdasarkan role.
 ```
 Appwrite Database
 ↓
-Service Layer (18 services)
+Service Layer (19 services)
 ↓
 Model (14 models)
 ↓

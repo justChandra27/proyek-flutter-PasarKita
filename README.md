@@ -19,7 +19,7 @@ Appwrite Database → Service Layer → Model → Provider → UI (Widget)
 
 ```
 lib/
-├── core/          # Appwrite config, services (18), theme, utils, widgets
+├── core/          # Appwrite config, services (19), theme, utils, widgets
 ├── data/          # Models (14), dummy (stub)
 ├── presentation/  # UI by role: admin, seller, customer, auth, checkout
 ├── providers/     # State management (Auth, Cart, ProductFilter)
@@ -63,5 +63,5 @@ Dashboard (products from Appwrite), Product Detail, Cart (local), Checkout (with
 | Admin | 95% complete |
 | Seller | 95% complete |
 | Customer | 70% complete |
-| Email System | 50% (function exists, not integrated) |
-| Payment | Static UI only |
+| Email System | 90% (integrated, awaiting deployment verification) |
+| Payment | Manual transfer workflow working, payment gateway not implemented |
