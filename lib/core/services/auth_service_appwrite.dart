@@ -17,12 +17,11 @@ class AuthServiceAppwrite {
   Future<void> register({
     required String name,
     required String username,
+    required String email,
     required String role,
     required String password,
   }) async {
     try {
-      final email = '${username.toLowerCase()}@pasarkita.app';
-
       final user = await account.create(
         userId: ID.unique(),
         email: email,
@@ -180,5 +179,33 @@ class AuthServiceAppwrite {
 
   Future<void> logout() async {
     await account.deleteSession(sessionId: 'current');
+  }
+
+  // =========================
+  // PROFILE COMPLETENESS
+  // =========================
+
+  static bool isCustomerProfileComplete(Map<String, dynamic>? userData) {
+    if (userData == null) return false;
+    final phone = userData['phone'] as String? ?? '';
+    final address = userData['shippingAddress'] as String? ?? '';
+    final city = userData['shippingCity'] as String? ?? '';
+    final province = userData['shippingProvince'] as String? ?? '';
+    final postal = userData['shippingPostalCode'] as String? ?? '';
+    return phone.isNotEmpty &&
+        address.isNotEmpty &&
+        city.isNotEmpty &&
+        province.isNotEmpty &&
+        postal.isNotEmpty;
+  }
+
+  static bool isSellerProfileComplete(Map<String, dynamic>? userData) {
+    if (userData == null) return false;
+    final phone = userData['phone'] as String? ?? '';
+    final storeName = userData['storeName'] as String? ?? '';
+    final storeAddress = userData['storeAddress'] as String? ?? '';
+    return phone.isNotEmpty &&
+        storeName.isNotEmpty &&
+        storeAddress.isNotEmpty;
   }
 }

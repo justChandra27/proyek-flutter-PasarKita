@@ -11,6 +11,7 @@ class RegisterTest {
           .register(
         name: 'Test pengguna',
         username: 'pengguna123',
+        email: 'pengguna123@example.com',
         role: 'seller',
         password: 'Test12345',
       );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:typed_data';
 
+import '../../../core/services/auth_service_appwrite.dart';
 import '../../../core/services/product_service_appwrite.dart';
 import '../../../core/appwrite/appwrite_service.dart';
 
@@ -136,6 +137,27 @@ class _ProductFormPageState extends State<ProductFormPage> {
     if (widget.product == null && selectedImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Pilih gambar produk terlebih dahulu')),
+      );
+      return;
+    }
+
+    final userData = await AuthServiceAppwrite().getCurrentUserData();
+    if (!AuthServiceAppwrite.isSellerProfileComplete(userData)) {
+      if (!mounted) return;
+      await showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Profil Toko Belum Lengkap'),
+          content: const Text(
+            'Lengkapi profil toko terlebih dahulu sebelum menambahkan produk.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
       );
       return;
     }

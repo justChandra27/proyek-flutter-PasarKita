@@ -12,6 +12,7 @@ import '../../core/services/order_service_appwrite.dart';
 import '../../core/services/product_service_appwrite.dart';
 import '../../data/models/bank_model.dart';
 import '../../data/models/cart_model.dart';
+import '../customer/profile/profile_customer_mobile.dart';
 
 class CheckoutPage extends StatefulWidget {
   final CartModel? buyNowItem;
@@ -37,6 +38,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   String _profileShippingCity = '';
   String _profileShippingProvince = '';
   String _profileShippingPostalCode = '';
+  Map<String, dynamic>? _userData;
 
   @override
   void initState() {
@@ -71,6 +73,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         final combined = parts.join(', ');
 
         setState(() {
+          _userData = data;
           _addressController.text = combined.isNotEmpty ? combined : '';
           _phoneController.text = phone;
           _profileShippingAddress = address;
@@ -121,6 +124,38 @@ class _CheckoutPageState extends State<CheckoutPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Harap isi nama pengirim transfer')),
       );
+      return;
+    }
+
+    if (!AuthServiceAppwrite.isCustomerProfileComplete(_userData)) {
+      final shouldGo = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Profil Belum Lengkap'),
+          content: const Text(
+            'Lengkapi profil terlebih dahulu sebelum melakukan checkout.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Lengkapi Profil'),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldGo == true) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const ProfileCustomerMobile(),
+          ),
+        );
+      }
       return;
     }
 

@@ -227,6 +227,8 @@ class _ProfileCustomerWebState
                             color: Colors.black54,
                           ),
                         ),
+                        const SizedBox(height: 6),
+                        _profileStatusBadge(),
                       ],
                     ),
                   ),
@@ -464,6 +466,38 @@ class _ProfileCustomerWebState
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  Widget _profileStatusBadge() {
+    final data = _userModel != null
+        ? {
+            'phone': _userModel!.phone,
+            'shippingAddress': _userModel!.shippingAddress,
+            'shippingCity': _userModel!.shippingCity,
+            'shippingProvince': _userModel!.shippingProvince,
+            'shippingPostalCode': _userModel!.shippingPostalCode,
+          }
+        : null;
+    final isComplete = AuthServiceAppwrite.isCustomerProfileComplete(data);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          isComplete ? Icons.check_circle : Icons.warning_amber_rounded,
+          size: 16,
+          color: isComplete ? Colors.green : Colors.orange,
+        ),
+        const SizedBox(width: 6),
+        Text(
+          isComplete ? 'Profile Lengkap' : 'Profile Belum Lengkap',
+          style: TextStyle(
+            fontSize: 13,
+            color: isComplete ? Colors.green : Colors.orange,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
   }
 
   static Widget _editableField(

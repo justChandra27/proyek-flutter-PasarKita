@@ -23,6 +23,7 @@ class _FormProfilSellerWebState extends State<FormProfilSellerWeb> {
   bool _loading = true;
 
   final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _storeNameController = TextEditingController();
   final _storeAddressController = TextEditingController();
   final _cityController = TextEditingController();
@@ -39,6 +40,7 @@ class _FormProfilSellerWebState extends State<FormProfilSellerWeb> {
   @override
   void dispose() {
     _nameController.dispose();
+    _phoneController.dispose();
     _storeNameController.dispose();
     _storeAddressController.dispose();
     _cityController.dispose();
@@ -70,6 +72,7 @@ class _FormProfilSellerWebState extends State<FormProfilSellerWeb> {
     setState(() {
       _loading = false;
       _nameController.text = _userModel?.name ?? _accountName;
+      _phoneController.text = _userModel?.phone ?? '';
       _storeNameController.text = _userModel?.storeName ?? '';
       _storeAddressController.text = _userModel?.storeAddress ?? '';
       _cityController.text = _userModel?.city ?? '';
@@ -88,12 +91,15 @@ class _FormProfilSellerWebState extends State<FormProfilSellerWeb> {
         documentId: _userModel!.documentId,
         data: {
           'name': _nameController.text,
+          'phone': _phoneController.text.trim(),
           'storeName': _storeNameController.text,
           'storeAddress': _storeAddressController.text,
           'city': _cityController.text,
           'province': _provinceController.text,
         },
       );
+      if (!mounted) return;
+      await _loadUser();
       if (!mounted) return;
       setState(() {
         _isEditing = false;
@@ -210,6 +216,10 @@ class _FormProfilSellerWebState extends State<FormProfilSellerWeb> {
                     ],
                   ),
                 ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 16),
+                  child: _profileStatusBadge(),
+                ),
                 if (!_isEditing)
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
@@ -246,6 +256,7 @@ class _FormProfilSellerWebState extends State<FormProfilSellerWeb> {
                           setState(() {
                             _isEditing = false;
                             _nameController.text = _userModel?.name ?? _accountName;
+                            _phoneController.text = _userModel?.phone ?? '';
                             _storeNameController.text = _userModel?.storeName ?? '';
                             _storeAddressController.text = _userModel?.storeAddress ?? '';
                             _cityController.text = _userModel?.city ?? '';
@@ -300,6 +311,7 @@ class _FormProfilSellerWebState extends State<FormProfilSellerWeb> {
                         children: [
                           _section("INFORMASI PRIBADI", [
                             _field("Nama Lengkap", _nameController, _isEditing),
+                            _field("Nomor HP", _phoneController, _isEditing),
                             _field("Email", TextEditingController(text: email), false),
                           ]),
                           const SizedBox(height: 20),
@@ -326,6 +338,36 @@ class _FormProfilSellerWebState extends State<FormProfilSellerWeb> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _profileStatusBadge() {
+    final data = _userModel != null
+        ? {
+            'phone': _userModel!.phone,
+            'storeName': _userModel!.storeName,
+            'storeAddress': _userModel!.storeAddress,
+          }
+        : null;
+    final isComplete = AuthServiceAppwrite.isSellerProfileComplete(data);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          isComplete ? Icons.check_circle : Icons.warning_amber_rounded,
+          size: 16,
+          color: isComplete ? Colors.green : Colors.orange,
+        ),
+        const SizedBox(width: 6),
+        Text(
+          isComplete ? 'Profile Lengkap' : 'Profile Belum Lengkap',
+          style: TextStyle(
+            fontSize: 13,
+            color: isComplete ? Colors.green : Colors.orange,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 

@@ -182,6 +182,10 @@ class _ProfileCustomerMobileState
                       style: const TextStyle(color: Colors.grey),
                     ),
 
+                    const SizedBox(height: 10),
+
+                    _profileStatusBadge(),
+
                     const SizedBox(height: 18),
 
                     Container(
@@ -439,6 +443,38 @@ class _ProfileCustomerMobileState
           ),
         ],
       ),
+    );
+  }
+
+  Widget _profileStatusBadge() {
+    final data = _userModel != null
+        ? {
+            'phone': _userModel!.phone,
+            'shippingAddress': _userModel!.shippingAddress,
+            'shippingCity': _userModel!.shippingCity,
+            'shippingProvince': _userModel!.shippingProvince,
+            'shippingPostalCode': _userModel!.shippingPostalCode,
+          }
+        : null;
+    final isComplete = AuthServiceAppwrite.isCustomerProfileComplete(data);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          isComplete ? Icons.check_circle : Icons.warning_amber_rounded,
+          size: 16,
+          color: isComplete ? Colors.green : Colors.orange,
+        ),
+        const SizedBox(width: 6),
+        Text(
+          isComplete ? 'Profile Lengkap' : 'Profile Belum Lengkap',
+          style: TextStyle(
+            fontSize: 13,
+            color: isComplete ? Colors.green : Colors.orange,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 

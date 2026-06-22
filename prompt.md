@@ -1,70 +1,93 @@
-﻿# DOCUMENTATION FIX REPORT
+﻿MODE: IMPLEMENT
 
-## Files Modified
+Proyek: PasarKita Flutter
 
-1. **README.md** — 3 changes
-2. **PROJECT_STATUS.md** — 3 changes
-3. **penjelasan_struktur.md** — 6 changes
+Bug:
+Seller profile badge tetap menampilkan "Profile Belum Lengkap"
+setelah profile berhasil disimpan.
 
-## Exact Changes
+Root cause:
+form_profil_seller_web.dart::_saveProfile()
+berhasil update Appwrite Database
+tetapi _userModel tidak di-refresh.
 
-### README.md
-| # | Line | Change |
-|---|------|--------|
-| 1 | 22 | `services (18)` → `services (19)` |
-| 2 | 66 | `Email System \| 50% (function exists, not integrated)` → `\| 90% (integrated, awaiting deployment verification)` |
-| 3 | 67 | `Payment \| Static UI only` → `\| Manual transfer workflow working, payment gateway not implemented` |
+Implementasi:
 
-### PROJECT_STATUS.md
-| # | Line | Change |
-|---|------|--------|
-| 1 | 119 (removed) | `- SMTP email receipt delivery to customers` — dihapus dari Pending Features |
-| 2 | 206 (removed) | `- StockLockModel` — dihapus (file tidak ada) |
-| 3 | 192–207 | Model list updated: 14 → 15 models, added ProcessingPhase, ModerationStatus, annotated PaginatedResponse as (core/models) |
+1. File:
+   lib/presentation/seller/profile/form_profil_seller_web.dart
 
-### penjelasan_struktur.md
-| # | Line | Change |
-|---|------|--------|
-| 1 | 29 | `not yet integrated with Flutter` → `integrated with Flutter` |
-| 2 | 42 | `18 Appwrite services` → `19 Appwrite services` |
-| 3 | 105 (removed) | `- StockLockModel` — dihapus (file tidak ada) |
-| 4 | 107 (removed) | `- PaginatedResponse` — dipindah ke core/models, bukan data/models |
-| 5 | 93–107 | Ditambahkan ProcessingPhase & ModerationStatus ke daftar (14 model) |
-| 6 | 173 | `Model (14 models)` — sudah benar |
+2. Audit _saveProfile()
 
-## Validation Results
+3. Setelah updateDocument() berhasil:
 
-**Services count (19):**
-- README.md: `services (19)` ✓
-- PROJECT_STATUS.md: `Available (19 services)` ✓
-- penjelasan_struktur.md: `19 Appwrite services` (x3) ✓
+   refresh _userModel dengan data terbaru.
 
-**Models count:**
-- data/models: 14 files (READ: ✓, penjelasan_struktur: ✓)
-- Total project: 15 (core/models + data/models) — PROJECT_STATUS: ✓
-- StockLockModel: removed from all docs (file tidak ada) ✓
-- PaginatedResponse: referenced at core/models/paginated_response.dart ✓
+4. Pilih salah satu pendekatan terbaik:
 
-**SMTP Email:**
-- Status: INTEGRATED 90% ✓
-- Removed from Pending Features ✓
-- Described as "integrated with Flutter" ✓
+   Option A:
 
-**Payment:**
-- README: "Manual transfer workflow working, payment gateway not implemented" ✓
+   * panggil kembali _loadUser()
 
-## Remaining Issues
+   atau
 
-- `AppTheme.darkTheme` not applied (documented, code issue — out of scope)
-- 18 stub files exist (documented, code issue — out of scope)
-- Payment page is static QR code only (documented, code issue — out of scope)
+   Option B:
 
-## Final Documentation Score
+   * update _userModel langsung dari controller values
 
-- **95%** — All requested documentation fixes applied
+5. Pastikan setelah klik Simpan:
+
+   * badge berubah realtime
+   * tidak perlu refresh browser
+   * tidak perlu logout/login
+
+6. Jangan mengubah logika isSellerProfileComplete()
+
+7. Jangan mengubah struktur database.
+
+8. Jalankan flutter analyze.
+
+# STALE USERMODEL FIX REPORT
+
+## File Modified
+
+`lib/presentation/seller/profile/form_profil_seller_web.dart`
+
+## Changes
+
+**Before** (lines 101-108):
+```dart
+      if (!mounted) return;
+      setState(() {
+        _isEditing = false;
+        _saving = false;
+      });
+```
+
+**After** (lines 101-107):
+```dart
+      if (!mounted) return;
+      await _loadUser();
+      if (!mounted) return;
+      setState(() {
+        _isEditing = false;
+        _saving = false;
+      });
+```
+
+Added `await _loadUser();` between the DB update and the `setState` call. This refreshes `_userModel` from the database after a successful save, so the badge reads fresh data.
+
+## Result
+
+| Before | After |
+|---|---|
+| `_userModel` stale after save — badge shows old data | `_userModel` refreshed from DB — badge shows new data |
+| Need browser refresh to see correct badge | Badge updates immediately after save |
+| Temporary prints removed (clean) | No prints in production code |
+
+## flutter analyze
+
+**0 errors** — all 27 issues are pre-existing info/warnings.
 
 ## Final Verdict
 
-Verdict:
-* COMPLETE
-* ~~NEEDS UPDATE~~
+Fix implemented. After clicking Simpan, `_loadUser()` re-fetches the user document from Appwrite, rebuilding `_userModel` with the latest `phone`, `storeName`, `storeAddress` values. The badge now reflects the correct completeness status in real time.

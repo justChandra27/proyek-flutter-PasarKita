@@ -102,6 +102,10 @@ class _SellerEditProfileMobileState extends State<SellerEditProfileMobile> {
               ),
             ),
 
+            const SizedBox(height: 16),
+
+            _profileStatusBadge(),
+
             const SizedBox(height: 24),
 
             _sectionTitle("INFORMASI PRIBADI"),
@@ -175,6 +179,36 @@ class _SellerEditProfileMobileState extends State<SellerEditProfileMobile> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _profileStatusBadge() {
+    final data = _userModel != null
+        ? {
+            'phone': _userModel!.phone,
+            'storeName': _userModel!.storeName,
+            'storeAddress': _userModel!.storeAddress,
+          }
+        : null;
+    final isComplete = AuthServiceAppwrite.isSellerProfileComplete(data);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          isComplete ? Icons.check_circle : Icons.warning_amber_rounded,
+          size: 16,
+          color: isComplete ? Colors.green : Colors.orange,
+        ),
+        const SizedBox(width: 6),
+        Text(
+          isComplete ? 'Profile Lengkap' : 'Profile Belum Lengkap',
+          style: TextStyle(
+            fontSize: 13,
+            color: isComplete ? Colors.green : Colors.orange,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 

@@ -17,6 +17,8 @@ class _RegisterPageState extends State<RegisterPage> {
 
   final usernameController = TextEditingController();
 
+  final emailController = TextEditingController();
+
   final passwordController = TextEditingController();
 
   final confirmPasswordController = TextEditingController();
@@ -35,6 +37,7 @@ class _RegisterPageState extends State<RegisterPage> {
   void dispose() {
     fullNameController.dispose();
     usernameController.dispose();
+    emailController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();
     super.dispose();
@@ -43,12 +46,21 @@ class _RegisterPageState extends State<RegisterPage> {
   Future<void> register() async {
     if (fullNameController.text.trim().isEmpty ||
         usernameController.text.trim().isEmpty ||
+        emailController.text.trim().isEmpty ||
         passwordController.text.trim().isEmpty ||
         confirmPasswordController.text.trim().isEmpty ||
         selectedRole == null) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Lengkapi semua data')));
+      return;
+    }
+
+    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    if (!emailRegex.hasMatch(emailController.text.trim())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Format email tidak valid')),
+      );
       return;
     }
 
@@ -83,6 +95,7 @@ class _RegisterPageState extends State<RegisterPage> {
       await _authService.register(
         name: fullNameController.text.trim(),
         username: usernameController.text.trim(),
+        email: emailController.text.trim(),
         role: selectedRole!,
         password: passwordController.text.trim(),
       );
@@ -280,6 +293,17 @@ class _RegisterPageState extends State<RegisterPage> {
                                     decoration: inputDecoration(
                                       hint: "Masukkan ID Login",
                                       icon: Icons.badge_outlined,
+                                    ),
+                                  ),
+                                ),
+
+                                _webField(
+                                  "EMAIL",
+                                  TextField(
+                                    controller: emailController,
+                                    decoration: inputDecoration(
+                                      hint: "Masukkan email aktif",
+                                      icon: Icons.email_outlined,
                                     ),
                                   ),
                                 ),
@@ -488,6 +512,16 @@ class _RegisterPageState extends State<RegisterPage> {
                     decoration: inputDecoration(
                       hint: "Masukkan ID Login",
                       icon: Icons.badge_outlined,
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  TextField(
+                    controller: emailController,
+                    decoration: inputDecoration(
+                      hint: "Email",
+                      icon: Icons.email_outlined,
                     ),
                   ),
 
