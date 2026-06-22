@@ -2,141 +2,84 @@
 
 Proyek: PasarKita Flutter
 
-Prioritas: CRITICAL
+Prioritas: MEDIUM
 
-Jangan mengubah flow bisnis lain.
+Jangan mengubah flow checkout.
 Jangan mengubah SMTP.
-Jangan mengubah template email.
 Jangan mengubah Appwrite Function.
-Jangan mengubah status payment yang sudah ada.
+Jangan mengubah approvePayment().
+Jangan mengubah UI pesanan.
 
 ==================================================
-FIX 1
-SELLER TIDAK BOLEH MEMPROSES PESANAN
-SEBELUM PEMBAYARAN VALID
 
-File:
+FITUR BARU
+
+Saat Admin atau Seller menolak pembayaran
+(rejectPayment),
+
+customer harus menerima notifikasi
+di fitur Notifikasi.
+
+==================================================
+
+FILE UTAMA
+
 lib/core/services/order_service_appwrite.dart
 
-Audit menemukan:
+Method:
 
-updateOrderStatus()
-masih mengizinkan:
-
-pending
-↓
-processing
-
-meskipun:
-
-paymentStatus != paid
-
-Target:
-
-Seller hanya boleh memproses pesanan jika:
-
-paymentStatus == 'paid'
-
-Jika paymentStatus:
-
-* unpaid
-* verification
-* rejected
-
-maka:
-
-throw AppwriteException atau Exception yang jelas.
-
-Contoh pesan:
-
-"Pesanan belum dapat diproses karena pembayaran belum diverifikasi."
+rejectPayment()
 
 ==================================================
-FIX 2
-CUSTOMER TIDAK BOLEH MEMBATALKAN PESANAN
-SAAT VERIFICATION ATAU PAID
 
-File:
-detail_pesanan_customer.dart
+IMPLEMENTASI
 
-Audit menemukan:
+Setelah update:
 
-Tombol Batalkan Pesanan
-masih muncul ketika:
+paymentStatus = 'rejected'
 
-paymentStatus == verification
+buat notifikasi baru untuk customer.
 
-Target:
-
-Tombol Batalkan Pesanan
-HANYA muncul jika:
-
-paymentStatus == 'unpaid'
-
-Tombol harus disembunyikan jika:
-
-* verification
-* paid
-* rejected
+Gunakan NotificationService yang sudah ada
+di proyek.
 
 ==================================================
+
+ISI NOTIFIKASI
+
+Title:
+
+"Bukti Transfer Ditolak"
+
+Message:
+
+"Bukti transfer untuk pesanan {ORDER_CODE} ditolak. Silakan upload ulang bukti transfer yang valid melalui halaman pesanan."
+
+Type:
+
+payment_rejected
+
+User:
+
+customerId dari order
+
+==================================================
+
 VALIDATION
 
-Pastikan:
+Scenario:
 
-Scenario A
-
-paymentStatus = unpaid
-
-Customer:
-
-* tombol Batalkan Pesanan muncul
-
-Seller:
-
-* tidak bisa proses pesanan
-
-==================================================
-
-Scenario B
-
+Customer upload bukti transfer
+↓
 paymentStatus = verification
-
-Customer:
-
-* tombol Batalkan Pesanan tidak muncul
-
-Seller:
-
-* tidak bisa proses pesanan
-
-==================================================
-
-Scenario C
-
-paymentStatus = paid
-
-Customer:
-
-* tombol Batalkan Pesanan tidak muncul
-
-Seller:
-
-* bisa proses pesanan
-
-==================================================
-
-Scenario D
-
+↓
+Admin reject
+↓
 paymentStatus = rejected
-
-Customer:
-
-* tombol Batalkan Pesanan tidak muncul
-
-Seller:
-
-* tidak bisa proses pesanan
+↓
+Notifikasi customer dibuat
+↓
+Muncul di halaman Notifikasi Customer
 
 ==================================================
 
@@ -144,77 +87,62 @@ AUDIT
 
 Setelah implementasi:
 
-1. Tunjukkan file yang diubah.
-2. Tunjukkan exact line yang diubah.
-3. Tunjukkan guard paymentStatus yang ditambahkan.
-4. Tunjukkan kondisi tombol cancel sebelum dan sesudah.
-5. Verifikasi flutter analyze.
-6. Verifikasi tidak ada perubahan flow lain.
+1. File yang diubah.
+2. Service notifikasi yang digunakan.
+3. Payload notifikasi yang dibuat.
+4. Verifikasi customerId yang menerima notif.
+5. flutter analyze.
+6. Verifikasi tidak mengubah flow approve.
 
-Tuliskan hasil Output ke prompt.md
+Output ke prompt.md
 
-# PAYMENT SAFEGUARD FIX REPORT
+# PAYMENT REJECT NOTIFICATION REPORT
 
 ## Files Modified
 
 | File | Change |
 |------|--------|
-| `lib/core/services/order_service_appwrite.dart` | Added paymentStatus guard before `pending→processing` |
-| `lib/presentation/customer/orders/detail_pesanan_customer.dart` | Added `paymentStatus == 'unpaid'` condition to cancel button |
+| `lib/core/services/order_service_appwrite.dart` | Added `getOrderById()` + notification call in `rejectPayment()` |
 
-## Seller Processing Guard
+## Notification Flow
 
-**File:** `order_service_appwrite.dart:449-456`
-
-```dart
-if (newStatus == 'processing' && current.paymentStatus != 'paid') {
-  throw AppwriteException(
-    'Pesanan belum dapat diproses karena pembayaran belum diverifikasi.',
-    400,
-    'payment_not_verified',
-  );
-}
+```
+rejectPayment(orderId)
+  ↓
+getOrderById(orderId) → customerId, orderCode
+  ↓
+databases.updateDocument(paymentStatus → 'rejected')
+  ↓
+NotificationServiceAppwrite().createNotification(
+  userId: current.customerId,
+  title: 'Bukti Transfer Ditolak',
+  message: 'Bukti transfer untuk pesanan {orderCode} ditolak...',
+  type: 'payment_rejected',
+  orderId: orderId,
+)
+  ↓
+Muncul di halaman Notifikasi Customer ✅
 ```
 
-Ditempatkan setelah validasi transisi status, sebelum notifikasi.
+## Notification Payload
 
-**Sebelum:** `pending → processing` selalu diizinkan.
-**Sesudah:** hanya diizinkan jika `paymentStatus == 'paid'`.
+| Field | Value |
+|-------|-------|
+| `userId` | `current.customerId` (dari order) |
+| `title` | `"Bukti Transfer Ditolak"` |
+| `message` | `"Bukti transfer untuk pesanan {orderCode} ditolak. Silakan upload ulang bukti transfer yang valid melalui halaman pesanan."` |
+| `type` | `"payment_rejected"` |
+| `orderId` | `orderId` (parameter) |
 
-## Customer Cancel Guard
-
-**File:** `detail_pesanan_customer.dart:314`
-
-**Sebelum:**
-```dart
-if (order.status == 'pending') ...[
-```
-
-**Sesudah:**
-```dart
-if (order.status == 'pending' && order.paymentStatus == 'unpaid') ...[
-```
-
-## Validation Results
+## Validation
 
 | Check | Status |
 |-------|--------|
 | Tidak mengubah flow checkout | ✅ |
-| Tidak mengubah upload bukti transfer | ✅ |
-| Tidak mengubah approve/reject payment | ✅ |
-| Tidak mengubah template email | ✅ |
-| Tidak mengubah Appwrite Function | ✅ |
-| Tidak mengubah SMTP | ✅ |
-| Tidak mengubah status payment | ✅ |
-
-## Test Scenarios
-
-| Scenario | paymentStatus | Customer: Cancel? | Seller: Process? | Status |
-|----------|:-------------:|:---:|:---:|:------:|
-| A | `unpaid` | ✅ Muncul | ❌ `payment_not_verified` | ✅ |
-| B | `verification` | ❌ Sembunyi | ❌ `payment_not_verified` | ✅ |
-| C | `paid` | ❌ Sembunyi | ✅ Diproses normal | ✅ |
-| D | `rejected` | ❌ Sembunyi | ❌ `payment_not_verified` | ✅ |
+| Tidak mengubah approvePayment() | ✅ |
+| Notifikasi via service existing | ✅ `NotificationServiceAppwrite` |
+| customerId dari order benar | ✅ via `getOrderById()` |
+| Tidak mengubah UI pesanan | ✅ |
 
 ## flutter analyze
 
@@ -225,6 +153,4 @@ Semua pre-existing — 0 issues dari perubahan ini.
 
 ## Final Verdict
 
-✅ **IMPLEMENTASI SELESAI.** Kedua safeguard berhasil ditambahkan tanpa mengubah flow bisnis lain.
-
-
+✅ **IMPLEMENTASI SELESAI.** `rejectPayment()` sekarang membuat notifikasi ke customer dengan title "Bukti Transfer Ditolak", type `payment_rejected`, berisi instruksi untuk upload ulang. Tidak ada perubahan pada `approvePayment()` atau flow bisnis lain.

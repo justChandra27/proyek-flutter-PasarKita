@@ -652,6 +652,11 @@ class OrderServiceAppwrite {
   }
 
   Future<void> rejectPayment(String orderId) async {
+    final current = await getOrderById(orderId);
+    if (current == null) {
+      throw AppwriteException('Pesanan tidak ditemukan', 404, 'order_not_found');
+    }
+
     final now = DateTime.now().toIso8601String();
     final user = await AppwriteService.account.get();
     await databases.updateDocument(
@@ -664,6 +669,16 @@ class OrderServiceAppwrite {
         'paymentConfirmedBy': user.$id,
         'updatedAt': now,
       },
+    );
+
+    final notifService = NotificationServiceAppwrite();
+    await notifService.createNotification(
+      userId: current.customerId,
+      title: 'Bukti Transfer Ditolak',
+      message:
+          'Bukti transfer untuk pesanan ${current.orderCode} ditolak. Silakan upload ulang bukti transfer yang valid melalui halaman pesanan.',
+      type: 'payment_rejected',
+      orderId: orderId,
     );
   }
 }
