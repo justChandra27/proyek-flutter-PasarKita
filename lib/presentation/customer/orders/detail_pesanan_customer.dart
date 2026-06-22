@@ -311,7 +311,7 @@ class _DetailPesananCustomerState extends State<DetailPesananCustomer> {
                     ),
                   ),
                 ],
-                if (order.status == 'pending') ...[
+                if (order.status == 'pending' && order.paymentStatus == 'unpaid') ...[
                   const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
@@ -834,7 +834,7 @@ class _DetailPesananCustomerState extends State<DetailPesananCustomer> {
 
     try {
       final bytes = await picked.readAsBytes();
-      final ext = picked.path.split('.').last.toLowerCase();
+      final ext = picked.name.split('.').last.toLowerCase();
       final allowed = ['jpg', 'jpeg', 'png', 'webp'];
       if (!allowed.contains(ext)) {
         if (!mounted) return;

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:appwrite/appwrite.dart';
@@ -12,7 +14,7 @@ import '../../core/services/order_service_appwrite.dart';
 import '../../core/services/product_service_appwrite.dart';
 import '../../data/models/bank_model.dart';
 import '../../data/models/cart_model.dart';
-import '../customer/profile/profile_customer_mobile.dart';
+import '../customer/customer_page.dart';
 
 class CheckoutPage extends StatefulWidget {
   final CartModel? buyNowItem;
@@ -149,11 +151,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
       );
 
       if (shouldGo == true) {
-        Navigator.push(
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
-            builder: (_) => const ProfileCustomerMobile(),
+            builder: (_) => const CustomerPage(initialIndex: 4),
           ),
+          (route) => false,
         );
       }
       return;
@@ -274,18 +277,19 @@ class _CheckoutPageState extends State<CheckoutPage> {
         context.read<CartProvider>().clear();
       }
 
-      // Fire-and-forget: email tidak boleh menjadi blocker checkout
-      final emailService = EmailServiceAppwrite();
-      emailService.sendReceiptEmail(
-        orderId: orderId,
-        orderCode: orderCode,
-        customerName: account.name,
-        customerEmail: account.email,
-        items: orderItems,
-        subtotal: totalPrice,
-        total: totalPrice + FeeConfig.serviceFee,
-        shippingCost: 0,
-        orderDate: DateTime.now().toIso8601String(),
+      // Email tidak boleh menjadi blocker checkout
+      unawaited(
+        EmailServiceAppwrite().sendReceiptEmail(
+          orderId: orderId,
+          orderCode: orderCode,
+          customerName: account.name,
+          customerEmail: account.email,
+          items: orderItems,
+          subtotal: totalPrice,
+          total: totalPrice + FeeConfig.serviceFee,
+          shippingCost: 0,
+          orderDate: DateTime.now().toIso8601String(),
+        ),
       );
 
       if (!mounted) return;

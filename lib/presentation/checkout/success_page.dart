@@ -568,7 +568,7 @@ class _SuccessPageState extends State<SuccessPage> {
 
     try {
       final bytes = await picked.readAsBytes();
-      final ext = picked.path.split('.').last.toLowerCase();
+      final ext = picked.name.split('.').last.toLowerCase();
       final allowed = ['jpg', 'jpeg', 'png', 'webp'];
       if (!allowed.contains(ext)) {
         if (!mounted) return;

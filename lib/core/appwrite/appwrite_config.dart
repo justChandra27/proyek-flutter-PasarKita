@@ -53,5 +53,5 @@ class AppwriteConfig {
 
   // Functions
   static const String emailReceiptFunctionId =
-      'email_receipt';
+      '6a3391a0002b2bc09e2b';
 }

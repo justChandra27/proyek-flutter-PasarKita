@@ -109,10 +109,6 @@ export default async ({ req, res, log, error }) => {
               <td style="color:#666;">Tanggal</td>
               <td><strong>${dateStr}</strong></td>
             </tr>
-            <tr>
-              <td style="color:#666;">Status</td>
-              <td><strong style="color:#2563EB;">Menunggu Pembayaran</strong></td>
-            </tr>
           </table>
 
           <h3 style="font-size:16px;margin:16px 0 8px;color:#333;">Detail Produk</h3>
@@ -146,10 +142,11 @@ export default async ({ req, res, log, error }) => {
           </table>
 
           <div style="background:#EFF6FF;padding:16px;border-radius:8px;margin:16px 0;font-size:13px;">
-            <p style="margin:0 0 8px;color:#2563EB;font-weight:bold;">Instruksi Pembayaran:</p>
-            <p style="margin:0 0 4px;color:#333;">1. Lakukan transfer ke rekening yang tertera di halaman checkout.</p>
-            <p style="margin:0 0 4px;color:#333;">2. Upload bukti transfer melalui halaman pesanan.</p>
-            <p style="margin:0;color:#333;">3. Pesanan akan diproses setelah pembayaran diverifikasi.</p>
+            <p style="margin:0 0 8px;color:#2563EB;font-weight:bold;">Langkah Selanjutnya:</p>
+            <p style="margin:0 0 4px;color:#333;">1. Upload bukti pembayaran melalui halaman pesanan.</p>
+            <p style="margin:0 0 4px;color:#333;">2. Admin PasarKita akan melakukan verifikasi pembayaran.</p>
+            <p style="margin:0 0 4px;color:#333;">3. Jika pembayaran valid, seller akan memproses dan mengirim pesanan Anda.</p>
+            <p style="margin:0;color:#333;">4. Jika pembayaran tidak valid, pesanan akan ditolak dan Anda akan menerima notifikasi pada akun PasarKita.</p>
           </div>
 
           <p style="font-size:12px;color:#999;margin-top:24px;text-align:center;">

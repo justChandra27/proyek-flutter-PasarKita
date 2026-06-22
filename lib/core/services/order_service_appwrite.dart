@@ -446,6 +446,14 @@ class OrderServiceAppwrite {
       );
     }
 
+    if (newStatus == 'processing' && current.paymentStatus != 'paid') {
+      throw AppwriteException(
+        'Pesanan belum dapat diproses karena pembayaran belum diverifikasi.',
+        400,
+        'payment_not_verified',
+      );
+    }
+
     final notifService = NotificationServiceAppwrite();
     final customerId = current.customerId;
     final orderCode = current.orderCode;

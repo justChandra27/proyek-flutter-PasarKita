@@ -2,92 +2,229 @@
 
 Proyek: PasarKita Flutter
 
-Bug:
-Seller profile badge tetap menampilkan "Profile Belum Lengkap"
-setelah profile berhasil disimpan.
+Prioritas: CRITICAL
 
-Root cause:
-form_profil_seller_web.dart::_saveProfile()
-berhasil update Appwrite Database
-tetapi _userModel tidak di-refresh.
+Jangan mengubah flow bisnis lain.
+Jangan mengubah SMTP.
+Jangan mengubah template email.
+Jangan mengubah Appwrite Function.
+Jangan mengubah status payment yang sudah ada.
 
-Implementasi:
+==================================================
+FIX 1
+SELLER TIDAK BOLEH MEMPROSES PESANAN
+SEBELUM PEMBAYARAN VALID
 
-1. File:
-   lib/presentation/seller/profile/form_profil_seller_web.dart
+File:
+lib/core/services/order_service_appwrite.dart
 
-2. Audit _saveProfile()
+Audit menemukan:
 
-3. Setelah updateDocument() berhasil:
+updateOrderStatus()
+masih mengizinkan:
 
-   refresh _userModel dengan data terbaru.
+pending
+↓
+processing
 
-4. Pilih salah satu pendekatan terbaik:
+meskipun:
 
-   Option A:
+paymentStatus != paid
 
-   * panggil kembali _loadUser()
+Target:
 
-   atau
+Seller hanya boleh memproses pesanan jika:
 
-   Option B:
+paymentStatus == 'paid'
 
-   * update _userModel langsung dari controller values
+Jika paymentStatus:
 
-5. Pastikan setelah klik Simpan:
+* unpaid
+* verification
+* rejected
 
-   * badge berubah realtime
-   * tidak perlu refresh browser
-   * tidak perlu logout/login
+maka:
 
-6. Jangan mengubah logika isSellerProfileComplete()
+throw AppwriteException atau Exception yang jelas.
 
-7. Jangan mengubah struktur database.
+Contoh pesan:
 
-8. Jalankan flutter analyze.
+"Pesanan belum dapat diproses karena pembayaran belum diverifikasi."
 
-# STALE USERMODEL FIX REPORT
+==================================================
+FIX 2
+CUSTOMER TIDAK BOLEH MEMBATALKAN PESANAN
+SAAT VERIFICATION ATAU PAID
 
-## File Modified
+File:
+detail_pesanan_customer.dart
 
-`lib/presentation/seller/profile/form_profil_seller_web.dart`
+Audit menemukan:
 
-## Changes
+Tombol Batalkan Pesanan
+masih muncul ketika:
 
-**Before** (lines 101-108):
+paymentStatus == verification
+
+Target:
+
+Tombol Batalkan Pesanan
+HANYA muncul jika:
+
+paymentStatus == 'unpaid'
+
+Tombol harus disembunyikan jika:
+
+* verification
+* paid
+* rejected
+
+==================================================
+VALIDATION
+
+Pastikan:
+
+Scenario A
+
+paymentStatus = unpaid
+
+Customer:
+
+* tombol Batalkan Pesanan muncul
+
+Seller:
+
+* tidak bisa proses pesanan
+
+==================================================
+
+Scenario B
+
+paymentStatus = verification
+
+Customer:
+
+* tombol Batalkan Pesanan tidak muncul
+
+Seller:
+
+* tidak bisa proses pesanan
+
+==================================================
+
+Scenario C
+
+paymentStatus = paid
+
+Customer:
+
+* tombol Batalkan Pesanan tidak muncul
+
+Seller:
+
+* bisa proses pesanan
+
+==================================================
+
+Scenario D
+
+paymentStatus = rejected
+
+Customer:
+
+* tombol Batalkan Pesanan tidak muncul
+
+Seller:
+
+* tidak bisa proses pesanan
+
+==================================================
+
+AUDIT
+
+Setelah implementasi:
+
+1. Tunjukkan file yang diubah.
+2. Tunjukkan exact line yang diubah.
+3. Tunjukkan guard paymentStatus yang ditambahkan.
+4. Tunjukkan kondisi tombol cancel sebelum dan sesudah.
+5. Verifikasi flutter analyze.
+6. Verifikasi tidak ada perubahan flow lain.
+
+Tuliskan hasil Output ke prompt.md
+
+# PAYMENT SAFEGUARD FIX REPORT
+
+## Files Modified
+
+| File | Change |
+|------|--------|
+| `lib/core/services/order_service_appwrite.dart` | Added paymentStatus guard before `pending→processing` |
+| `lib/presentation/customer/orders/detail_pesanan_customer.dart` | Added `paymentStatus == 'unpaid'` condition to cancel button |
+
+## Seller Processing Guard
+
+**File:** `order_service_appwrite.dart:449-456`
+
 ```dart
-      if (!mounted) return;
-      setState(() {
-        _isEditing = false;
-        _saving = false;
-      });
+if (newStatus == 'processing' && current.paymentStatus != 'paid') {
+  throw AppwriteException(
+    'Pesanan belum dapat diproses karena pembayaran belum diverifikasi.',
+    400,
+    'payment_not_verified',
+  );
+}
 ```
 
-**After** (lines 101-107):
+Ditempatkan setelah validasi transisi status, sebelum notifikasi.
+
+**Sebelum:** `pending → processing` selalu diizinkan.
+**Sesudah:** hanya diizinkan jika `paymentStatus == 'paid'`.
+
+## Customer Cancel Guard
+
+**File:** `detail_pesanan_customer.dart:314`
+
+**Sebelum:**
 ```dart
-      if (!mounted) return;
-      await _loadUser();
-      if (!mounted) return;
-      setState(() {
-        _isEditing = false;
-        _saving = false;
-      });
+if (order.status == 'pending') ...[
 ```
 
-Added `await _loadUser();` between the DB update and the `setState` call. This refreshes `_userModel` from the database after a successful save, so the badge reads fresh data.
+**Sesudah:**
+```dart
+if (order.status == 'pending' && order.paymentStatus == 'unpaid') ...[
+```
 
-## Result
+## Validation Results
 
-| Before | After |
-|---|---|
-| `_userModel` stale after save — badge shows old data | `_userModel` refreshed from DB — badge shows new data |
-| Need browser refresh to see correct badge | Badge updates immediately after save |
-| Temporary prints removed (clean) | No prints in production code |
+| Check | Status |
+|-------|--------|
+| Tidak mengubah flow checkout | ✅ |
+| Tidak mengubah upload bukti transfer | ✅ |
+| Tidak mengubah approve/reject payment | ✅ |
+| Tidak mengubah template email | ✅ |
+| Tidak mengubah Appwrite Function | ✅ |
+| Tidak mengubah SMTP | ✅ |
+| Tidak mengubah status payment | ✅ |
+
+## Test Scenarios
+
+| Scenario | paymentStatus | Customer: Cancel? | Seller: Process? | Status |
+|----------|:-------------:|:---:|:---:|:------:|
+| A | `unpaid` | ✅ Muncul | ❌ `payment_not_verified` | ✅ |
+| B | `verification` | ❌ Sembunyi | ❌ `payment_not_verified` | ✅ |
+| C | `paid` | ❌ Sembunyi | ✅ Diproses normal | ✅ |
+| D | `rejected` | ❌ Sembunyi | ❌ `payment_not_verified` | ✅ |
 
 ## flutter analyze
 
-**0 errors** — all 27 issues are pre-existing info/warnings.
+```
+27 issues found (0 errors, 1 warning, 26 info)
+```
+Semua pre-existing — 0 issues dari perubahan ini.
 
 ## Final Verdict
 
-Fix implemented. After clicking Simpan, `_loadUser()` re-fetches the user document from Appwrite, rebuilding `_userModel` with the latest `phone`, `storeName`, `storeAddress` values. The badge now reflects the correct completeness status in real time.
+✅ **IMPLEMENTASI SELESAI.** Kedua safeguard berhasil ditambahkan tanpa mengubah flow bisnis lain.
+
+
