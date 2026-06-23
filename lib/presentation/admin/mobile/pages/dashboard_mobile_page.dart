@@ -4,6 +4,8 @@ import 'package:appwrite/appwrite.dart';
 import '../../../../core/appwrite/appwrite_config.dart';
 import '../../../../core/appwrite/appwrite_service.dart';
 import '../../../../core/services/admin_analytics_service.dart';
+import '../../../../core/services/notification_service_appwrite.dart';
+import '../../../../core/services/auth_service_appwrite.dart';
 
 class DashboardMobilePage extends StatefulWidget {
   const DashboardMobilePage({super.key});
@@ -14,11 +16,15 @@ class DashboardMobilePage extends StatefulWidget {
 
 class _DashboardMobilePageState extends State<DashboardMobilePage> {
   final AdminAnalyticsService _analytics = AdminAnalyticsService();
+  final NotificationServiceAppwrite _notificationService =
+      NotificationServiceAppwrite();
+  final AuthServiceAppwrite _authService = AuthServiceAppwrite();
   final Databases _db = AppwriteService.databases;
 
   AdminAnalytics? _analyticsData;
   List<Map<String, dynamic>>? _recentOrders;
   int _pendingReturnCount = 0;
+  int _unreadNotificationCount = 0;
   bool _loading = true;
   String? _error;
 
@@ -38,12 +44,14 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
         _analytics.getAnalytics(),
         _fetchRecentOrders(),
         _fetchPendingReturnCount(),
+        _fetchUnreadNotificationCount(),
       ]);
       if (!mounted) return;
       setState(() {
         _analyticsData = results[0] as AdminAnalytics;
         _recentOrders = results[1] as List<Map<String, dynamic>>;
         _pendingReturnCount = results[2] as int;
+        _unreadNotificationCount = results[3] as int;
         _loading = false;
       });
     } catch (e) {
@@ -83,6 +91,18 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
         ],
       );
       return result.total;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  Future<int> _fetchUnreadNotificationCount() async {
+    try {
+      final adminData = await _authService.getCurrentUserData();
+      if (adminData == null) return 0;
+      final uid = adminData['uid'] as String? ?? '';
+      if (uid.isEmpty) return 0;
+      return await _notificationService.getUnreadCount(uid);
     } catch (_) {
       return 0;
     }
@@ -277,6 +297,12 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
               color: Colors.orange,
             ),
             _StatCard(
+              icon: Icons.pending_actions,
+              title: 'Produk Menunggu',
+              value: _formatNumber(data.pendingProducts),
+              color: Colors.deepOrange,
+            ),
+            _StatCard(
               icon: Icons.shopping_bag,
               title: 'Total Pesanan',
               value: _formatNumber(data.totalOrders),
@@ -311,6 +337,12 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
               title: 'Retur Menunggu',
               value: _formatNumber(_pendingReturnCount),
               color: Colors.orange,
+            ),
+            _StatCard(
+              icon: Icons.notifications_outlined,
+              title: 'Notifikasi Belum Dibaca',
+              value: _formatNumber(_unreadNotificationCount),
+              color: const Color(0xff2563EB),
             ),
           ],
         ),

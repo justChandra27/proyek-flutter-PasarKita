@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 
 class AdminMobileDrawer extends StatelessWidget {
   final int selectedIndex;
+  final int unreadCount;
   final Function(int) onMenuSelected;
   final VoidCallback onLogout;
 
   const AdminMobileDrawer({
     super.key,
     required this.selectedIndex,
+    required this.unreadCount,
     required this.onMenuSelected,
     required this.onLogout,
   });
@@ -73,14 +75,20 @@ class AdminMobileDrawer extends StatelessWidget {
                     index: 3,
                   ),
                   _menuItem(
+                    icon: Icons.notifications_outlined,
+                    title: "Notifikasi",
+                    index: 4,
+                    badgeCount: unreadCount,
+                  ),
+                  _menuItem(
                     icon: Icons.people_outline,
                     title: "User",
-                    index: 4,
+                    index: 5,
                   ),
                   _menuItem(
                     icon: Icons.settings_outlined,
                     title: "Pengaturan",
-                    index: 5,
+                    index: 6,
                   ),
                 ],
               ),
@@ -108,6 +116,7 @@ class AdminMobileDrawer extends StatelessWidget {
     required IconData icon,
     required String title,
     required int index,
+    int badgeCount = 0,
   }) {
     final selected = selectedIndex == index;
     return Container(
@@ -124,12 +133,34 @@ class AdminMobileDrawer extends StatelessWidget {
           icon,
           color: selected ? const Color(0xff2563EB) : Colors.black54,
         ),
-        title: Text(
-          title,
-          style: TextStyle(
-            color: selected ? const Color(0xff2563EB) : Colors.black87,
-            fontWeight: selected ? FontWeight.bold : FontWeight.w500,
-          ),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  color: selected ? const Color(0xff2563EB) : Colors.black87,
+                  fontWeight: selected ? FontWeight.bold : FontWeight.w500,
+                ),
+              ),
+            ),
+            if (badgeCount > 0)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  badgeCount > 99 ? '99+' : '$badgeCount',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+          ],
         ),
         onTap: () => onMenuSelected(index),
       ),

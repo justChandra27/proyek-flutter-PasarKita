@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../../auth/login_page.dart';
 import '../../../core/services/auth_service_appwrite.dart';
+import '../../../core/services/notification_service_appwrite.dart';
 
 import 'widgets/admin_mobile_drawer.dart';
 import 'pages/dashboard_mobile_page.dart';
 import 'pages/orders_mobile_page.dart';
 import 'pages/products_mobile_page.dart';
 import 'pages/returns_mobile_page.dart';
+import 'pages/notifications_mobile_page.dart';
 import 'pages/users_mobile_page.dart';
 import 'pages/settings_mobile_page.dart';
 
@@ -21,27 +23,33 @@ class AdminMobileShell extends StatefulWidget {
 class _AdminMobileShellState extends State<AdminMobileShell> {
   int _selectedIndex = 0;
   final AuthServiceAppwrite _authService = AuthServiceAppwrite();
+  final NotificationServiceAppwrite _notificationService =
+      NotificationServiceAppwrite();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   Map<String, dynamic>? _userData;
+  String _adminId = '';
   bool _loadingUser = true;
+  int _unreadCount = 0;
 
   static const _pageTitles = [
     'Dashboard',
     'Pesanan',
     'Produk',
     'Retur',
+    'Notifikasi',
     'User',
     'Pengaturan',
   ];
 
-  List<Widget> get _pages => const [
-        DashboardMobilePage(),
-        OrdersMobilePage(),
-        ProductsMobilePage(),
-        ReturnsMobilePage(),
-        UsersMobilePage(),
-        SettingsMobilePage(),
+  List<Widget> get _pages => [
+        const DashboardMobilePage(),
+        const OrdersMobilePage(),
+        const ProductsMobilePage(),
+        const ReturnsMobilePage(),
+        NotificationsMobilePage(onUnreadChanged: _refreshUnreadCount),
+        const UsersMobilePage(),
+        const SettingsMobilePage(),
       ];
 
   @override
@@ -56,11 +64,31 @@ class _AdminMobileShellState extends State<AdminMobileShell> {
       if (!mounted) return;
       setState(() {
         _userData = data;
+        _adminId = (data?['uid'] as String?) ?? '';
         _loadingUser = false;
       });
+      if (_adminId.isNotEmpty) {
+        _refreshUnreadCount();
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() => _loadingUser = false);
+    }
+  }
+
+  Future<void> _refreshUnreadCount() async {
+    if (_adminId.isEmpty) return;
+    try {
+      final count = await _notificationService.getUnreadCount(_adminId);
+      if (mounted) setState(() => _unreadCount = count);
+    } catch (_) {}
+  }
+
+  void _onMenuSelected(int index) {
+    setState(() => _selectedIndex = index);
+    Navigator.pop(context);
+    if (index == 4) {
+      _refreshUnreadCount();
     }
   }
 
@@ -83,8 +111,10 @@ class _AdminMobileShellState extends State<AdminMobileShell> {
 
   @override
   Widget build(BuildContext context) {
-    final adminName = _loadingUser ? 'Admin' : (_userData?['name'] as String? ?? 'Admin');
-    final roleRaw = _loadingUser ? 'admin' : (_userData?['role'] as String? ?? 'admin');
+    final adminName =
+        _loadingUser ? 'Admin' : (_userData?['name'] as String? ?? 'Admin');
+    final roleRaw =
+        _loadingUser ? 'admin' : (_userData?['role'] as String? ?? 'admin');
     final adminRole = roleRaw == 'admin' ? 'Admin' : roleRaw;
     final pageTitle = _pageTitles[_selectedIndex];
 
@@ -93,10 +123,8 @@ class _AdminMobileShellState extends State<AdminMobileShell> {
       backgroundColor: const Color(0xffF7F8FC),
       endDrawer: AdminMobileDrawer(
         selectedIndex: _selectedIndex,
-        onMenuSelected: (index) {
-          setState(() => _selectedIndex = index);
-          Navigator.pop(context);
-        },
+        unreadCount: _unreadCount,
+        onMenuSelected: _onMenuSelected,
         onLogout: _onLogout,
       ),
       body: SafeArea(
@@ -132,9 +160,27 @@ class _AdminMobileShellState extends State<AdminMobileShell> {
                   ),
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.menu),
-                onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
+              Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.menu),
+                    onPressed: () =>
+                        _scaffoldKey.currentState?.openEndDrawer(),
+                  ),
+                  if (_unreadCount > 0)
+                    Positioned(
+                      right: 6,
+                      top: 6,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ],
           ),
