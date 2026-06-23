@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import 'presentation/auth/login_page.dart';
 import 'presentation/admin/admin_page.dart';
+import 'presentation/admin/mobile/admin_mobile_shell.dart';
 import 'presentation/seller/seller_page.dart';
 import 'presentation/customer/customer_page.dart';
 import 'core/appwrite/appwrite_test.dart';
@@ -79,7 +80,10 @@ class _BootstrapWidgetState extends State<BootstrapWidget> {
     }
 
     final role = auth.currentUser!['role'] as String?;
-    if (role == 'admin') return const AdminPage();
+    if (role == 'admin') {
+      final isMobile = MediaQuery.of(context).size.width < 768;
+      return isMobile ? const AdminMobileShell() : const AdminPage();
+    }
     if (role == 'seller') return const SellerPage();
     return const CustomerPage();
   }

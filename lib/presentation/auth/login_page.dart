@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/services/auth_service_appwrite.dart';
 
 import '../admin/admin_page.dart';
+import '../admin/mobile/admin_mobile_shell.dart';
 import '../seller/seller_page.dart';
 import '../customer/customer_page.dart';
 import 'register_page.dart';
@@ -49,7 +50,8 @@ class _LoginPageState extends State<LoginPage> {
     if (!mounted) return;
     Widget page;
     if (role == 'admin') {
-      page = const AdminPage();
+      final isMobile = MediaQuery.of(context).size.width < 768;
+      page = isMobile ? const AdminMobileShell() : const AdminPage();
     } else if (role == 'seller') {
       page = const SellerPage();
     } else {
@@ -96,9 +98,12 @@ class _LoginPageState extends State<LoginPage> {
       final role = userData['role'];
 
       if (role == 'admin') {
+        final isMobile = MediaQuery.of(context).size.width < 768;
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const AdminPage()),
+          MaterialPageRoute(
+            builder: (_) => isMobile ? const AdminMobileShell() : const AdminPage(),
+          ),
         );
       } else if (role == 'seller') {
         Navigator.pushReplacement(

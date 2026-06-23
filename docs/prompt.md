@@ -201,3 +201,49 @@ flutter analyze → 28 issues found (0 error, 1 warning, 27 info)
 ```
 
 Semua isu pre-existing dari file lain. **Kode baru 100% bersih.**
+
+---
+
+# ADMIN MOBILE V3.1 — ROUTING FIX (MOBILE vs DESKTOP)
+
+**Tanggal implementasi:** 24 Juni 2026
+
+## Ringkasan
+
+Admin admin web (`AdminPage`) adalah layout desktop/tablet yang tidak responsive di layar sempit. Admin mobile shell (`AdminMobileShell`) sudah ada, tetapi tidak pernah di-route oleh auth/login flow. V3.1 menambahkan pemeriksaan lebar layar di semua 3 titik routing admin sehingga admin di HP (< 768px) otomatis masuk ke `AdminMobileShell`.
+
+## File Dimodifikasi
+
+| File | Perubahan |
+|------|-----------|
+| `lib/main.dart` | Import `admin_mobile_shell.dart` + `BootstrapWidget` admin routing now checks `MediaQuery.of(context).size.width < 768` |
+| `lib/presentation/auth/login_page.dart` | Import `admin_mobile_shell.dart` + `_redirectBasedOnRole()` and login-success block both check mobile width |
+
+## Routing Logic
+
+```dart
+final isMobile = MediaQuery.of(context).size.width < 768;
+// → true  → AdminMobileShell
+// → false → AdminPage (existing web layout)
+```
+
+## Lokasi Routing
+
+1. **`main.dart:82`** — `BootstrapWidget.build()` — initial load saat session aktif
+2. **`login_page.dart:51`** — `_redirectBasedOnRole()` — auto-login session redirect
+3. **`login_page.dart:98`** — login sukses — post-login redirect
+
+## Design Decisions
+
+- Threshold `768px` dipilih karena merupakan batas standar mobile vs tablet (Bootstrap breakpoint `sm`)
+- Tidak ada perubahan pada `admin_page.dart`, `admin_mobile_shell.dart`, atau service files
+- Logout di kedua shell (`AdminPage` dan `AdminMobileShell`) tetap `Navigator.pushAndRemoveUntil` ke `LoginPage` — tidak ada perubahan
+- `MediaQuery.of(context)` tersedia di semua 3 lokasi routing (dalam `build()` atau dalam method class `State`)
+
+## Verifikasi
+
+```
+flutter analyze → 28 issues found (0 error, 1 warning, 27 info)
+```
+
+**Tidak ada error/warning baru dari perubahan routing.**
