@@ -73,7 +73,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
       descriptionController.text = widget.product!.description;
       priceController.text = widget.product!.price.toString();
       stockController.text = widget.product!.stock.toString();
-      weightController.text = widget.product!.weight.toStringAsFixed(0);
+      weightController.text = widget.product!.weight.toString();
       minPurchaseController.text = widget.product!.minPurchase.toString();
 
       uploadedImageUrl = widget.product!.imageUrl;
@@ -205,7 +205,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
           price: double.parse(priceController.text.trim()),
           stock: int.parse(stockController.text.trim()),
           imageUrl: imageUrl,
-          weight: double.parse(weightController.text.trim()),
+          weight: int.parse(weightController.text.trim()),
           minPurchase: int.parse(minPurchaseController.text.trim()),
           colors: colors,
           sizes: sizes,
@@ -220,7 +220,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
           stock: int.parse(stockController.text.trim()),
           imageUrl: imageUrl,
           active: widget.product!.active,
-          weight: double.parse(weightController.text.trim()),
+          weight: int.parse(weightController.text.trim()),
           minPurchase: int.parse(minPurchaseController.text.trim()),
           colors: colors,
           sizes: sizes,
@@ -521,7 +521,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
                         if (value == null || value.isEmpty) {
                           return 'Berat produk wajib diisi';
                         }
-                        final weight = double.tryParse(value);
+                        final weight = int.tryParse(value);
                         if (weight == null || weight <= 0) {
                           return 'Berat harus lebih dari 0';
                         }
@@ -766,7 +766,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
                 if (value == null || value.isEmpty) {
                   return 'Berat produk wajib diisi';
                 }
-                final weight = double.tryParse(value);
+                final weight = int.tryParse(value);
                 if (weight == null || weight <= 0) {
                   return 'Berat harus lebih dari 0';
                 }

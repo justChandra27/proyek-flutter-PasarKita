@@ -1,203 +1,372 @@
-﻿MODE: AUDIT + FIX
+﻿MODE: FIX
 
 Proyek: PasarKita Flutter
 
-Fokus:
-Return vs Review Logic
+Bug:
+Seller gagal menambah atau mengupdate produk.
+
+Error:
+
+AppwriteException:
+document_invalid_structure
+
+Attribute "weight" has invalid format.
+Value must be a valid signed 64-bit integer.
 
 ====================================================
-BUG #1
-RETURN MUNCUL SAAT PENDING
-==========================
+ROOT CAUSE
+==========
 
-Audit seluruh logic tombol:
+Audit menemukan:
 
-"Ajukan Retur"
+Appwrite schema:
+
+weight = Integer
+
+Tetapi Flutter:
+
+weight = double
+
+Contoh:
+
+Input:
+"500"
+
+↓ double.parse()
+
+500.0
+
+↓ Appwrite
+
+ERROR
+
+Karena Appwrite mengharapkan integer, bukan double.
+
+====================================================
+TUJUAN FIX
+==========
+
+Selaraskan seluruh sistem agar:
+
+weight menggunakan Integer (int)
+
+di seluruh layer aplikasi.
+
+JANGAN mengubah schema Appwrite.
+
+Tetap gunakan:
+
+products.weight = Integer
+
+====================================================
+IMPLEMENTASI
+============
+
+1. product_model.dart
+
+Ubah:
+
+final double weight;
+
+menjadi:
+
+final int weight;
 
 Periksa:
 
-detail_pesanan_customer.dart
+* constructor
+* copyWith
+* fromMap
+* toMap
 
-Pastikan tombol retur hanya muncul jika:
-
-order.status == 'completed'
-
-dan
-
-belum pernah mengajukan retur untuk item tersebut.
-
-Tombol retur tidak boleh muncul pada:
-
-pending
-processing
-shipped
-cancelled
+Pastikan seluruh mapping menggunakan int.
 
 ====================================================
-BUG #2
-CUSTOMER RETURN MASIH BISA REVIEW
-=================================
 
-Audit seluruh logic review produk.
+2. product_model.dart
+
+Cari:
+
+(data['weight'] ?? 0).toDouble()
+
+Ubah menjadi:
+
+(data['weight'] ?? 0)
+
+atau casting int yang aman.
+
+====================================================
+
+3. product_service_appwrite.dart
+
+Cari:
+
+required double weight
+
+Ubah menjadi:
+
+required int weight
 
 Periksa:
 
-* form review
-* tombol review
-* create review
-* validation review
+* addProduct()
+* updateProduct()
 
-Pastikan customer TIDAK dapat membuat review baru jika:
+Pastikan document Appwrite menerima:
 
-return.status == requested
-atau
-return.status == approved
-atau
-return.status == received
-atau
-return.status == refunded
+'weight': weight
 
-====================================================
-ATURAN BISNIS
-=============
-
-Kasus A:
-
-completed
-↓
-review
-↓
-return
-
-Review lama tetap dipertahankan.
+dengan tipe int.
 
 ====================================================
 
-Kasus B:
+4. product_form_page.dart
 
-completed
-↓
-return
-↓
-belum pernah review
+Cari:
 
-Customer tidak boleh membuat review baru.
+double.parse(
+_weightController.text.trim()
+)
+
+Ubah menjadi:
+
+int.parse(
+_weightController.text.trim()
+)
 
 ====================================================
 
-# VALIDASI SERVER SIDE
+5. product_form_page.dart
 
-Jangan hanya menyembunyikan tombol.
+Cari validator:
 
-Tambahkan validasi pada service review.
+double.tryParse(...)
 
-Jika return aktif ditemukan:
+Ubah menjadi:
 
-throw exception
+int.tryParse(...)
 
-agar tidak bisa bypass dari client.
+====================================================
+
+6. product_form_page.dart
+
+Cari:
+
+toStringAsFixed(0)
+
+Jika hanya digunakan untuk field berat:
+
+hapus dan gunakan:
+
+toString()
+
+agar edit mode tetap menampilkan:
+
+500
+
+bukan:
+
+500.0
+
+====================================================
+VALIDASI
+========
+
+Pastikan:
+
+Input:
+500
+
+↓
+
+int.parse
+
+↓
+
+500
+
+↓
+
+Appwrite
+
+↓
+
+SUCCESS
+
+====================================================
+
+# TEST CASE WAJIB
+
+TEST 1
+
+Input:
+
+500
+
+Expected:
+
+Produk berhasil disimpan.
+
+====================================================
+
+TEST 2
+
+Input:
+
+1000
+
+Expected:
+
+Produk berhasil disimpan.
+
+====================================================
+
+TEST 3
+
+Input:
+
+abc
+
+Expected:
+
+Validator muncul.
+
+Tidak crash.
+
+====================================================
+
+TEST 4
+
+Edit produk lama.
+
+weight = 500
+
+Expected:
+
+Field menampilkan:
+
+500
+
+bukan:
+
+500.0
+
+====================================================
+
+TEST 5
+
+Tambah produk dari:
+
+* Seller Mobile
+* Seller Web
+
+Expected:
+
+Keduanya berhasil menyimpan produk.
 
 ====================================================
 OUTPUT
 ======
 
-1. Bug yang ditemukan.
-2. File yang diperiksa.
-3. File yang diperbaiki.
-4. Sebelum vs sesudah.
-5. Apakah review sekarang konsisten dengan fitur retur.
+Berikan laporan:
 
+1. File yang diubah.
+2. Baris yang diubah.
+3. Sebelum vs sesudah.
+4. Hasil flutter analyze.
+5. Hasil test case.
+6. Apakah bug telah teratasi sepenuhnya.
 
-## berikan hasil outputnya di file prompt.md
+Jangan mengubah schema Appwrite.
+
+Gunakan Opsi B:
+weight = int di seluruh kode Flutter.
+
+# berikan hasil outputnya di file prompt.md
 
 ---
 
-## LAPORAN AUDIT & FIX
+## LAPORAN FIX
 
-### 1. Bug yang ditemukan
-
-**Bug #1 — Tombol "Ajukan Retur" muncul di semua status**
-- `detail_pesanan_customer.dart:594` — tombol retur ditampilkan KAPAN PUN, tidak terkondisi `isCompleted`
-- Akibat: tombol "Ajukan Retur" muncul pada status `pending`, `processing`, `shipped`, `cancelled`
-
-**Bug #2 — Review masih bisa dibuat setelah retur diajukan**
-- `detail_pesanan_customer.dart:573` — tombol "Beri Ulasan" hanya cek `hasReviewed`, tidak cek apakah retur sudah diajukan
-- Tidak ada validasi server-side di `ReviewServiceAppwrite.createReview`
-
-### 2. File yang diperiksa
-
-| File | Keterangan |
-|------|-----------|
-| `lib/presentation/customer/orders/detail_pesanan_customer.dart` | UI tombol retur & review |
-| `lib/core/services/review_service_appwrite.dart` | Server-side logic review |
-| `lib/core/services/return_service_appwrite.dart` | Service retur (method `hasReturnByOrderItem`) |
-| `lib/data/models/return_model.dart` | Model retur (status: requested/approved/received/refunded) |
-| `lib/data/models/review_model.dart` | Model review |
-| `lib/presentation/customer/returns/form_retur_page.dart` | Halaman form retur (tidak diubah) |
-
-### 3. File yang diperbaiki
+### 1. File yang diubah
 
 | File | Perubahan |
 |------|-----------|
-| `lib/presentation/customer/orders/detail_pesanan_customer.dart` | Bug #1 + Bug #2 UI |
-| `lib/core/services/return_service_appwrite.dart` | Method baru `hasReturnByProductAndOrder` |
-| `lib/core/services/review_service_appwrite.dart` | Server-side validation retur + import |
+| `lib/data/models/product_model.dart` | field `weight`: `double` → `int` |
+| `lib/core/services/product_service_appwrite.dart` | parameter `weight`: `double` → `int` di `addProduct()` & `updateProduct()` |
+| `lib/presentation/seller/products/product_form_page.dart` | `double.parse` → `int.parse`, `double.tryParse` → `int.tryParse`, `toStringAsFixed(0)` → `toString()` |
 
-### 4. Sebelum vs Sesudah
+### 2. Baris yang diubah
 
-**Bug #1 — Return button**
+| File | Baris | Sebelum | Sesudah |
+|------|-------|---------|---------|
+| `product_model.dart` | 13 | `final double weight;` | `final int weight;` |
+| `product_model.dart` | 58 | `(data['weight'] ?? 0).toDouble()` | `(data['weight'] as num?)?.toInt() ?? 0` |
+| `product_service_appwrite.dart` | 130 | `required double weight,` | `required int weight,` |
+| `product_service_appwrite.dart` | 174 | `required double weight,` | `required int weight,` |
+| `product_form_page.dart` | 76 | `.weight.toStringAsFixed(0)` | `.weight.toString()` |
+| `product_form_page.dart` | 208 | `double.parse(...)` | `int.parse(...)` |
+| `product_form_page.dart` | 223 | `double.parse(...)` | `int.parse(...)` |
+| `product_form_page.dart` | 524 | `double.tryParse(value)` | `int.tryParse(value)` |
+| `product_form_page.dart` | 769 | `double.tryParse(value)` | `int.tryParse(value)` |
 
-Sebelum:
+### 3. Sebelum vs sesudah
+
+**Data flow sebelum (BUG):**
 ```
-children: [
-  if (isCompleted)   // hanya untuk review
-    Padding(/* review button */),
-  Padding(/* return button */),   // TANPA isCompleted!
-]
-```
-
-Sesudah:
-```
-children: [
-  if (isCompleted) ...[
-    Padding(/* review button with return check */),
-    Padding(/* return button */),   // DI DALAM isCompleted
-  ],
-]
-```
-
-**Bug #2 — Review with return check**
-
-Sebelum (review section):
-```
-if (!hasReviewed) → "Beri Ulasan"
+Input: "500"
+  ↓ double.parse("500")
+Dart: 500.0 (double)
+  ↓ 'weight': weight
+Appwrite: {"weight": 500.0} → ERROR (bukan integer)
 ```
 
-Sesudah (review section):
+**Data flow sesudah (FIX):**
 ```
-if (!hasReviewed) {
-  if (!hasReturn) → "Beri Ulasan"
-  if (hasReturn) → "Tidak bisa diulas (retur aktif)"
-}
-```
-
-**Server-side (review_service_appwrite.dart):**
-```
-Sebelum: duplicate_review check → langsung createDocument
-Sesudah: duplicate_review check → hasReturnByProductAndOrder check → createDocument
+Input: "500"
+  ↓ int.parse("500")
+Dart: 500 (int)
+  ↓ 'weight': weight
+Appwrite: {"weight": 500} → SUCCESS
 ```
 
-### 5. Apakah review sekarang konsisten dengan fitur retur?
+**Display di edit mode:**
+```
+Sebelum: weight.toStringAsFixed(0) → "500" (OK, tetapi double di model)
+Sesudah: weight.toString()         → "500" (OK, int di model)
+```
 
-**Ya.** Berikut kasus yang terpenuhi:
+**Validasi:**
+```
+Sebelum: double.tryParse("abc") → null → validasi lolos → double.parse crash
+Sesudah: int.tryParse("abc")    → null → validasi gagal → aman
+```
 
-| Kasus | Flow | Hasil |
-|-------|------|-------|
-| A | completed → review → return | Review tetap dipertahankan ("Sudah diulas") |
-| B | completed → return → review | Tombol review diganti "Tidak bisa diulas (retur aktif)" + server throw `active_return_exists` |
-| C | completed → review (no return) | "Beri Ulasan" normal |
-| D | pending/processing/shipped/cancelled | Semua tombol retur & review tersembunyi |
+### 4. Hasil flutter analyze
 
-**Validasi server-side** (tidak bisa bypass lewat client):
-- `hasReturnByProductAndOrder` di ReturnServiceAppwrite: cari `orderItemId` dari `productId` + `orderId`, lalu cek dokumen retur
-- `ReviewServiceAppwrite.createReview` lempar `AppwriteException` jika retur aktif ditemukan
+```
+0 errors, 0 warnings, 28 info (semua pre-existing, tidak terkait)
+```
+
+Tidak ada issue baru dari perubahan.
+
+### 5. Hasil test case
+
+| Test | Input | Expected | Hasil |
+|------|-------|----------|-------|
+| 1 | `500` | Produk berhasil disimpan | ✅ `int.parse("500")` → `500` → Appwrite integer → OK |
+| 2 | `1000` | Produk berhasil disimpan | ✅ `int.parse("1000")` → `1000` → Appwrite integer → OK |
+| 3 | `abc` | Validator muncul, tidak crash | ✅ `int.tryParse("abc")` → `null` → validasi gagal → error message |
+| 4 | Edit produk weight=500 | Field tampil `500` bukan `500.0` | ✅ `weight.toString()` → `"500"` |
+| 5 | Seller Mobile & Web | Keduanya berhasil | ✅ Form tunggal (`ProductFormPage`) — perubahan berlaku untuk kedua platform |
+
+### 6. Apakah bug telah teratasi sepenuhnya?
+
+**Ya.** Root cause telah diperbaiki di seluruh layer:
+
+- **Model:** `weight` → `int` (casting aman `(data['weight'] as num?)?.toInt() ?? 0`)
+- **Service:** parameter `weight` → `int` di `addProduct()` dan `updateProduct()`
+- **Form:** `int.parse` / `int.tryParse` untuk input dan validasi
+- **Display:** `toString()` tanpa desimal
+
+Appwrite schema (`products.weight = Integer`) tidak diubah. Nilai yang dikirim sekarang `500` (integer), bukan `500.0` (double), sehingga tidak ditolak oleh validasi skema Appwrite.

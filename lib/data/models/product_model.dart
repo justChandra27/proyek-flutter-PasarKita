@@ -10,7 +10,7 @@ class ProductModel {
   final int stock;
   final String imageUrl;
   final bool active;
-  final double weight;
+  final int weight;
   final int minPurchase;
   final int soldCount;
   final List<String> colors;
@@ -55,7 +55,7 @@ class ProductModel {
       stock: data['stock'] ?? 0,
       imageUrl: data['imageUrl'] ?? '',
       active: data['active'] ?? true,
-      weight: (data['weight'] ?? 0).toDouble(),
+      weight: (data['weight'] as num?)?.toInt() ?? 0,
       minPurchase: data['minPurchase'] ?? 1,
       soldCount: data['soldCount'] ?? 0,
       colors: (data['colors'] as List<dynamic>?)
