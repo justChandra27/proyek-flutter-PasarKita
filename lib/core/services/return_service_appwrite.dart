@@ -17,8 +17,6 @@ class ReturnServiceAppwrite {
 
   static const Map<String, Set<String>> _allowedTransitions = {
     'requested': {'approved', 'rejected'},
-    'approved': {'received'},
-    'received': {'refunded'},
   };
 
   Future<ReturnModel> createReturn({
@@ -226,6 +224,16 @@ class ReturnServiceAppwrite {
       );
     }
 
+    final orderService = OrderServiceAppwrite();
+    final items = await orderService.getOrderItems(returnData.orderId);
+    final item = items.where((i) => i.id == returnData.orderItemId).firstOrNull;
+    if (item == null) {
+      throw AppwriteException('Item pesanan tidak ditemukan', 404, 'order_item_not_found');
+    }
+
+    final amount = item.sellerAmount > 0 ? item.sellerAmount : item.subtotal;
+    await BalanceServiceAppwrite().deductEarnings(returnData.sellerId, amount);
+
     await databases.updateDocument(
       databaseId: AppwriteConfig.databaseId,
       collectionId: AppwriteConfig.returnsCollectionId,
@@ -234,6 +242,7 @@ class ReturnServiceAppwrite {
         'status': 'approved',
         'processedBy': processedBy,
         'approvedAt': DateTime.now().toIso8601String(),
+        'refundAmount': amount,
       },
     );
 
@@ -312,6 +321,13 @@ class ReturnServiceAppwrite {
     final returnData = await getReturnById(returnId);
     if (returnData == null) {
       throw AppwriteException('Retur tidak ditemukan', 404, 'return_not_found');
+    }
+    if (returnData.refundAmount > 0) {
+      throw AppwriteException(
+        'Refund sudah diproses',
+        400,
+        'refund_already_processed',
+      );
     }
 
     final lockService = StockLockService();

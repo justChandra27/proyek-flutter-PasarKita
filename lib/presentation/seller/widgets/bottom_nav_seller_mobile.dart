@@ -30,7 +30,7 @@ class BottomNavSellerMobile extends StatelessWidget {
       ),
       child: Row(
         mainAxisAlignment:
-            MainAxisAlignment.spaceAround,
+            MainAxisAlignment.spaceEvenly,
         children: [
           _navItem(
             icon: Icons.dashboard_outlined,
@@ -89,30 +89,31 @@ class BottomNavSellerMobile extends StatelessWidget {
         duration:
             const Duration(milliseconds: 250),
         padding: EdgeInsets.symmetric(
-          horizontal: active ? 18 : 8,
-          vertical: 10,
+          horizontal: active ? 12 : 6,
+          vertical: 8,
         ),
         decoration: BoxDecoration(
           color: active
               ? const Color(0xff1E40AF)
               : Colors.transparent,
           borderRadius:
-              BorderRadius.circular(18),
+              BorderRadius.circular(14),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               active ? activeIcon : icon,
+              size: 20,
               color: active
                   ? Colors.white
                   : Colors.grey.shade600,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               label,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 10,
                 fontWeight: active
                     ? FontWeight.w600
                     : FontWeight.normal,

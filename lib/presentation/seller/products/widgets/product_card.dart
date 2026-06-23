@@ -27,8 +27,8 @@ class ProductCard extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
         onTap: () {
           Navigator.push(
             context,
@@ -39,58 +39,87 @@ class ProductCard extends StatelessWidget {
             ),
           );
         },
-
-        leading: _buildImage(),
-
-        title: Text(
-          product.name,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 6),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              Text("Stok : ${product.stock}"),
+              _buildImage(),
               const SizedBox(width: 12),
-              ModerationStatusBadge(
-                status: ModerationStatus.fromJson(product.moderationStatus),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            "Stok : ${product.stock}",
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ModerationStatusBadge(
+                          status: ModerationStatus.fromJson(product.moderationStatus),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Flexible(
+                    child: Text(
+                      "Rp ${product.price.toStringAsFixed(0)}",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit, size: 18),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: () async {
+                          final result = await Navigator.push<bool>(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ProductFormPage(product: product),
+                            ),
+                          );
+                          if (result == true) onProductChanged?.call();
+                        },
+                      ),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        icon: const Icon(Icons.delete, size: 18, color: Colors.red),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: () => _confirmDelete(context),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),
-        ),
-
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              "Rp ${product.price.toStringAsFixed(0)}",
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.blue,
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.edit, size: 18),
-              onPressed: () async {
-                final result = await Navigator.push<bool>(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ProductFormPage(product: product),
-                  ),
-                );
-                if (result == true) onProductChanged?.call();
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete, size: 18, color: Colors.red),
-              onPressed: () => _confirmDelete(context),
-            ),
-          ],
         ),
       ),
     );
