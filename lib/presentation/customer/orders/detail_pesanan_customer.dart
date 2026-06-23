@@ -6,10 +6,12 @@ import 'package:printing/printing.dart';
 import '../../../core/appwrite/appwrite_config.dart';
 import '../../../core/appwrite/appwrite_service.dart';
 import '../../../core/services/order_service_appwrite.dart';
+import '../../../core/services/return_service_appwrite.dart';
 import '../../../core/services/review_service_appwrite.dart';
 import '../../../core/services/storage_service_appwrite.dart';
 import '../../../data/models/order_model.dart';
 import '../../../data/models/order_item_model.dart';
+import '../returns/form_retur_page.dart';
 
 class DetailPesananCustomer extends StatefulWidget {
   final String orderId;
@@ -540,7 +542,7 @@ class _DetailPesananCustomerState extends State<DetailPesananCustomer> {
                         ),
                       ],
                     ),
-                    if (isCompleted)
+                    if (isCompleted) ...[
                       Padding(
                         padding: const EdgeInsets.only(top: 8, left: 60),
                         child: FutureBuilder<bool>(
@@ -568,18 +570,88 @@ class _DetailPesananCustomerState extends State<DetailPesananCustomer> {
                                 ),
                               );
                             }
+                            return FutureBuilder<bool>(
+                              future: ReturnServiceAppwrite()
+                                  .hasReturnByOrderItem(item.id),
+                              builder: (context, returnSnap) {
+                                if (returnSnap.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  );
+                                }
+                                if (returnSnap.data == true) {
+                                  return const Text(
+                                    'Tidak bisa diulas (retur aktif)',
+                                    style: TextStyle(
+                                      color: Colors.orange,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  );
+                                }
+                                return TextButton.icon(
+                                  onPressed: () => _showReviewForm(
+                                    productId: item.productId,
+                                    productName: item.productName,
+                                    orderId: widget.orderId,
+                                    userId: order.customerId,
+                                    userName: order.customerName,
+                                  ),
+                                  icon: const Icon(Icons.star_border, size: 18),
+                                  label: const Text('Beri Ulasan'),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: const Color(0xff2563EB),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 4),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4, left: 60),
+                        child: FutureBuilder<bool>(
+                          future: ReturnServiceAppwrite()
+                              .hasReturnByOrderItem(item.id),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              );
+                            }
+                            if (snapshot.data == true) {
+                              return const Text(
+                                '✓ Retur diajukan',
+                                style: TextStyle(
+                                  color: Colors.orange,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              );
+                            }
                             return TextButton.icon(
-                              onPressed: () => _showReviewForm(
-                                productId: item.productId,
-                                productName: item.productName,
+                              onPressed: () => _ajukanRetur(
                                 orderId: widget.orderId,
-                                userId: order.customerId,
-                                userName: order.customerName,
+                                orderItemId: item.id,
+                                sellerId: item.sellerId,
+                                orderCode: order.orderCode,
+                                customerId: order.customerId,
                               ),
-                              icon: const Icon(Icons.star_border, size: 18),
-                              label: const Text('Beri Ulasan'),
+                              icon: const Icon(Icons.assignment_return,
+                                  size: 18),
+                              label: const Text('Ajukan Retur'),
                               style: TextButton.styleFrom(
-                                foregroundColor: const Color(0xff2563EB),
+                                foregroundColor: Colors.orange,
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 12, vertical: 4),
                                 minimumSize: Size.zero,
@@ -589,6 +661,7 @@ class _DetailPesananCustomerState extends State<DetailPesananCustomer> {
                           },
                         ),
                       ),
+                    ],
                   ],
                 ),
               )),
@@ -1047,5 +1120,26 @@ class _DetailPesananCustomerState extends State<DetailPesananCustomer> {
         ],
       ),
     );
+  }
+
+  void _ajukanRetur({
+    required String orderId,
+    required String orderItemId,
+    required String sellerId,
+    required String orderCode,
+    required String customerId,
+  }) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FormReturPage(
+          orderId: orderId,
+          orderItemId: orderItemId,
+          sellerId: sellerId,
+          orderCode: orderCode,
+          customerId: customerId,
+        ),
+      ),
+    ).then((_) => setState(() => _detailFuture = _loadDetail()));
   }
 }

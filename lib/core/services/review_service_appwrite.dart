@@ -4,6 +4,7 @@ import '../../data/models/review_model.dart';
 import '../appwrite/appwrite_config.dart';
 import '../appwrite/appwrite_service.dart';
 import '../models/paginated_response.dart';
+import 'return_service_appwrite.dart';
 
 class ReviewServiceAppwrite {
   final Databases databases = AppwriteService.databases;
@@ -26,6 +27,19 @@ class ReviewServiceAppwrite {
         'Anda sudah memberikan ulasan untuk produk ini',
         400,
         'duplicate_review',
+      );
+    }
+
+    final returnService = ReturnServiceAppwrite();
+    final hasReturn = await returnService.hasReturnByProductAndOrder(
+      orderId: orderId,
+      productId: productId,
+    );
+    if (hasReturn) {
+      throw AppwriteException(
+        'Tidak dapat memberikan ulasan karena ada retur aktif',
+        400,
+        'active_return_exists',
       );
     }
 

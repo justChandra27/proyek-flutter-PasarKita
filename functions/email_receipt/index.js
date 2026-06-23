@@ -84,9 +84,11 @@ export default async ({ req, res, log, error }) => {
       }).join('');
     }
 
+    const serviceFee = total - subtotal - shippingCost;
     const fmtTotal = new Intl.NumberFormat('id-ID').format(total);
     const fmtSubtotalVal = new Intl.NumberFormat('id-ID').format(subtotal);
-    const fmtShipping = new Intl.NumberFormat('id-ID').format(shippingCost);
+
+    const fmtServiceFee = new Intl.NumberFormat('id-ID').format(serviceFee);
     const dateStr = orderDate ? new Date(orderDate).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) : new Date().toLocaleDateString('id-ID');
 
     const html = `
@@ -128,12 +130,12 @@ export default async ({ req, res, log, error }) => {
 
           <table style="width:100%;margin:16px 0;font-size:14px;">
             <tr>
-              <td style="color:#666;padding:4px 0;">Subtotal</td>
+              <td style="color:#666;padding:4px 0;">Subtotal Produk</td>
               <td style="text-align:right;padding:4px 0;">Rp ${fmtSubtotalVal}</td>
             </tr>
             <tr>
-              <td style="color:#666;padding:4px 0;">Ongkos Kirim</td>
-              <td style="text-align:right;padding:4px 0;">Rp ${fmtShipping}</td>
+              <td style="color:#666;padding:4px 0;">Biaya Layanan</td>
+              <td style="text-align:right;padding:4px 0;">Rp ${fmtServiceFee}</td>
             </tr>
             <tr>
               <td style="padding:8px 0;border-top:2px solid #2563EB;"><strong>Total Pembayaran</strong></td>

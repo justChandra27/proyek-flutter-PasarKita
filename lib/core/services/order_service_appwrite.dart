@@ -587,6 +587,14 @@ class OrderServiceAppwrite {
           );
         }
 
+        // Reverse seller balance if payment was already approved
+        if (recheck.paymentStatus == 'paid') {
+          for (final item in items) {
+            final amount = item.sellerAmount > 0 ? item.sellerAmount : item.subtotal;
+            await BalanceServiceAppwrite().deductEarnings(item.sellerId, amount);
+          }
+        }
+
         await notifService.createNotification(
           userId: customerId,
           title: 'Pesanan Dibatalkan',
@@ -604,50 +612,75 @@ class OrderServiceAppwrite {
   }
 
   Future<void> approvePayment(String orderId) async {
-    final order = await getOrderById(orderId);
-    if (order == null) {
-      throw AppwriteException('Pesanan tidak ditemukan', 404, 'order_not_found');
-    }
-    if (order.paymentStatus == 'paid') {
-      throw AppwriteException(
-        'Pembayaran sudah disetujui sebelumnya',
-        400,
-        'payment_already_paid',
-      );
-    }
-    if (order.paymentStatus != 'verification') {
-      throw AppwriteException(
-        'Status pembayaran bukan verification',
-        400,
-        'invalid_payment_status',
-      );
-    }
-    final now = DateTime.now().toIso8601String();
-    final user = await AppwriteService.account.get();
-    await databases.updateDocument(
-      databaseId: AppwriteConfig.databaseId,
-      collectionId: AppwriteConfig.ordersCollectionId,
-      documentId: orderId,
-      data: {
-        'paymentStatus': 'paid',
-        'paymentConfirmedAt': now,
-        'paymentConfirmedBy': user.$id,
-        'updatedAt': now,
-      },
-    );
-    final items = await getOrderItems(orderId);
-    for (final item in items) {
-      final amount = item.sellerAmount > 0 ? item.sellerAmount : item.subtotal;
-      await BalanceServiceAppwrite().addEarnings(item.sellerId, amount);
-    }
+    final lockService = StockLockService();
+    final sessionId = 'approve-$orderId-${DateTime.now().microsecondsSinceEpoch}-${Random().nextInt(99999)}';
 
+    await lockService.acquireLock(
+      productId: 'order:approve:$orderId',
+      sessionId: sessionId,
+      ttlSeconds: 10,
+    );
     try {
-      await ReceiptServiceAppwrite().generateAndUploadReceipt(
-        order: order,
-        items: items,
+      final order = await getOrderById(orderId);
+      if (order == null) {
+        throw AppwriteException('Pesanan tidak ditemukan', 404, 'order_not_found');
+      }
+      if (order.paymentStatus == 'paid') {
+        throw AppwriteException(
+          'Pembayaran sudah disetujui sebelumnya',
+          400,
+          'payment_already_paid',
+        );
+      }
+      if (order.paymentStatus != 'verification') {
+        throw AppwriteException(
+          'Status pembayaran bukan verification',
+          400,
+          'invalid_payment_status',
+        );
+      }
+      final now = DateTime.now().toIso8601String();
+      final user = await AppwriteService.account.get();
+      await databases.updateDocument(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.ordersCollectionId,
+        documentId: orderId,
+        data: {
+          'paymentStatus': 'paid',
+          'paymentConfirmedAt': now,
+          'paymentConfirmedBy': user.$id,
+          'updatedAt': now,
+        },
       );
-    } catch (e) {
-      // Jangan rollback paymentStatus — tetap paid
+
+      final notifService = NotificationServiceAppwrite();
+      await notifService.createNotification(
+        userId: order.customerId,
+        title: 'Pembayaran Disetujui',
+        message: 'Pembayaran untuk pesanan ${order.orderCode} telah disetujui.',
+        type: 'payment_approved',
+        orderId: orderId,
+      );
+
+      final items = await getOrderItems(orderId);
+      for (final item in items) {
+        final amount = item.sellerAmount > 0 ? item.sellerAmount : item.subtotal;
+        await BalanceServiceAppwrite().addEarnings(item.sellerId, amount);
+      }
+
+      try {
+        await ReceiptServiceAppwrite().generateAndUploadReceipt(
+          order: order,
+          items: items,
+        );
+      } catch (e) {
+        // Jangan rollback paymentStatus — tetap paid
+      }
+    } finally {
+      await lockService.releaseLock(
+        productId: 'order:approve:$orderId',
+        sessionId: sessionId,
+      );
     }
   }
 

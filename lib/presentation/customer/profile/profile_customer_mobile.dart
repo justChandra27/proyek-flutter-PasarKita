@@ -9,6 +9,7 @@ import '../../../core/services/auth_service_appwrite.dart';
 import '../../../data/models/user_model.dart';
 import '../../../core/appwrite/appwrite_config.dart';
 import '../../../core/appwrite/appwrite_service.dart';
+import '../returns/riwayat_retur_page.dart';
 
 class ProfileCustomerMobile extends StatefulWidget {
   const ProfileCustomerMobile({super.key});
@@ -270,6 +271,24 @@ class _ProfileCustomerMobileState
                       title: "Payment Methods",
                       subtitle: "Saved cards and digital wallets",
                       enabled: false,
+                    ),
+
+                    const Divider(height: 1),
+
+                    _menuItem(
+                      icon: Icons.assignment_return_outlined,
+                      title: "Riwayat Retur",
+                      subtitle: "Lihat status pengajuan retur Anda",
+                      enabled: true,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                const RiwayatReturPage(),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),

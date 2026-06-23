@@ -170,6 +170,12 @@ class _SidebarSellerWebState extends State<SidebarSellerWeb> {
             title: "Profil Saya",
           ),
 
+          _menu(
+            index: 5,
+            icon: Icons.assignment_return_outlined,
+            title: "Retur Masuk",
+          ),
+
           const Spacer(),
 
           const Divider(),

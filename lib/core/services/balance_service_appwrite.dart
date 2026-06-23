@@ -39,8 +39,20 @@ class BalanceServiceAppwrite {
   }
 
   Future<void> addEarnings(String sellerId, int amount) async {
+    await _updateBalance(sellerId, amount, updateEarned: true);
+  }
+
+  Future<void> deductEarnings(String sellerId, int amount) async {
+    await _updateBalance(sellerId, -amount, updateEarned: false);
+  }
+
+  Future<void> _updateBalance(
+    String sellerId,
+    int delta, {
+    required bool updateEarned,
+  }) async {
     final lockService = StockLockService();
-    final sessionId = 'earnings-$sellerId-${DateTime.now().microsecondsSinceEpoch}';
+    final sessionId = 'balance-$sellerId-${DateTime.now().microsecondsSinceEpoch}';
     const maxRetries = 3;
 
     for (int attempt = 0; attempt < maxRetries; attempt++) {
@@ -69,14 +81,25 @@ class BalanceServiceAppwrite {
         final doc = result.documents.first;
         final currentBalance = (doc.data['balance'] as num?)?.toInt() ?? 0;
         final currentEarned = (doc.data['totalEarned'] as num?)?.toInt() ?? 0;
+        final newBalance = currentBalance + delta;
+        if (newBalance < 0) {
+          throw AppwriteException(
+            'Saldo tidak mencukupi',
+            400,
+            'insufficient_balance',
+          );
+        }
+        final updateMap = <String, dynamic>{
+          'balance': newBalance,
+        };
+        if (updateEarned && delta > 0) {
+          updateMap['totalEarned'] = currentEarned + delta;
+        }
         await _db.updateDocument(
           databaseId: AppwriteConfig.databaseId,
           collectionId: AppwriteConfig.sellerBalancesCollectionId,
           documentId: doc.$id,
-          data: {
-            'balance': currentBalance + amount,
-            'totalEarned': currentEarned + amount,
-          },
+          data: updateMap,
         );
         return;
       } finally {

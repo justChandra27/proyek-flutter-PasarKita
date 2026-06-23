@@ -62,6 +62,12 @@ class BottomNavSellerMobile extends StatelessWidget {
             label: "Profil",
             index: 4,
           ),
+          _navItem(
+            icon: Icons.assignment_return_outlined,
+            activeIcon: Icons.assignment_return,
+            label: "Retur",
+            index: 5,
+          ),
         ],
       ),
     );
