@@ -6,11 +6,16 @@ import '../../../core/services/notification_service_appwrite.dart';
 
 import 'widgets/admin_mobile_drawer.dart';
 import 'pages/dashboard_mobile_page.dart';
-import 'pages/orders_mobile_page.dart';
-import 'pages/products_mobile_page.dart';
-import 'pages/returns_mobile_page.dart';
-import 'pages/notifications_mobile_page.dart';
 import 'pages/users_mobile_page.dart';
+import 'pages/verifikasi_mobile_page.dart';
+import 'pages/products_mobile_page.dart';
+import 'pages/orders_mobile_page.dart';
+import 'pages/returns_mobile_page.dart';
+import 'pages/withdrawals_mobile_page.dart';
+import 'pages/kategori_mobile_page.dart';
+import 'pages/notifications_mobile_page.dart';
+import 'pages/analytics_mobile_page.dart';
+import 'pages/laporan_mobile_page.dart';
 import 'pages/settings_mobile_page.dart';
 
 class AdminMobileShell extends StatefulWidget {
@@ -34,21 +39,31 @@ class _AdminMobileShellState extends State<AdminMobileShell> {
 
   static const _pageTitles = [
     'Dashboard',
-    'Pesanan',
-    'Produk',
-    'Retur',
-    'Notifikasi',
     'User',
+    'Verifikasi',
+    'Produk',
+    'Pesanan',
+    'Retur',
+    'Withdrawal',
+    'Kategori',
+    'Notifikasi',
+    'Analytics',
+    'Laporan',
     'Pengaturan',
   ];
 
   List<Widget> get _pages => [
         const DashboardMobilePage(),
-        const OrdersMobilePage(),
-        const ProductsMobilePage(),
-        const ReturnsMobilePage(),
-        NotificationsMobilePage(onUnreadChanged: _refreshUnreadCount),
         const UsersMobilePage(),
+        const VerifikasiMobilePage(),
+        const ProductsMobilePage(),
+        const OrdersMobilePage(),
+        const ReturnsMobilePage(),
+        const WithdrawalsMobilePage(),
+        const KategoriMobilePage(),
+        NotificationsMobilePage(onUnreadChanged: _refreshUnreadCount),
+        const AnalyticsMobilePage(),
+        const LaporanMobilePage(),
         const SettingsMobilePage(),
       ];
 
@@ -87,7 +102,7 @@ class _AdminMobileShellState extends State<AdminMobileShell> {
   void _onMenuSelected(int index) {
     setState(() => _selectedIndex = index);
     Navigator.pop(context);
-    if (index == 4) {
+    if (index == 8) {
       _refreshUnreadCount();
     }
   }

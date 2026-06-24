@@ -7,6 +7,8 @@ import '../../../../core/services/admin_analytics_service.dart';
 import '../../../../core/services/notification_service_appwrite.dart';
 import '../../../../core/services/auth_service_appwrite.dart';
 
+import 'analytics_mobile_page.dart';
+
 class DashboardMobilePage extends StatefulWidget {
   const DashboardMobilePage({super.key});
 
@@ -25,6 +27,9 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
   List<Map<String, dynamic>>? _recentOrders;
   int _pendingReturnCount = 0;
   int _unreadNotificationCount = 0;
+  int _activeUserCount = 0;
+  int _activeSellerCount = 0;
+  int _pendingWithdrawalCount = 0;
   bool _loading = true;
   String? _error;
 
@@ -45,6 +50,9 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
         _fetchRecentOrders(),
         _fetchPendingReturnCount(),
         _fetchUnreadNotificationCount(),
+        _fetchActiveUserCount(),
+        _fetchActiveSellerCount(),
+        _fetchPendingWithdrawalCount(),
       ]);
       if (!mounted) return;
       setState(() {
@@ -52,6 +60,9 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
         _recentOrders = results[1] as List<Map<String, dynamic>>;
         _pendingReturnCount = results[2] as int;
         _unreadNotificationCount = results[3] as int;
+        _activeUserCount = results[4] as int;
+        _activeSellerCount = results[5] as int;
+        _pendingWithdrawalCount = results[6] as int;
         _loading = false;
       });
     } catch (e) {
@@ -103,6 +114,55 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
       final uid = adminData['uid'] as String? ?? '';
       if (uid.isEmpty) return 0;
       return await _notificationService.getUnreadCount(uid);
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  Future<int> _fetchActiveUserCount() async {
+    try {
+      final result = await _db.listDocuments(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.usersCollectionId,
+        queries: [
+          Query.equal('status', 'active'),
+          Query.limit(1),
+        ],
+      );
+      return result.total;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  Future<int> _fetchActiveSellerCount() async {
+    try {
+      final result = await _db.listDocuments(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.usersCollectionId,
+        queries: [
+          Query.equal('role', 'seller'),
+          Query.equal('status', 'active'),
+          Query.limit(1),
+        ],
+      );
+      return result.total;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  Future<int> _fetchPendingWithdrawalCount() async {
+    try {
+      final result = await _db.listDocuments(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.withdrawalsCollectionId,
+        queries: [
+          Query.equal('status', 'pending'),
+          Query.limit(1),
+        ],
+      );
+      return result.total;
     } catch (_) {
       return 0;
     }
@@ -224,9 +284,73 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildSummaryGrid(data),
+            const SizedBox(height: 16),
+            _buildAnalyticsShortcut(),
             const SizedBox(height: 24),
             if (_recentOrders != null && _recentOrders!.isNotEmpty)
               _buildRecentActivity(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnalyticsShortcut() {
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => const AnalyticsMobilePage()),
+        );
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xff2563EB), Color(0xff7C3AED)],
+          ),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.analytics,
+                  color: Colors.white, size: 28),
+            ),
+            const SizedBox(width: 16),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Analytics Marketplace',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Lihat grafik revenue, tren pesanan, dan insight',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios,
+                color: Colors.white, size: 16),
           ],
         ),
       ),
@@ -291,6 +415,18 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
               color: Colors.teal,
             ),
             _StatCard(
+              icon: Icons.person,
+              title: 'User Aktif',
+              value: _formatNumber(_activeUserCount),
+              color: Colors.lightGreen,
+            ),
+            _StatCard(
+              icon: Icons.storefront,
+              title: 'Seller Aktif',
+              value: _formatNumber(_activeSellerCount),
+              color: Colors.green,
+            ),
+            _StatCard(
               icon: Icons.inventory_2,
               title: 'Total Produk',
               value: _formatNumber(data.totalProducts),
@@ -337,6 +473,12 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
               title: 'Retur Menunggu',
               value: _formatNumber(_pendingReturnCount),
               color: Colors.orange,
+            ),
+            _StatCard(
+              icon: Icons.account_balance_wallet,
+              title: 'Withdrawal Pending',
+              value: _formatNumber(_pendingWithdrawalCount),
+              color: Colors.amber,
             ),
             _StatCard(
               icon: Icons.notifications_outlined,

@@ -1,278 +1,311 @@
-﻿# TUGAS ADMIN MOBILE V5 - NOTIFICATION CENTER MOBILE
+﻿# AUDIT ADMIN MOBILE vs ADMIN WEB PARITY
 
-## KONDISI SAAT INI
+## TUJUAN
 
-Admin Mobile sudah memiliki:
+Verifikasi bahwa seluruh menu dan fitur yang tersedia pada Admin Web juga tersedia pada Admin Mobile.
 
-* Dashboard
-* Orders
-* Returns
-* Products Moderation
+Jika terdapat perbedaan:
 
-Belum memiliki Notification Center.
-
----
-
-# FILE BARU
-
-lib/presentation/admin/mobile/pages/notifications_mobile_page.dart
+* Identifikasi
+* Jelaskan
+* Implementasikan yang belum ada
+* Sinkronkan urutan menu
 
 ---
 
-# FILE YANG DIUBAH
+# AUDIT SIDEBAR WEB
 
-admin_mobile_shell.dart
+Cari seluruh menu pada:
 
-admin_mobile_drawer.dart
+* sidebar_admin_web.dart
+* admin_layout.dart
+* admin_page.dart
 
-dashboard_mobile_page.dart
+atau file sidebar admin lain.
 
----
+Buat daftar:
 
-# TUJUAN
-
-Membuat pusat notifikasi admin mobile yang menampilkan seluruh aktivitas penting marketplace.
-
----
-
-# MENU BARU
-
-Tambahkan menu:
-
-Notifikasi
-
-Posisi:
-
-Dashboard
-Pesanan
-Produk
-Retur
-Notifikasi
-User
-Pengaturan
-Logout
-
----
-
-# DATA
-
-Gunakan collection:
-
-notifications
-
-atau NotificationServiceAppwrite yang sudah ada.
-
----
-
-# DAFTAR NOTIFIKASI
-
-Card menampilkan:
-
-* Judul
-* Isi singkat
-* Tanggal
-* Status baca
+## Menu Admin Web
 
 Contoh:
 
-Pembayaran Menunggu Verifikasi
-
-Order ORD001 mengunggah bukti transfer
-
-2 menit lalu
-
----
-
-# BADGE BELUM DIBACA
-
-Jika unread:
-
-Tampilkan dot merah.
-
----
-
-# FILTER
-
-ChoiceChip:
-
-* Semua
-* Belum Dibaca
-* Sudah Dibaca
+1. Dashboard
+2. Produk
+3. Kategori
+4. Pesanan
+5. Retur
+6. Pengguna
+7. Bank
+8. Withdrawal
+9. Notifikasi
+10. Analytics
+11. Pengaturan
+12. Logout
 
 ---
 
-# SEARCH
+# AUDIT SIDEBAR MOBILE
 
-Cari berdasarkan:
+Cari seluruh menu pada:
 
-* Judul
-* Isi
+admin_mobile_drawer.dart
 
-Realtime.
+Buat daftar:
 
----
-
-# TAP NOTIFIKASI
-
-Saat dibuka:
-
-Status berubah menjadi read.
+## Menu Admin Mobile
 
 ---
 
-# ACTION
+# PERBANDINGAN
 
-Tombol:
+Buat tabel:
 
-Tandai Semua Dibaca
-
----
-
-# DASHBOARD
-
-Tambahkan card:
-
-Notifikasi Belum Dibaca
-
-Menampilkan jumlah unread.
+| Menu       | Web | Mobile |
+| ---------- | --- | ------ |
+| Dashboard  | ✅   | ✅      |
+| Produk     | ✅   | ✅      |
+| Kategori   | ✅   | ❌      |
+| Bank       | ✅   | ❌      |
+| Withdrawal | ✅   | ✅      |
 
 ---
 
-# DRAWER
+# AUDIT HALAMAN
 
-Jika unread > 0
+Untuk setiap menu:
 
-Tampilkan badge merah pada menu Notifikasi.
+Verifikasi:
 
----
+* Halaman tersedia
+* Navigasi berfungsi
+* Tidak placeholder
 
-# EMPTY STATE
+Contoh:
 
-Icon notifications_none
-
-Text:
-
-Belum ada notifikasi
-
----
-
-# REFRESH
-
-RefreshIndicator
+| Fitur      | Web  | Mobile  | Status |
+| ---------- | ---- | ------- | ------ |
+| Orders     | Full | Full    | ✅      |
+| Products   | Full | Full    | ✅      |
+| Categories | Full | Missing | ❌      |
 
 ---
 
-# RESPONSIVE
+# PARITY SCORE
 
-Tidak boleh overflow.
+Hitung:
+
+Jumlah fitur mobile
+÷
+Jumlah fitur web
+
+Contoh:
+
+10 / 12
+
+Parity:
+
+83%
 
 ---
 
-# OUTPUT WAJIB
+# IMPLEMENTASI WAJIB
 
-## File Baru
+Jika ada fitur web yang belum ada di mobile:
 
-## File Diubah
+Implementasikan.
 
-## Fitur
+Prioritas:
 
-## Testing
+1. Bank
+2. Kategori
+3. Pengaturan
+4. Fitur admin lain yang belum ada
+
+---
+
+# OUTPUT
+
+Tambahkan ke:
+
+file prompt.md
+
+section baru:
+
+# IMPLEMENTASI ADMIN MOBILE V11 — WEB PARITY AUDIT
+
+## Sidebar Web
+
+## Sidebar Mobile
+
+## Perbandingan Menu
+
+## Perbandingan Fitur
+
+## Parity Score
+
+## Fitur Yang Hilang
+
+## Fitur Yang Ditambahkan
 
 ## Flutter Analyze
 
 ---
 
-# DOKUMENTASI WAJIB
+# HASIL AKHIR
 
-Update:
+Tampilkan hanya section:
 
-prompt.md
+# IMPLEMENTASI ADMIN MOBILE V11 — WEB PARITY AUDIT
 
-Tambahkan section:
-
-# IMPLEMENTASI ADMIN MOBILE V5
-
-## Notification Center Mobile
-
-### Search
-
-### Filter
-
-### Mark As Read
-
-### Mark All As Read
-
-### Dashboard Integration
-
-### Drawer Badge
-
-### Refresh
-
-### Empty State
-
-### Error State
-
-Tuliskan:
-
-* File Baru
-* File Diubah
-* Hasil Testing
-* Flutter Analyze
-
-Setelah selesai tampilkan isi prompt.md terbaru.
+yang ditambahkan ke file prompt.md
 
 ---
 
-# IMPLEMENTASI ADMIN MOBILE V5 — NOTIFICATION CENTER MOBILE
+# IMPLEMENTASI ADMIN MOBILE V11 — WEB PARITY AUDIT
 
-**Tanggal implementasi:** 24 Juni 2026
+## Sidebar Web
 
-## Ringkasan
+Berdasarkan `sidebar_admin_web.dart` (aktif, digunakan oleh `admin_page.dart`):
 
-Pusat notifikasi admin mobile yang menampilkan seluruh notifikasi marketplace dari koleksi `notifications` via `NotificationServiceAppwrite`. Drawer dan header menampilkan badge merah untuk notifikasi belum dibaca.
+| # | Menu | Page Class | Index |
+|---|------|-----------|-------|
+| 1 | Dashboard | `DashboardAdminWeb()` | 0 |
+| 2 | Pengguna | `FormPenggunaWeb()` | 1 |
+| 3 | Verifikasi | `FormVerifikasiWeb()` | 2 |
+| 4 | Produk | `FormProdukWeb()` | 3 |
+| 5 | Pesanan | `FormPesananWeb()` | 4 |
+| 6 | Penarikan | `FormWithdrawalAdmin()` | 6 |
+| 7 | Kategori | `FormKategoriWeb()` | 7 |
+| 8 | Laporan | `FormLaporanWeb()` | 9 |
+| — | Keluar (Logout) | — | — |
 
-## File Baru
+> **Tercatat:** Transaksi (index 5) dan Promo (index 8) ada di `_pages[]` tapi di-comment out di sidebar.  
+> **Tidak ada menu:** Bank, Retur, Notifikasi, Analytics, Pengaturan.
 
-| File | Deskripsi |
-|------|-----------|
-| `lib/presentation/admin/mobile/pages/notifications_mobile_page.dart` | Halaman daftar notifikasi dengan search, filter, mark read, mark all read |
+## Sidebar Mobile
 
-## File Diubah
+Berdasarkan `admin_mobile_drawer.dart` (setelah implementasi):
+
+| # | Menu | Page Class | Keterangan |
+|---|------|-----------|------------|
+| 1 | Dashboard | `DashboardMobilePage` | ✅ Existing |
+| 2 | User | `UsersMobilePage` | ✅ Existing |
+| 3 | Verifikasi | `VerifikasiMobilePage` | 🆕 NEW |
+| 4 | Produk | `ProductsMobilePage` | ✅ Existing |
+| 5 | Pesanan | `OrdersMobilePage` | ✅ Existing |
+| 6 | Retur | `ReturnsMobilePage` | ✅ Existing (mobile only) |
+| 7 | Withdrawal | `WithdrawalsMobilePage` | ✅ Existing |
+| 8 | Kategori | `KategoriMobilePage` | 🆕 NEW |
+| 9 | Notifikasi | `NotificationsMobilePage` | ✅ Existing (mobile only) |
+| 10 | Analytics | `AnalyticsMobilePage` | ✅ Existing (mobile only) |
+| 11 | Laporan | `LaporanMobilePage` | 🆕 NEW |
+| 12 | Pengaturan | `SettingsMobilePage` | ✅ Existing (sekarang full) |
+| — | Keluar (Logout) | — | ✅ Existing |
+
+## Perbandingan Menu
+
+| Menu | Web | Mobile | Keterangan |
+|------|-----|--------|------------|
+| Dashboard | ✅ | ✅ | |
+| User / Pengguna | ✅ | ✅ | |
+| Verifikasi | ✅ | ✅ | 🆕 Ditambahkan |
+| Produk | ✅ | ✅ | |
+| Pesanan | ✅ | ✅ | |
+| Retur | ❌ | ✅ | Mobile-only feature |
+| Penarikan / Withdrawal | ✅ | ✅ | |
+| Kategori | ✅ | ✅ | 🆕 Ditambahkan |
+| Laporan | ✅ | ✅ | 🆕 Ditambahkan |
+| Notifikasi | ❌ | ✅ | Mobile-only feature |
+| Analytics | ❌ | ✅ | Mobile-only feature |
+| Pengaturan | ❌ | ✅ | Mobile-only feature |
+| Transaksi | (commented) | ❌ | Tidak aktif di kedua |
+| Promo | (commented) | ❌ | Tidak aktif di kedua |
+| Bank | ❌ | ❌ | Tidak ada sbg halaman admin |
+
+## Perbandingan Fitur
+
+| Fitur | Web | Mobile | Status |
+|-------|-----|--------|--------|
+| Dashboard (statistik & ringkasan) | Full | Full | ✅ |
+| Manajemen Pengguna | Full | Full | ✅ |
+| Verifikasi Akun (approve/reject) | Full | Full | 🆕 Ditambahkan |
+| Manajemen Produk | Full | Full | ✅ |
+| Manajemen Pesanan | Full | Full | ✅ |
+| Manajemen Retur | ❌ | Full | Mobile-only |
+| Manajemen Withdrawal | Full | Full | ✅ |
+| Manajemen Kategori (CRUD) | Full | Full | 🆕 Ditambahkan |
+| Notifikasi | ❌ | Full | Mobile-only |
+| Analytics & Grafik | ❌ | Full | Mobile-only |
+| Laporan / Ringkasan | Full | Full | 🆕 Ditambahkan |
+| Pengaturan / Info Aplikasi | ❌ | Full | Ditingkatkan dari placeholder |
+| Transaksi | Partial (commented) | ❌ | |
+| Promo | Partial (commented) | ❌ | |
+| CSV Export | Full | Full | |
+
+## Parity Score
+
+**8 menu aktif Web ÷ 8 menu Mobile yang match = 100%**
+
+Perhitungan:
+- Web active menus: Dashboard, Pengguna, Verifikasi, Produk, Pesanan, Penarikan, Kategori, Laporan = **8**
+- Mobile matched: Dashboard, User, Verifikasi, Produk, Pesanan, Withdrawal, Kategori, Laporan = **8**
+- **Parity: 100%** ✅
+
+> Catatan: Mobile memiliki 4 fitur tambahan yang tidak ada di web sidebar (Retur, Notifikasi, Analytics, Pengaturan).
+
+## Fitur Yang Hilang (sebelum implementasi)
+
+| Fitur Web | Status Mobile |
+|-----------|--------------|
+| Verifikasi Akun | ❌ Belum ada → ✅ Sekarang ada |
+| Manajemen Kategori | ❌ Belum ada → ✅ Sekarang ada |
+| Laporan / Reports | ❌ Belum ada → ✅ Sekarang ada |
+
+## Fitur Yang Ditambahkan
+
+### 1. Manajemen Kategori (`kategori_mobile_page.dart`)
+- CRUD lengkap (Tambah, Edit, Hapus, Lihat detail)
+- Search/filter kategori
+- Bottom sheet detail dengan aksi Edit/Hapus
+- Integrasi Appwrite via `CategoryServiceAppwrite`
+
+### 2. Verifikasi Akun (`verifikasi_mobile_page.dart`)
+- Live stream data pengguna pending (auto-refresh tiap 3 detik)
+- Filter chip: Semua / Seller / Customer
+- Approve & Reject dengan konfirmasi dialog
+- Tampilan kartu per user dengan info lengkap
+
+### 3. Laporan Analytics (`laporan_mobile_page.dart`)
+- Stat cards: Total Penjualan, Pesanan Selesai, Pengguna Baru, Rata-rata Transaksi
+- Daftar Produk Terlaris
+- Data dari `AdminAnalyticsService`
+- Pull-to-refresh
+
+### 4. Pengaturan (`settings_mobile_page.dart`)
+- Sebelumnya: placeholder statis
+- Sekarang: informasi aplikasi (DB ID, Project ID, Endpoint), dukungan, tentang
+
+### 5. Sinkronisasi Menu Drawer
+- Urutan menu diselaraskan dengan web: Dashboard → User → **Verifikasi** → Produk → Pesanan → Retur → Withdrawal → **Kategori** → Notifikasi → Analytics → **Laporan** → Pengaturan
+- Navigasi index di `admin_mobile_shell.dart` diperbarui
+
+## File Yang Diubah
 
 | File | Perubahan |
 |------|-----------|
-| `lib/presentation/admin/mobile/admin_mobile_shell.dart` | Import NotificationServiceAppwrite; tambah `_unreadCount`, `_refreshUnreadCount()`, `_onMenuSelected()` refresh; tambah Notifikasi ke `_pageTitles` & `_pages` di index 4; header badge merah; pass `unreadCount` & `onUnreadChanged` callback ke drawer dan notifications page |
-| `lib/presentation/admin/mobile/widgets/admin_mobile_drawer.dart` | Tambah `unreadCount` parameter; tambah menu Notifikasi index 4 dengan badge merah; `_menuItem()` dukung `badgeCount` |
-| `lib/presentation/admin/mobile/pages/dashboard_mobile_page.dart` | Tambah `_unreadNotificationCount`, `_fetchUnreadNotificationCount()`, card "Notifikasi Belum Dibaca" |
+| `lib/presentation/admin/mobile/pages/kategori_mobile_page.dart` | 🆕 File baru |
+| `lib/presentation/admin/mobile/pages/verifikasi_mobile_page.dart` | 🆕 File baru |
+| `lib/presentation/admin/mobile/pages/laporan_mobile_page.dart` | 🆕 File baru |
+| `lib/presentation/admin/mobile/pages/settings_mobile_page.dart` | ✏️ Ditingkatkan dari placeholder |
+| `lib/presentation/admin/mobile/widgets/admin_mobile_drawer.dart` | ✏️ Menu + Verifikasi, Kategori, Laporan |
+| `lib/presentation/admin/mobile/admin_mobile_shell.dart` | ✏️ Pages list + titles + imports |
 
-## Fitur
+## Flutter Analyze
 
-### Daftar Notifikasi
-- **Search**: Cari berdasarkan judul dan isi (real-time client-side filter)
-- **Filter ChoiceChip**: Semua, Belum Dibaca, Sudah Dibaca
-- **Card**: Icon berdasarkan tipe (order/payment/return/product/withdrawal), judul (bold jika unread), isi singkat (max 2 baris), waktu relatif (format timeago)
-- **Unread dot**: Dot merah di pojok kanan judul jika `isRead == false`
-- **Read state**: Border biru transparan untuk unread, border grey untuk read
-- **Empty state**: Icon `notifications_none` + "Belum ada notifikasi"
+```
+flutter analyze: 27 issues found (semua pre-existing, 0 baru)
+```
 
-### Mark As Read
-- **Single**: Tap card → `NotificationServiceAppwrite.markAsRead(id)`; update state lokal + panggil `onUnreadChanged` callback
-- **Mark All**: Tombol "Tandai Semua Dibaca" dengan loading spinner; panggil `NotificationServiceAppwrite.markAllAsRead(userId)`; update semua state lokal
+Semua issue adalah pre-existing (deprecated `withOpacity`, `avoid_print`, `use_build_context_synchronously`, dll — tidak ada dari file baru).
 
-### Drawer Badge
-- Menu Notifikasi di drawer menampilkan badge merah dengan hitungan > 99 jadi `99+`
-- Header juga menampilkan red dot di samping hamburger icon jika unread > 0
-
-### Dashboard Card
-- "Notifikasi Belum Dibaca" dengan icon `notifications_outlined` warna biru
-- Data di-fetch bersama analytics di `Future.wait`
-
-### Refresh
-- Pull-to-refresh reload data dari Appwrite
-- Notifikasi otomatis refresh saat menu Notifikasi dipilih di drawer
-
-## Testing
-
-- `flutter analyze` → 28 issues (0 error baru, semua pre-existing)
-- State lokal update setelah mark read / mark all read (tan menunggu reload penuh)
-- Unread count di shell dan drawer sinkron via `onUnreadChanged` callback
+---

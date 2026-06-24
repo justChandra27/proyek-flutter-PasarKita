@@ -154,7 +154,7 @@ class _FormReturPageState extends State<FormReturPage> {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    value: _reasonController.text.isNotEmpty
+                    initialValue: _reasonController.text.isNotEmpty
                         ? _reasonController.text
                         : null,
                     hint: const Text('Pilih alasan'),
