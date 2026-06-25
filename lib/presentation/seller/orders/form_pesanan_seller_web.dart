@@ -855,6 +855,7 @@ class _FormPesananSellerWebState
                 _detailRow('Pembayaran', _paymentStatusLabel(order.paymentStatus)),
                 if (order.bankName.isNotEmpty) _detailRow('Bank', order.bankName),
                 if (order.senderName.isNotEmpty) _detailRow('Pengirim', order.senderName),
+                if (order.notes.isNotEmpty) _detailRow('Catatan', order.notes),
                 if (order.paymentReceiptImage.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),

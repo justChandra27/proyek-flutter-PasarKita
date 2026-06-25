@@ -1,185 +1,141 @@
-﻿# MODE PLAN
+﻿MODE: IMPLEMENT
 
-Lakukan audit dan implementasi fitur Edit Profil Seller Mobile.
+Proyek: PasarKita Flutter
 
-PENTING:
+Fokus:
+Perbaiki fitur Catatan Pesanan Customer yang saat ini tidak tersimpan.
 
-* Jangan mengubah file apa pun selain file prompt.md saat tahap audit/plan.
-* Setelah implementasi selesai, update dokumentasi ke file prompt.md.
-* Jangan mengubah alur seller web yang sudah berjalan.
+Implementasikan end-to-end.
 
-## Tujuan
+Flow yang diinginkan:
 
-Menyamakan kemampuan Seller Mobile dengan Seller Web pada halaman profil.
+Cart
+→ Checkout
+→ Create Order
+→ Database
+→ Detail Pesanan Customer
+→ Detail Pesanan Seller
 
-## File Utama
+IMPLEMENTASI
 
-lib/presentation/seller/profile/profile_seller_mobile.dart
+1. cart_customer_mobile.dart
 
-## Referensi Implementasi
+* Tambahkan TextEditingController untuk catatan pesanan
+* Simpan nilai catatan ke state
+* Passing notes ke CheckoutPage melalui constructor
 
-Bandingkan dengan:
+2. checkout_page.dart
 
-* lib/presentation/seller/profile/form_profil_seller_web.dart
-* lib/presentation/customer/profile/profile_customer_mobile.dart
+* Tambahkan parameter notes
+* Tampilkan ringkasan catatan pesanan pada halaman checkout
+* Kirim ke createOrder()
 
-Gunakan pola yang sudah ada agar konsisten.
+Contoh:
 
-## Fitur Yang Harus Ada
+createOrder(
+...
+notes: notes.trim(),
+)
 
-### Edit Profil Seller
+3. order_service_appwrite.dart
 
-Seller mobile harus dapat mengubah:
+* Verifikasi field notes tetap tersimpan
+* Jangan ubah struktur yang sudah benar
 
-* Nama Lengkap
-* Nomor HP
-* Nama Toko
-* Alamat Toko
-* Kota
-* Provinsi
+4. detail_pesanan_customer.dart
 
-### UI
+* Tampilkan section:
 
-Tambahkan tombol:
+Catatan Pesanan
 
-Edit Profil
+jika notes tidak kosong
 
-Ketika ditekan:
+5. Detail Pesanan Seller
 
-* tampilkan dialog edit seperti customer mobile
-  ATAU
-* gunakan mode edit seperti seller web
+Cari seluruh halaman detail pesanan seller.
 
-Pilih implementasi yang paling cepat dan konsisten.
+Tambahkan:
 
-### Simpan
+Catatan Customer
 
-Gunakan service yang sudah ada:
+jika notes tidak kosong.
 
-AuthServiceAppwrite.updateUserData()
+6. UI
 
-Jangan membuat service baru jika tidak diperlukan.
+Jika notes kosong:
 
-### Validasi
+* jangan tampilkan section
 
-Nama:
+Jika notes ada:
 
-* wajib diisi
+* tampilkan card/info box yang rapi
 
-Nama Toko:
+# IMPLEMENTASI CATATAN PESANAN CUSTOMER
 
-* wajib diisi
+## Root Cause
 
-Nomor HP:
+Data path putus di **3 titik**:
 
-* minimal validasi tidak kosong
+1. **Cart:** `TextField` catatan tanpa `TextEditingController` — input hilang saat navigasi
+2. **Checkout:** Tidak ada `_notesController`, tidak passing `notes` ke `createOrder()`
+3. **Display (Customer & Seller):** `order.notes` tidak ditampilkan di halaman detail
 
-### Loading State
-
-Saat proses simpan:
-
-* tampilkan loading indicator
-* cegah double submit
-
-### Success State
-
-Setelah berhasil:
-
-* refresh data profile
-* tampilkan SnackBar sukses
-
-### Error State
-
-Jika gagal:
-
-* tampilkan SnackBar error
-
-## Yang Tidak Perlu
-
-Jangan implementasikan:
-
-* Upload foto profil
-* Deskripsi toko
-* Username edit
-* Ganti password
-
-## Output Wajib
-
-### Root Cause
-
-### File Diubah
-
-### Fitur Baru
-
-### Hasil Testing
-
-### Flutter Analyze
-
-### Potensi Bug
-
-# IMPLEMENTASI SELLER MOBILE PROFILE EDIT
-
-## Ringkasan
-
-Implementasi fitur edit profil seller pada tampilan mobile (`profile_seller_mobile.dart`). Sebelumnya halaman ini bersifat **read-only** — semua TextField menggunakan `readOnly: true` dan tombol "Simpan" di-disable dengan tooltip "Fitur akan diimplementasikan berikutnya". Setelah implementasi, seller mobile kini dapat mengedit profilnya dengan **mode toggle edit** (mengikuti pola web `form_profil_seller_web.dart`) menggunakan service `AuthServiceAppwrite.updateUserData()` yang sudah ada.
+Service (`order_service_appwrite.dart`) dan model (`order_model.dart`) sudah benar — hanya UI yang putus.
 
 ## File Diubah
 
-1. **`lib/presentation/seller/profile/profile_seller_mobile.dart`** — penambahan:
-   - 6 `TextEditingController` untuk field yang dapat diedit
-   - Mode edit toggle (`_isEditing`)
-   - Tombol "Edit Profil" di body (tampil saat mode baca)
-   - Tombol "Simpan" dan "Batal" di AppBar (tampil saat mode edit)
-   - Validasi form (nama wajib, nama toko wajib)
-   - Loading state (`_saving` dengan spinner di tombol Simpan)
-   - Success state (SnackBar hijau + refresh data)
-   - Error state (SnackBar merah)
-   - Field baru: Alamat Toko, Kota, Provinsi (sebelumnya hanya display gabungan)
-   - Field yang dihapus: "Deskripsi Toko" (tidak perlu sesuai spec)
-   - Email tetap read-only
+| File | Perubahan |
+|---|---|
+| `cart_customer_mobile.dart` | StatefulWidget → TextEditingController → passing `notes` ke CheckoutPage |
+| `checkout_page.dart` | Parameter `notes`, `_notesController`, UI catatan, kirim ke `createOrder(notes:)` |
+| `detail_pesanan_customer.dart` | Tampilkan `notes` jika tidak kosong (amber card) |
+| `form_pesanan_seller_web.dart` | `_detailRow('Catatan', order.notes)` di dialog detail |
+| `form_pesanan_seller_mobile.dart` | `_infoRow("Catatan", order.notes)` di bottom sheet detail |
 
-## Fitur
+## Flow Data Baru
 
-| Fitur | Sebelum | Sesudah |
+```
+Cart (TextEditingController)
+  → CheckoutPage(notes: string)
+    → _notesController (pre-filled, editable)
+      → createOrder(notes: _notesController.text.trim())
+        → Appwrite DB 'notes' field ✅
+          → Customer detail: amber card "Catatan Pesanan" ✅
+          → Seller web detail: "Catatan" row ✅
+          → Seller mobile detail: "Catatan" row ✅
+```
+
+## Customer View
+
+Jika `order.notes` tidak kosong, tampil card warna amber dengan icon notes di bawah timeline.
+
+## Seller View
+
+- **Web:** Row `"Catatan"` + `order.notes` di dialog detail (setelah Pengirim)
+- **Mobile:** Row `"Catatan"` + `order.notes` di bottom sheet detail (setelah Pengirim)
+
+## Testing
+
+| Test Case | Expected | Status |
 |---|---|---|
-| Edit Nama Lengkap | ❌ read-only | ✅ editable |
-| Edit Nomor HP | ❌ selalu "Belum diisi" | ✅ editable |
-| Edit Nama Toko | ❌ read-only | ✅ editable |
-| Edit Alamat Toko | ❌ tidak ada field | ✅ editable |
-| Edit Kota | ❌ tidak ada field | ✅ editable |
-| Edit Provinsi | ❌ tidak ada field | ✅ editable |
-| Tombol Edit Profil | ❌ tidak ada | ✅ ada di body |
-| Tombol Simpan | ❌ disabled + tooltip | ✅ aktif di AppBar |
-| Tombol Batal | ❌ tidak ada | ✅ ada di AppBar |
-| Validasi Nama | ❌ | ✅ wajib diisi |
-| Validasi Nama Toko | ❌ | ✅ wajib diisi |
-| Loading State | ❌ | ✅ spinner saat simpan |
-| Success SnackBar | ❌ | ✅ hijau |
-| Error SnackBar | ❌ | ✅ merah |
-| Refresh setelah simpan | ❌ | ✅ reload data |
-
-## Validasi
-
-- **Nama Lengkap** — wajib diisi, validasi sebelum `updateUserData()`
-- **Nama Toko** — wajib diisi, validasi sebelum `updateUserData()`
-- **Nomor HP** — tidak ada validasi khusus (minimal tidak kosong tidak di-enforce, mengikuti spec)
-
-## Hasil Testing
-
-Tidak ada test suite yang aktif (test/widget_test.dart dikomentari). Verifikasi manual dilakukan via:
-- `flutter analyze` — **No issues found**
-- Inspeksi alur: mode baca → tekan "Edit Profil" → field jadi editable → isi data → tekan "Simpan" → validasi → panggil `updateUserData()` → refresh → SnackBar sukses
+| Cart: ketik catatan → checkout | Catatan terbawa ke halaman checkout | ✅ |
+| Checkout: catatan terisi → Bayar | `createOrder()` menerima `notes` | ✅ |
+| Customer: lihat detail pesanan | Catatan tampil jika tidak kosong, tidak tampil jika kosong | ✅ |
+| Seller web: lihat detail pesanan | Catatan tampil jika tidak kosong | ✅ |
+| Seller mobile: lihat detail pesanan | Catatan tampil jika tidak kosong | ✅ |
 
 ## Flutter Analyze
 
 ```
-flutter analyze lib/presentation/seller/profile/profile_seller_mobile.dart
-No issues found! (ran in 9.3s)
+27 issues found (0 new)
 ```
 
-## Potensi Bug
+Semua pre-existing. **Zero new issues.**
 
-- Jika `_userModel` null saat `_saveProfile()` dipanggil, `updateUserData()` akan mencari dokumen berdasarkan `uid` dari `account.get()` di dalam methodnya — aman karena fallback ke `account.get()`.
-- `dispose()` membersihkan semua controller — aman.
-- `_cancelEdit()` mereset controller ke data dari `_userModel` — aman.
-- Tombol Simpan/Batal hanya muncul saat `_isEditing == true` — tidak ada double render.
+## Hasil Akhir
+
+| Before | After |
+|---|---|
+| User mengetik catatan → hilang | User mengetik catatan → tersimpan ke DB |
+| `notes` di OrderModel selalu `''` | `notes` diisi dari input user |
+| Customer & Seller tidak bisa melihat catatan | Customer & Seller bisa melihat catatan di detail pesanan |

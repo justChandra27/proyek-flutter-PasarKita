@@ -6,8 +6,21 @@ import '../../../data/models/cart_model.dart';
 import '../../../providers/cart_provider.dart';
 import '../../checkout/checkout_page.dart';
 
-class CartCustomerMobile extends StatelessWidget {
+class CartCustomerMobile extends StatefulWidget {
   const CartCustomerMobile({super.key});
+
+  @override
+  State<CartCustomerMobile> createState() => _CartCustomerMobileState();
+}
+
+class _CartCustomerMobileState extends State<CartCustomerMobile> {
+  final _notesController = TextEditingController();
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -91,6 +104,7 @@ class CartCustomerMobile extends StatelessWidget {
                         const SizedBox(height: 12),
 
                         TextField(
+                          controller: _notesController,
                           maxLines: 3,
                           decoration:
                               InputDecoration(
@@ -205,10 +219,11 @@ class CartCustomerMobile extends StatelessWidget {
                               ),
                             ),
                             onPressed: () {
+                              final notes = _notesController.text.trim();
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => const CheckoutPage(),
+                                  builder: (_) => CheckoutPage(notes: notes),
                                 ),
                               );
                             },

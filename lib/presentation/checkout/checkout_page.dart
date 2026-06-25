@@ -18,8 +18,9 @@ import '../customer/customer_page.dart';
 
 class CheckoutPage extends StatefulWidget {
   final CartModel? buyNowItem;
+  final String notes;
 
-  const CheckoutPage({super.key, this.buyNowItem});
+  const CheckoutPage({super.key, this.buyNowItem, this.notes = ''});
 
   @override
   State<CheckoutPage> createState() => _CheckoutPageState();
@@ -29,6 +30,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final _addressController = TextEditingController();
   final _phoneController = TextEditingController();
   final _senderNameController = TextEditingController();
+  final _notesController = TextEditingController();
   final _orderService = OrderServiceAppwrite();
   final _bankService = BankService();
   bool _loading = false;
@@ -45,6 +47,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   @override
   void initState() {
     super.initState();
+    _notesController.text = widget.notes;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadProfile();
       _loadBanks();
@@ -92,6 +95,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     _addressController.dispose();
     _phoneController.dispose();
     _senderNameController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
@@ -251,6 +255,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         paymentMethod: 'Transfer Bank',
         orderCode: orderCode,
         items: items,
+        notes: _notesController.text.trim(),
         phone: _phoneController.text.trim(),
         shippingAddress: _profileShippingAddress,
         shippingCity: _profileShippingCity,
@@ -473,6 +478,47 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 keyboardType: TextInputType.phone,
                 decoration: InputDecoration(
                   hintText: 'Masukkan nomor telepon',
+                  filled: true,
+                  fillColor: const Color(0xffF1F5F9),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.notes_outlined, size: 20),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Catatan Pesanan',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _notesController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: 'Contoh: Titik di satpam ya...',
                   filled: true,
                   fillColor: const Color(0xffF1F5F9),
                   border: OutlineInputBorder(

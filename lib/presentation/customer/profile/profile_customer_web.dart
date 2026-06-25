@@ -184,25 +184,7 @@ class _ProfileCustomerWebState
                         ),
                       ),
 
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Tooltip(
-                          message: 'Fitur akan diimplementasikan berikutnya',
-                          child: Container(
-                            padding: const EdgeInsets.all(5),
-                            decoration: const BoxDecoration(
-                              color: Color(0xff2563EB),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.edit,
-                              size: 14,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
+
                     ],
                   ),
 

@@ -103,16 +103,6 @@ class _DashboardCustomerMobileState
                     ),
                   ),
                   const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.grid_view_rounded,
-                    ),
-                  ),
                 ],
               ),
               const SizedBox(height: 16),

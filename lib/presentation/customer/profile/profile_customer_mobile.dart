@@ -143,26 +143,7 @@ class _ProfileCustomerMobileState
                           ),
                         ),
 
-                        Positioned(
-                          right: 0,
-                          bottom: 0,
-                          child: Tooltip(
-                            message: 'Fitur akan diimplementasikan berikutnya',
-                            child: Container(
-                              width: 30,
-                              height: 30,
-                              decoration: BoxDecoration(
-                                color: const Color(0xff2563EB),
-                                borderRadius: BorderRadius.circular(50),
-                              ),
-                              child: const Icon(
-                                Icons.edit,
-                                color: Colors.white,
-                                size: 16,
-                              ),
-                            ),
-                          ),
-                        ),
+    
                       ],
                     ),
 
@@ -236,10 +217,6 @@ class _ProfileCustomerMobileState
                               fontSize: 16,
                             ),
                           ),
-
-                          const Spacer(),
-
-                          Icon(Icons.settings, color: Colors.blue.shade700),
                         ],
                       ),
                     ),
@@ -262,15 +239,6 @@ class _ProfileCustomerMobileState
                       subtitle: "Manage your primary and shipping address",
                       enabled: true,
                       onTap: () => _showAddressDialog(),
-                    ),
-
-                    const Divider(height: 1),
-
-                    _menuItem(
-                      icon: Icons.account_balance_wallet_outlined,
-                      title: "Payment Methods",
-                      subtitle: "Saved cards and digital wallets",
-                      enabled: false,
                     ),
 
                     const Divider(height: 1),
@@ -349,20 +317,22 @@ class _ProfileCustomerMobileState
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Personal Information'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameCtrl,
-              decoration: const InputDecoration(labelText: 'Nama Lengkap'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: phoneCtrl,
-              decoration: const InputDecoration(labelText: 'Nomor Telepon'),
-              keyboardType: TextInputType.phone,
-            ),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(labelText: 'Nama Lengkap'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: phoneCtrl,
+                decoration: const InputDecoration(labelText: 'Nomor Telepon'),
+                keyboardType: TextInputType.phone,
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -405,31 +375,33 @@ class _ProfileCustomerMobileState
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Address Book'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: addressCtrl,
-              decoration: const InputDecoration(labelText: 'Alamat Lengkap'),
-              maxLines: 2,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: cityCtrl,
-              decoration: const InputDecoration(labelText: 'Kota'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: provinceCtrl,
-              decoration: const InputDecoration(labelText: 'Provinsi'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: postalCtrl,
-              decoration: const InputDecoration(labelText: 'Kode Pos'),
-              keyboardType: TextInputType.number,
-            ),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: addressCtrl,
+                decoration: const InputDecoration(labelText: 'Alamat Lengkap'),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: cityCtrl,
+                decoration: const InputDecoration(labelText: 'Kota'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: provinceCtrl,
+                decoration: const InputDecoration(labelText: 'Provinsi'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: postalCtrl,
+                decoration: const InputDecoration(labelText: 'Kode Pos'),
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(

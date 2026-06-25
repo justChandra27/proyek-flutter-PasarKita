@@ -518,6 +518,8 @@ class _FormPesananSellerMobileState
                           _infoRow("Bank", order.bankName),
                         if (order.senderName.isNotEmpty)
                           _infoRow("Pengirim", order.senderName),
+                        if (order.notes.isNotEmpty)
+                          _infoRow("Catatan", order.notes),
                         if (order.paymentReceiptImage.isNotEmpty)
                           Padding(
                             padding: const EdgeInsets.only(top: 8),

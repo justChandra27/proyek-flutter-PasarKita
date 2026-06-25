@@ -204,6 +204,42 @@ class _DetailPesananCustomerState extends State<DetailPesananCustomer> {
                 _totalCard(order),
                 const SizedBox(height: 16),
                 _timelineCard(order),
+                if (order.notes.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.amber.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.notes_outlined, color: Colors.amber.shade700, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Catatan Pesanan',
+                              style: TextStyle(
+                                color: Colors.amber.shade700,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          order.notes,
+                          style: const TextStyle(color: Colors.black87),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 if (order.paymentStatus == 'paid') ...[
                   const SizedBox(height: 16),
                   Container(
