@@ -134,6 +134,13 @@ class CartCustomerWeb extends StatelessWidget {
                               valueColor: Colors.green,
                             ),
 
+                            const SizedBox(height: 12),
+
+                            _summaryRow(
+                              "Biaya Layanan",
+                              "Rp 2.000",
+                            ),
+
                             const Divider(height: 40),
 
                             Row(
@@ -150,7 +157,7 @@ class CartCustomerWeb extends StatelessWidget {
                                 ),
                                 Text(
                                   _formatPrice(
-                                      cart.totalPrice),
+                                      cart.totalPrice + 2000),
                                   style:
                                       const TextStyle(
                                     fontSize: 22,

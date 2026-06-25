@@ -6,21 +6,8 @@ import '../../../data/models/cart_model.dart';
 import '../../../providers/cart_provider.dart';
 import '../../checkout/checkout_page.dart';
 
-class CartCustomerMobile extends StatefulWidget {
+class CartCustomerMobile extends StatelessWidget {
   const CartCustomerMobile({super.key});
-
-  @override
-  State<CartCustomerMobile> createState() => _CartCustomerMobileState();
-}
-
-class _CartCustomerMobileState extends State<CartCustomerMobile> {
-  final _notesController = TextEditingController();
-
-  @override
-  void dispose() {
-    _notesController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,53 +64,6 @@ class _CartCustomerMobileState extends State<CartCustomerMobile> {
                       padding: const EdgeInsets.only(
                           bottom: 12),
                       child: _cartItem(context, item),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius:
-                          BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Catatan Pesanan",
-                          style: TextStyle(
-                            fontWeight:
-                                FontWeight.bold,
-                          ),
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        TextField(
-                          controller: _notesController,
-                          maxLines: 3,
-                          decoration:
-                              InputDecoration(
-                            hintText:
-                                "Contoh: Titip di satpam ya...",
-                            filled: true,
-                            fillColor:
-                                const Color(0xffF5F7FB),
-                            border:
-                                OutlineInputBorder(
-                              borderRadius:
-                                  BorderRadius.circular(
-                                      12),
-                              borderSide:
-                                  BorderSide.none,
-                            ),
-                          ),
-                        ),
-                      ],
                     ),
                   ),
 
@@ -219,11 +159,10 @@ class _CartCustomerMobileState extends State<CartCustomerMobile> {
                               ),
                             ),
                             onPressed: () {
-                              final notes = _notesController.text.trim();
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => CheckoutPage(notes: notes),
+                                  builder: (_) => const CheckoutPage(),
                                 ),
                               );
                             },

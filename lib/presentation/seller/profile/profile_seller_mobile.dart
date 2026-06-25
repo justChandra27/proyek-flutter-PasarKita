@@ -226,8 +226,8 @@ class _SellerEditProfileMobileState extends State<SellerEditProfileMobile> {
             _card(
               children: [
                 _field("Nama Lengkap", _nameController),
-                _field("Email", TextEditingController(text: email), enabled: false),
                 _field("Nomor HP", _phoneController),
+                _field("Email", TextEditingController(text: email), enabled: false),
               ],
             ),
 

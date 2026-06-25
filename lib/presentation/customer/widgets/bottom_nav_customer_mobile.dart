@@ -31,7 +31,7 @@ class BottomNavCustomerMobile
         const BottomNavigationBarItem(
           icon:
               Icon(Icons.shopping_cart_outlined),
-          label: "Cart",
+          label: "Keranjang",
         ),
         const BottomNavigationBarItem(
           icon:

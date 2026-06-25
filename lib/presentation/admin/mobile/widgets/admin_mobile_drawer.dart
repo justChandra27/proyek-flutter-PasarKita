@@ -61,7 +61,7 @@ class AdminMobileDrawer extends StatelessWidget {
                   ),
                   _menuItem(
                     icon: Icons.people_outline,
-                    title: "User",
+                    title: "Pengguna",
                     index: 1,
                   ),
                   _menuItem(
@@ -86,7 +86,7 @@ class AdminMobileDrawer extends StatelessWidget {
                   ),
                   _menuItem(
                     icon: Icons.account_balance_wallet_outlined,
-                    title: "Withdrawal",
+                    title: "Penarikan",
                     index: 6,
                   ),
                   _menuItem(

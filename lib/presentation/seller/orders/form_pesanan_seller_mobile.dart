@@ -960,6 +960,10 @@ class _StatusActions extends StatelessWidget {
 
   const _StatusActions({required this.order, required this.sellerId, this.onStatusChanged});
 
+  bool _canCancel() {
+    return order.status.toLowerCase() == 'pending' || order.status.toLowerCase() == 'processing';
+  }
+
   String? _nextStatus(String current) {
     switch (current.toLowerCase()) {
       case 'pending':
@@ -986,57 +990,123 @@ class _StatusActions extends StatelessWidget {
     }
   }
 
+  Future<void> _confirmCancel(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Batalkan Pesanan'),
+        content: const Text('Apakah Anda yakin ingin membatalkan pesanan ini?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Tidak')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Ya, Batalkan'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await OrderServiceAppwrite().updateOrderStatus(
+        orderId: order.id,
+        status: 'cancelled',
+        sellerId: sellerId,
+      );
+      if (!context.mounted) return;
+      onStatusChanged?.call();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pesanan berhasil dibatalkan'), backgroundColor: Colors.green),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      String message = 'Gagal membatalkan pesanan';
+      if (e is AppwriteException) {
+        if (e.code == 400) message = 'Transisi status tidak valid';
+        if (e.code == 403) message = 'Anda tidak memiliki akses untuk mengubah pesanan ini';
+      }
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: Colors.red),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final next = _nextStatus(order.status);
-    if (next == null) return const SizedBox.shrink();
+    final canCancel = _canCancel();
 
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xff1E40AF),
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+    if (next == null && !canCancel) return const SizedBox.shrink();
+
+    return Column(
+      children: [
+        if (next != null)
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xff1E40AF),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () async {
+                try {
+                  await OrderServiceAppwrite().updateOrderStatus(
+                    orderId: order.id,
+                    status: next,
+                    sellerId: sellerId,
+                  );
+                  if (!context.mounted) return;
+                  onStatusChanged?.call();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Status berhasil diubah ke ${_nextLabel(order.status)}'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                } catch (e) {
+                  if (!context.mounted) return;
+                  String message = 'Gagal mengubah status';
+                  if (e is AppwriteException) {
+                    if (e.code == 400) {
+                      message = 'Transisi status tidak valid';
+                    } else if (e.code == 403) {
+                      message = 'Anda tidak memiliki akses untuk mengubah pesanan ini';
+                    }
+                  }
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(message),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              child: Text(_nextLabel(order.status)),
+            ),
           ),
-        ),
-        onPressed: () async {
-          try {
-            await OrderServiceAppwrite().updateOrderStatus(
-              orderId: order.id,
-              status: next,
-              sellerId: sellerId,
-            );
-            if (!context.mounted) return;
-            onStatusChanged?.call();
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Status berhasil diubah ke ${_nextLabel(order.status)}'),
-                backgroundColor: Colors.green,
+        if (next != null && canCancel) const SizedBox(height: 8),
+        if (canCancel)
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red,
+                side: const BorderSide(color: Colors.red),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-            );
-          } catch (e) {
-            if (!context.mounted) return;
-            String message = 'Gagal mengubah status';
-            if (e is AppwriteException) {
-              if (e.code == 400) {
-                message = 'Transisi status tidak valid';
-              } else if (e.code == 403) {
-                message = 'Anda tidak memiliki akses untuk mengubah pesanan ini';
-              }
-            }
-            if (!context.mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(message),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        },
-        child: Text(_nextLabel(order.status)),
-      ),
+              onPressed: () => _confirmCancel(context),
+              child: const Text('Batalkan Pesanan'),
+            ),
+          ),
+      ],
     );
   }
 }

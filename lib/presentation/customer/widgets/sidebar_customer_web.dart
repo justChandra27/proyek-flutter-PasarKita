@@ -50,13 +50,13 @@ class SidebarCustomerWeb extends StatelessWidget {
           _menu(
             index: 2,
             icon: Icons.receipt_long_outlined,
-            title: "Pesanan Saya",
+            title: "Pesanan",
           ),
           _notifMenu(),
           _menu(
             index: 4,
             icon: Icons.person_outline,
-            title: "Profile",
+            title: "Profil",
           ),
           const Spacer(),
           const Divider(),

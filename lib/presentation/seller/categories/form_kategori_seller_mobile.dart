@@ -169,6 +169,22 @@ class _FormKategoriSellerMobileState extends State<FormKategoriSellerMobile> {
                 ],
               ),
             ),
+            if (!_loading) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    _statCard('Total', '${_categories.length}', const Color(0xff2563EB), Icons.category),
+                    const SizedBox(width: 8),
+                    _statCard('Aktif', '${_categories.where((c) => c.status == 'active').length}', Colors.green, Icons.check_circle),
+                    const SizedBox(width: 8),
+                    _statCard('Nonaktif', '${_categories.where((c) => c.status != 'active').length}', Colors.red, Icons.cancel),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
             Expanded(
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
@@ -199,6 +215,37 @@ class _FormKategoriSellerMobileState extends State<FormKategoriSellerMobile> {
                             ),
                           ],
                         ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _statCard(String label, String count, Color color, IconData icon) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xffE5E7EB)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 22),
+            const SizedBox(height: 6),
+            Text(
+              count,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 11, color: Color(0xff6B7280)),
             ),
           ],
         ),

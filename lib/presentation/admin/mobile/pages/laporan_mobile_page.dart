@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/services/admin_analytics_service.dart';
+import 'products_mobile_page.dart';
 
 class LaporanMobilePage extends StatefulWidget {
   const LaporanMobilePage({super.key});
@@ -48,6 +49,19 @@ class _LaporanMobilePageState extends State<LaporanMobilePage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            TextField(
+              decoration: InputDecoration(
+                hintText: "Cari laporan...",
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
             _buildStatCard(
               Icons.payments_outlined,
               'Total Penjualan',
@@ -159,6 +173,20 @@ class _LaporanMobilePageState extends State<LaporanMobilePage> {
             )
           else
             ...topProducts.map((p) => _productItem(p.productName, p.totalSold)),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xff2563EB),
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProductsMobilePage()),
+              );
+            },
+            icon: const Icon(Icons.arrow_forward, size: 18),
+            label: const Text("Lihat Semua Produk"),
+          ),
         ],
       ),
     );

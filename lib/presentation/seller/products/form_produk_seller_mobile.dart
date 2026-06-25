@@ -318,16 +318,47 @@ class _FormProdukSellerMobileState extends State<FormProdukSellerMobile> {
                     }
                   });
 
-                  final produkPending = products
-                      .where((p) => p.moderationStatus == 'pending')
-                      .length;
+                  final categoryProducts = _selectedCategory.isNotEmpty
+                      ? products.where((p) => p.category == _selectedCategory).toList()
+                      : products;
+                  final totalProduk = categoryProducts.length;
+                  final produkAktif = categoryProducts.where((p) => p.active).length;
+                  final stokMenipis = categoryProducts.where((p) => p.stock <= 5).length;
+                  final menungguReview = categoryProducts.where((p) => p.moderationStatus == 'pending').length;
+                  final produkPending = menungguReview;
 
                   return ListView.separated(
                     padding: const EdgeInsets.all(16),
-                    itemCount: filteredProducts.length + (produkPending > 0 ? 1 : 0),
+                    itemCount: filteredProducts.length + (produkPending > 0 ? 1 : 0) + (widget.initialCategory != null ? 1 : 0),
                     separatorBuilder: (_, _) => const SizedBox(height: 14),
                     itemBuilder: (context, index) {
-                      if (produkPending > 0 && index == 0) {
+                      int offset = 0;
+
+                      if (widget.initialCategory != null) {
+                        if (index == 0) {
+                          return Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: const Color(0xffE5E7EB)),
+                            ),
+                            child: Row(
+                              children: [
+                                _detailStatCard('$totalProduk', 'Total Produk', const Color(0xff2563EB), Icons.inventory_2),
+                                _detailStatCard('$produkAktif', 'Produk Aktif', Colors.green, Icons.check_circle),
+                                _detailStatCard('$stokMenipis', 'Stok Menipis', Colors.orange, Icons.inventory),
+                                _detailStatCard('$menungguReview', 'Review', Colors.purple, Icons.hourglass_empty),
+                              ],
+                            ),
+                          );
+                        }
+                        offset = 1;
+                      }
+
+                      final adjustedIndex = index - offset;
+
+                      if (produkPending > 0 && adjustedIndex == 0) {
                         return Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 14,
@@ -359,8 +390,8 @@ class _FormProdukSellerMobileState extends State<FormProdukSellerMobile> {
                       }
 
                       final productIndex = produkPending > 0
-                          ? index - 1
-                          : index;
+                          ? adjustedIndex - 1
+                          : adjustedIndex;
                       return ProductCard(
                         product: filteredProducts[productIndex],
                         onProductChanged: () {
@@ -374,6 +405,26 @@ class _FormProdukSellerMobileState extends State<FormProdukSellerMobile> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _detailStatCard(String count, String label, Color color, IconData icon) {
+    return Expanded(
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 4),
+          Text(
+            count,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color),
+          ),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 9, color: Color(0xff6B7280)),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }

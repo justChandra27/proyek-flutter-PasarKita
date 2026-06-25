@@ -9,6 +9,7 @@ import 'package:pasarkita/data/models/user_model.dart';
 import 'package:pasarkita/core/appwrite/appwrite_config.dart';
 import 'package:pasarkita/core/appwrite/appwrite_service.dart';
 import 'package:pasarkita/presentation/auth/login_page.dart';
+import 'package:pasarkita/presentation/customer/returns/riwayat_retur_page.dart';
 
 class ProfileCustomerWeb extends StatefulWidget {
   const ProfileCustomerWeb({super.key});
@@ -219,20 +220,6 @@ class _ProfileCustomerWebState
                     _orderCount.toString(),
                     "PESANAN",
                   ),
-
-                  const SizedBox(width: 12),
-
-                  _statCard(
-                    "0",
-                    "TRANSAKSI",
-                  ),
-
-                  const SizedBox(width: 12),
-
-                  _statCard(
-                    "0",
-                    "POIN",
-                  ),
                 ],
               ),
             ),
@@ -374,6 +361,34 @@ class _ProfileCustomerWebState
                     ),
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: ListTile(
+                leading: const Icon(Icons.assignment_return_outlined, color: Colors.black54),
+                title: const Text(
+                  "Riwayat Retur",
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                subtitle: const Text(
+                  "Lihat status pengajuan retur Anda",
+                  style: TextStyle(fontSize: 12, color: Colors.black54),
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const RiwayatReturPage(),
+                    ),
+                  );
+                },
               ),
             ),
           ],
