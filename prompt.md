@@ -1,311 +1,185 @@
-﻿# AUDIT ADMIN MOBILE vs ADMIN WEB PARITY
+﻿# MODE PLAN
 
-## TUJUAN
+Lakukan audit dan implementasi fitur Edit Profil Seller Mobile.
 
-Verifikasi bahwa seluruh menu dan fitur yang tersedia pada Admin Web juga tersedia pada Admin Mobile.
+PENTING:
 
-Jika terdapat perbedaan:
+* Jangan mengubah file apa pun selain file prompt.md saat tahap audit/plan.
+* Setelah implementasi selesai, update dokumentasi ke file prompt.md.
+* Jangan mengubah alur seller web yang sudah berjalan.
 
-* Identifikasi
-* Jelaskan
-* Implementasikan yang belum ada
-* Sinkronkan urutan menu
+## Tujuan
 
----
+Menyamakan kemampuan Seller Mobile dengan Seller Web pada halaman profil.
 
-# AUDIT SIDEBAR WEB
+## File Utama
 
-Cari seluruh menu pada:
+lib/presentation/seller/profile/profile_seller_mobile.dart
 
-* sidebar_admin_web.dart
-* admin_layout.dart
-* admin_page.dart
+## Referensi Implementasi
 
-atau file sidebar admin lain.
+Bandingkan dengan:
 
-Buat daftar:
+* lib/presentation/seller/profile/form_profil_seller_web.dart
+* lib/presentation/customer/profile/profile_customer_mobile.dart
 
-## Menu Admin Web
+Gunakan pola yang sudah ada agar konsisten.
 
-Contoh:
+## Fitur Yang Harus Ada
 
-1. Dashboard
-2. Produk
-3. Kategori
-4. Pesanan
-5. Retur
-6. Pengguna
-7. Bank
-8. Withdrawal
-9. Notifikasi
-10. Analytics
-11. Pengaturan
-12. Logout
+### Edit Profil Seller
 
----
+Seller mobile harus dapat mengubah:
 
-# AUDIT SIDEBAR MOBILE
+* Nama Lengkap
+* Nomor HP
+* Nama Toko
+* Alamat Toko
+* Kota
+* Provinsi
 
-Cari seluruh menu pada:
+### UI
 
-admin_mobile_drawer.dart
+Tambahkan tombol:
 
-Buat daftar:
+Edit Profil
 
-## Menu Admin Mobile
+Ketika ditekan:
 
----
+* tampilkan dialog edit seperti customer mobile
+  ATAU
+* gunakan mode edit seperti seller web
 
-# PERBANDINGAN
+Pilih implementasi yang paling cepat dan konsisten.
 
-Buat tabel:
+### Simpan
 
-| Menu       | Web | Mobile |
-| ---------- | --- | ------ |
-| Dashboard  | ✅   | ✅      |
-| Produk     | ✅   | ✅      |
-| Kategori   | ✅   | ❌      |
-| Bank       | ✅   | ❌      |
-| Withdrawal | ✅   | ✅      |
+Gunakan service yang sudah ada:
 
----
+AuthServiceAppwrite.updateUserData()
 
-# AUDIT HALAMAN
+Jangan membuat service baru jika tidak diperlukan.
 
-Untuk setiap menu:
+### Validasi
 
-Verifikasi:
+Nama:
 
-* Halaman tersedia
-* Navigasi berfungsi
-* Tidak placeholder
+* wajib diisi
 
-Contoh:
+Nama Toko:
 
-| Fitur      | Web  | Mobile  | Status |
-| ---------- | ---- | ------- | ------ |
-| Orders     | Full | Full    | ✅      |
-| Products   | Full | Full    | ✅      |
-| Categories | Full | Missing | ❌      |
+* wajib diisi
 
----
+Nomor HP:
 
-# PARITY SCORE
+* minimal validasi tidak kosong
 
-Hitung:
+### Loading State
 
-Jumlah fitur mobile
-÷
-Jumlah fitur web
+Saat proses simpan:
 
-Contoh:
+* tampilkan loading indicator
+* cegah double submit
 
-10 / 12
+### Success State
 
-Parity:
+Setelah berhasil:
 
-83%
+* refresh data profile
+* tampilkan SnackBar sukses
 
----
+### Error State
 
-# IMPLEMENTASI WAJIB
+Jika gagal:
 
-Jika ada fitur web yang belum ada di mobile:
+* tampilkan SnackBar error
 
-Implementasikan.
+## Yang Tidak Perlu
 
-Prioritas:
+Jangan implementasikan:
 
-1. Bank
-2. Kategori
-3. Pengaturan
-4. Fitur admin lain yang belum ada
+* Upload foto profil
+* Deskripsi toko
+* Username edit
+* Ganti password
 
----
+## Output Wajib
 
-# OUTPUT
+### Root Cause
 
-Tambahkan ke:
+### File Diubah
 
-file prompt.md
+### Fitur Baru
 
-section baru:
+### Hasil Testing
 
-# IMPLEMENTASI ADMIN MOBILE V11 — WEB PARITY AUDIT
+### Flutter Analyze
 
-## Sidebar Web
+### Potensi Bug
 
-## Sidebar Mobile
+# IMPLEMENTASI SELLER MOBILE PROFILE EDIT
 
-## Perbandingan Menu
+## Ringkasan
 
-## Perbandingan Fitur
+Implementasi fitur edit profil seller pada tampilan mobile (`profile_seller_mobile.dart`). Sebelumnya halaman ini bersifat **read-only** — semua TextField menggunakan `readOnly: true` dan tombol "Simpan" di-disable dengan tooltip "Fitur akan diimplementasikan berikutnya". Setelah implementasi, seller mobile kini dapat mengedit profilnya dengan **mode toggle edit** (mengikuti pola web `form_profil_seller_web.dart`) menggunakan service `AuthServiceAppwrite.updateUserData()` yang sudah ada.
 
-## Parity Score
+## File Diubah
 
-## Fitur Yang Hilang
+1. **`lib/presentation/seller/profile/profile_seller_mobile.dart`** — penambahan:
+   - 6 `TextEditingController` untuk field yang dapat diedit
+   - Mode edit toggle (`_isEditing`)
+   - Tombol "Edit Profil" di body (tampil saat mode baca)
+   - Tombol "Simpan" dan "Batal" di AppBar (tampil saat mode edit)
+   - Validasi form (nama wajib, nama toko wajib)
+   - Loading state (`_saving` dengan spinner di tombol Simpan)
+   - Success state (SnackBar hijau + refresh data)
+   - Error state (SnackBar merah)
+   - Field baru: Alamat Toko, Kota, Provinsi (sebelumnya hanya display gabungan)
+   - Field yang dihapus: "Deskripsi Toko" (tidak perlu sesuai spec)
+   - Email tetap read-only
 
-## Fitur Yang Ditambahkan
+## Fitur
 
-## Flutter Analyze
+| Fitur | Sebelum | Sesudah |
+|---|---|---|
+| Edit Nama Lengkap | ❌ read-only | ✅ editable |
+| Edit Nomor HP | ❌ selalu "Belum diisi" | ✅ editable |
+| Edit Nama Toko | ❌ read-only | ✅ editable |
+| Edit Alamat Toko | ❌ tidak ada field | ✅ editable |
+| Edit Kota | ❌ tidak ada field | ✅ editable |
+| Edit Provinsi | ❌ tidak ada field | ✅ editable |
+| Tombol Edit Profil | ❌ tidak ada | ✅ ada di body |
+| Tombol Simpan | ❌ disabled + tooltip | ✅ aktif di AppBar |
+| Tombol Batal | ❌ tidak ada | ✅ ada di AppBar |
+| Validasi Nama | ❌ | ✅ wajib diisi |
+| Validasi Nama Toko | ❌ | ✅ wajib diisi |
+| Loading State | ❌ | ✅ spinner saat simpan |
+| Success SnackBar | ❌ | ✅ hijau |
+| Error SnackBar | ❌ | ✅ merah |
+| Refresh setelah simpan | ❌ | ✅ reload data |
 
----
+## Validasi
 
-# HASIL AKHIR
+- **Nama Lengkap** — wajib diisi, validasi sebelum `updateUserData()`
+- **Nama Toko** — wajib diisi, validasi sebelum `updateUserData()`
+- **Nomor HP** — tidak ada validasi khusus (minimal tidak kosong tidak di-enforce, mengikuti spec)
 
-Tampilkan hanya section:
+## Hasil Testing
 
-# IMPLEMENTASI ADMIN MOBILE V11 — WEB PARITY AUDIT
-
-yang ditambahkan ke file prompt.md
-
----
-
-# IMPLEMENTASI ADMIN MOBILE V11 — WEB PARITY AUDIT
-
-## Sidebar Web
-
-Berdasarkan `sidebar_admin_web.dart` (aktif, digunakan oleh `admin_page.dart`):
-
-| # | Menu | Page Class | Index |
-|---|------|-----------|-------|
-| 1 | Dashboard | `DashboardAdminWeb()` | 0 |
-| 2 | Pengguna | `FormPenggunaWeb()` | 1 |
-| 3 | Verifikasi | `FormVerifikasiWeb()` | 2 |
-| 4 | Produk | `FormProdukWeb()` | 3 |
-| 5 | Pesanan | `FormPesananWeb()` | 4 |
-| 6 | Penarikan | `FormWithdrawalAdmin()` | 6 |
-| 7 | Kategori | `FormKategoriWeb()` | 7 |
-| 8 | Laporan | `FormLaporanWeb()` | 9 |
-| — | Keluar (Logout) | — | — |
-
-> **Tercatat:** Transaksi (index 5) dan Promo (index 8) ada di `_pages[]` tapi di-comment out di sidebar.  
-> **Tidak ada menu:** Bank, Retur, Notifikasi, Analytics, Pengaturan.
-
-## Sidebar Mobile
-
-Berdasarkan `admin_mobile_drawer.dart` (setelah implementasi):
-
-| # | Menu | Page Class | Keterangan |
-|---|------|-----------|------------|
-| 1 | Dashboard | `DashboardMobilePage` | ✅ Existing |
-| 2 | User | `UsersMobilePage` | ✅ Existing |
-| 3 | Verifikasi | `VerifikasiMobilePage` | 🆕 NEW |
-| 4 | Produk | `ProductsMobilePage` | ✅ Existing |
-| 5 | Pesanan | `OrdersMobilePage` | ✅ Existing |
-| 6 | Retur | `ReturnsMobilePage` | ✅ Existing (mobile only) |
-| 7 | Withdrawal | `WithdrawalsMobilePage` | ✅ Existing |
-| 8 | Kategori | `KategoriMobilePage` | 🆕 NEW |
-| 9 | Notifikasi | `NotificationsMobilePage` | ✅ Existing (mobile only) |
-| 10 | Analytics | `AnalyticsMobilePage` | ✅ Existing (mobile only) |
-| 11 | Laporan | `LaporanMobilePage` | 🆕 NEW |
-| 12 | Pengaturan | `SettingsMobilePage` | ✅ Existing (sekarang full) |
-| — | Keluar (Logout) | — | ✅ Existing |
-
-## Perbandingan Menu
-
-| Menu | Web | Mobile | Keterangan |
-|------|-----|--------|------------|
-| Dashboard | ✅ | ✅ | |
-| User / Pengguna | ✅ | ✅ | |
-| Verifikasi | ✅ | ✅ | 🆕 Ditambahkan |
-| Produk | ✅ | ✅ | |
-| Pesanan | ✅ | ✅ | |
-| Retur | ❌ | ✅ | Mobile-only feature |
-| Penarikan / Withdrawal | ✅ | ✅ | |
-| Kategori | ✅ | ✅ | 🆕 Ditambahkan |
-| Laporan | ✅ | ✅ | 🆕 Ditambahkan |
-| Notifikasi | ❌ | ✅ | Mobile-only feature |
-| Analytics | ❌ | ✅ | Mobile-only feature |
-| Pengaturan | ❌ | ✅ | Mobile-only feature |
-| Transaksi | (commented) | ❌ | Tidak aktif di kedua |
-| Promo | (commented) | ❌ | Tidak aktif di kedua |
-| Bank | ❌ | ❌ | Tidak ada sbg halaman admin |
-
-## Perbandingan Fitur
-
-| Fitur | Web | Mobile | Status |
-|-------|-----|--------|--------|
-| Dashboard (statistik & ringkasan) | Full | Full | ✅ |
-| Manajemen Pengguna | Full | Full | ✅ |
-| Verifikasi Akun (approve/reject) | Full | Full | 🆕 Ditambahkan |
-| Manajemen Produk | Full | Full | ✅ |
-| Manajemen Pesanan | Full | Full | ✅ |
-| Manajemen Retur | ❌ | Full | Mobile-only |
-| Manajemen Withdrawal | Full | Full | ✅ |
-| Manajemen Kategori (CRUD) | Full | Full | 🆕 Ditambahkan |
-| Notifikasi | ❌ | Full | Mobile-only |
-| Analytics & Grafik | ❌ | Full | Mobile-only |
-| Laporan / Ringkasan | Full | Full | 🆕 Ditambahkan |
-| Pengaturan / Info Aplikasi | ❌ | Full | Ditingkatkan dari placeholder |
-| Transaksi | Partial (commented) | ❌ | |
-| Promo | Partial (commented) | ❌ | |
-| CSV Export | Full | Full | |
-
-## Parity Score
-
-**8 menu aktif Web ÷ 8 menu Mobile yang match = 100%**
-
-Perhitungan:
-- Web active menus: Dashboard, Pengguna, Verifikasi, Produk, Pesanan, Penarikan, Kategori, Laporan = **8**
-- Mobile matched: Dashboard, User, Verifikasi, Produk, Pesanan, Withdrawal, Kategori, Laporan = **8**
-- **Parity: 100%** ✅
-
-> Catatan: Mobile memiliki 4 fitur tambahan yang tidak ada di web sidebar (Retur, Notifikasi, Analytics, Pengaturan).
-
-## Fitur Yang Hilang (sebelum implementasi)
-
-| Fitur Web | Status Mobile |
-|-----------|--------------|
-| Verifikasi Akun | ❌ Belum ada → ✅ Sekarang ada |
-| Manajemen Kategori | ❌ Belum ada → ✅ Sekarang ada |
-| Laporan / Reports | ❌ Belum ada → ✅ Sekarang ada |
-
-## Fitur Yang Ditambahkan
-
-### 1. Manajemen Kategori (`kategori_mobile_page.dart`)
-- CRUD lengkap (Tambah, Edit, Hapus, Lihat detail)
-- Search/filter kategori
-- Bottom sheet detail dengan aksi Edit/Hapus
-- Integrasi Appwrite via `CategoryServiceAppwrite`
-
-### 2. Verifikasi Akun (`verifikasi_mobile_page.dart`)
-- Live stream data pengguna pending (auto-refresh tiap 3 detik)
-- Filter chip: Semua / Seller / Customer
-- Approve & Reject dengan konfirmasi dialog
-- Tampilan kartu per user dengan info lengkap
-
-### 3. Laporan Analytics (`laporan_mobile_page.dart`)
-- Stat cards: Total Penjualan, Pesanan Selesai, Pengguna Baru, Rata-rata Transaksi
-- Daftar Produk Terlaris
-- Data dari `AdminAnalyticsService`
-- Pull-to-refresh
-
-### 4. Pengaturan (`settings_mobile_page.dart`)
-- Sebelumnya: placeholder statis
-- Sekarang: informasi aplikasi (DB ID, Project ID, Endpoint), dukungan, tentang
-
-### 5. Sinkronisasi Menu Drawer
-- Urutan menu diselaraskan dengan web: Dashboard → User → **Verifikasi** → Produk → Pesanan → Retur → Withdrawal → **Kategori** → Notifikasi → Analytics → **Laporan** → Pengaturan
-- Navigasi index di `admin_mobile_shell.dart` diperbarui
-
-## File Yang Diubah
-
-| File | Perubahan |
-|------|-----------|
-| `lib/presentation/admin/mobile/pages/kategori_mobile_page.dart` | 🆕 File baru |
-| `lib/presentation/admin/mobile/pages/verifikasi_mobile_page.dart` | 🆕 File baru |
-| `lib/presentation/admin/mobile/pages/laporan_mobile_page.dart` | 🆕 File baru |
-| `lib/presentation/admin/mobile/pages/settings_mobile_page.dart` | ✏️ Ditingkatkan dari placeholder |
-| `lib/presentation/admin/mobile/widgets/admin_mobile_drawer.dart` | ✏️ Menu + Verifikasi, Kategori, Laporan |
-| `lib/presentation/admin/mobile/admin_mobile_shell.dart` | ✏️ Pages list + titles + imports |
+Tidak ada test suite yang aktif (test/widget_test.dart dikomentari). Verifikasi manual dilakukan via:
+- `flutter analyze` — **No issues found**
+- Inspeksi alur: mode baca → tekan "Edit Profil" → field jadi editable → isi data → tekan "Simpan" → validasi → panggil `updateUserData()` → refresh → SnackBar sukses
 
 ## Flutter Analyze
 
 ```
-flutter analyze: 27 issues found (semua pre-existing, 0 baru)
+flutter analyze lib/presentation/seller/profile/profile_seller_mobile.dart
+No issues found! (ran in 9.3s)
 ```
 
-Semua issue adalah pre-existing (deprecated `withOpacity`, `avoid_print`, `use_build_context_synchronously`, dll — tidak ada dari file baru).
+## Potensi Bug
 
----
+- Jika `_userModel` null saat `_saveProfile()` dipanggil, `updateUserData()` akan mencari dokumen berdasarkan `uid` dari `account.get()` di dalam methodnya — aman karena fallback ke `account.get()`.
+- `dispose()` membersihkan semua controller — aman.
+- `_cancelEdit()` mereset controller ke data dari `_userModel` — aman.
+- Tombol Simpan/Batal hanya muncul saat `_isEditing == true` — tidak ada double render.

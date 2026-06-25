@@ -24,10 +24,31 @@ class _SellerEditProfileMobileState extends State<SellerEditProfileMobile> {
   String _accountEmail = '';
   bool _loading = true;
 
+  bool _isEditing = false;
+  bool _saving = false;
+
+  final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _storeNameController = TextEditingController();
+  final _storeAddressController = TextEditingController();
+  final _cityController = TextEditingController();
+  final _provinceController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
     _loadUser();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    _storeNameController.dispose();
+    _storeAddressController.dispose();
+    _cityController.dispose();
+    _provinceController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUser() async {
@@ -51,7 +72,90 @@ class _SellerEditProfileMobileState extends State<SellerEditProfileMobile> {
     } catch (_) {}
 
     if (!mounted) return;
-    setState(() => _loading = false);
+    setState(() {
+      _loading = false;
+      _nameController.text = _userModel?.name ?? _accountName;
+      _phoneController.text = _userModel?.phone ?? '';
+      _storeNameController.text = _userModel?.storeName ?? '';
+      _storeAddressController.text = _userModel?.storeAddress ?? '';
+      _cityController.text = _userModel?.city ?? '';
+      _provinceController.text = _userModel?.province ?? '';
+    });
+  }
+
+  void _toggleEdit() {
+    setState(() {
+      _isEditing = !_isEditing;
+      if (_isEditing) {
+        _nameController.text = _userModel?.name ?? _accountName;
+        _phoneController.text = _userModel?.phone ?? '';
+        _storeNameController.text = _userModel?.storeName ?? '';
+        _storeAddressController.text = _userModel?.storeAddress ?? '';
+        _cityController.text = _userModel?.city ?? '';
+        _provinceController.text = _userModel?.province ?? '';
+      }
+    });
+  }
+
+  void _cancelEdit() {
+    setState(() {
+      _isEditing = false;
+      _nameController.text = _userModel?.name ?? _accountName;
+      _phoneController.text = _userModel?.phone ?? '';
+      _storeNameController.text = _userModel?.storeName ?? '';
+      _storeAddressController.text = _userModel?.storeAddress ?? '';
+      _cityController.text = _userModel?.city ?? '';
+      _provinceController.text = _userModel?.province ?? '';
+    });
+  }
+
+  Future<void> _saveProfile() async {
+    if (_nameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nama lengkap wajib diisi')),
+      );
+      return;
+    }
+    if (_storeNameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nama toko wajib diisi')),
+      );
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      await _authService.updateUserData({
+        'name': _nameController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'storeName': _storeNameController.text.trim(),
+        'storeAddress': _storeAddressController.text.trim(),
+        'city': _cityController.text.trim(),
+        'province': _provinceController.text.trim(),
+      });
+      if (!mounted) return;
+      await _loadUser();
+      if (!mounted) return;
+      setState(() {
+        _isEditing = false;
+        _saving = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Profil berhasil disimpan'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal menyimpan: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -62,15 +166,7 @@ class _SellerEditProfileMobileState extends State<SellerEditProfileMobile> {
       );
     }
 
-    final name = _userModel?.name ?? _accountName;
     final email = _userModel?.email ?? _accountEmail;
-    final storeName = _userModel?.storeName ?? '';
-    final location = [
-      if (_userModel?.city != null && _userModel!.city.isNotEmpty)
-        _userModel!.city,
-      if (_userModel?.province != null && _userModel!.province.isNotEmpty)
-        _userModel!.province,
-    ].join(', ');
 
     return Scaffold(
       backgroundColor: const Color(0xffF5F7FB),
@@ -78,10 +174,25 @@ class _SellerEditProfileMobileState extends State<SellerEditProfileMobile> {
       appBar: AppBar(
         title: const Text("Profil Saya"),
         actions: [
-          Tooltip(
-            message: 'Fitur akan diimplementasikan berikutnya',
-            child: TextButton(onPressed: null, child: const Text("Simpan")),
-          ),
+          if (_isEditing)
+            Row(
+              children: [
+                TextButton(
+                  onPressed: _saving ? null : _cancelEdit,
+                  child: const Text("Batal"),
+                ),
+                TextButton(
+                  onPressed: _saving ? null : _saveProfile,
+                  child: _saving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text("Simpan"),
+                ),
+              ],
+            ),
         ],
       ),
 
@@ -114,9 +225,9 @@ class _SellerEditProfileMobileState extends State<SellerEditProfileMobile> {
 
             _card(
               children: [
-                _field("Nama Lengkap", name),
-                _field("Email", email),
-                _field("Nomor Telepon", "Belum diisi"),
+                _field("Nama Lengkap", _nameController),
+                _field("Email", TextEditingController(text: email), enabled: false),
+                _field("Nomor HP", _phoneController),
               ],
             ),
 
@@ -128,16 +239,40 @@ class _SellerEditProfileMobileState extends State<SellerEditProfileMobile> {
 
             _card(
               children: [
-                _field("Nama Toko", storeName.isNotEmpty ? storeName : "Belum diisi"),
-                _field(
-                  "Deskripsi Toko",
-                  "Belum diisi",
-                  maxLines: 4,
-                ),
-                _field("Lokasi", location.isNotEmpty ? location : "Belum diisi"),
+                _field("Nama Toko", _storeNameController),
+                _field("Alamat Toko", _storeAddressController),
+                _field("Kota", _cityController),
+                _field("Provinsi", _provinceController),
               ],
             ),
-            const SizedBox(height: 30),
+
+            if (!_isEditing) ...[
+              const SizedBox(height: 24),
+
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.edit, color: Colors.white),
+                  label: const Text(
+                    "Edit Profil",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xff1D4ED8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: _toggleEdit,
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 16),
 
             SizedBox(
               width: double.infinity,
@@ -233,7 +368,7 @@ class _SellerEditProfileMobileState extends State<SellerEditProfileMobile> {
     );
   }
 
-  Widget _field(String label, String value, {int maxLines = 1}) {
+  Widget _field(String label, TextEditingController controller, {bool enabled = true}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
@@ -244,12 +379,29 @@ class _SellerEditProfileMobileState extends State<SellerEditProfileMobile> {
           const SizedBox(height: 8),
 
           TextField(
-            maxLines: maxLines,
-            readOnly: true,
-            controller: TextEditingController(text: value),
-            decoration: const InputDecoration(
+            controller: controller,
+            readOnly: !enabled || (!_isEditing && enabled),
+            decoration: InputDecoration(
               filled: true,
-              border: OutlineInputBorder(),
+              fillColor: (!enabled || (!_isEditing && enabled))
+                  ? const Color(0xffF5F6FA)
+                  : Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: _isEditing && enabled
+                      ? const Color(0xff1D4ED8).withValues(alpha: .3)
+                      : Colors.grey.shade300,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey.shade300),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xff1D4ED8)),
+              ),
             ),
           ),
         ],
