@@ -26,11 +26,30 @@ class _ProfileCustomerMobileState
   UserModel? _userModel;
   int _orderCount = 0;
   bool _loading = true;
+  bool _saving = false;
+
+  final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _cityController = TextEditingController();
+  final _provinceController = TextEditingController();
+  final _postalCodeController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadUser());
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    _addressController.dispose();
+    _cityController.dispose();
+    _provinceController.dispose();
+    _postalCodeController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUser() async {
@@ -69,6 +88,12 @@ class _ProfileCustomerMobileState
         _userModel = userModel;
         _orderCount = orderCount;
         _loading = false;
+        _nameController.text = userModel?.name ?? account.name;
+        _phoneController.text = userModel?.phone ?? '';
+        _addressController.text = userModel?.shippingAddress ?? '';
+        _cityController.text = userModel?.shippingCity ?? '';
+        _provinceController.text = userModel?.shippingProvince ?? '';
+        _postalCodeController.text = userModel?.shippingPostalCode ?? '';
       });
     } catch (e) {
       if (!mounted) return;
@@ -77,6 +102,43 @@ class _ProfileCustomerMobileState
         MaterialPageRoute(builder: (_) => const LoginPage()),
         (route) => false,
       );
+    }
+  }
+
+  String _initials(String name) {
+    if (name.isEmpty) return '?';
+    return name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join().toUpperCase();
+  }
+
+  Future<void> _onSave() async {
+    setState(() => _saving = true);
+    try {
+      await _authService.updateUserData({
+        'name': _nameController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'shippingAddress': _addressController.text.trim(),
+        'shippingCity': _cityController.text.trim(),
+        'shippingProvince': _provinceController.text.trim(),
+        'shippingPostalCode': _postalCodeController.text.trim(),
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Profil berhasil disimpan'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      _loadUser();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal menyimpan: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -92,178 +154,255 @@ class _ProfileCustomerMobileState
     final email = _userModel?.email ?? _account?.email ?? '';
 
     return Scaffold(
-      backgroundColor: const Color(0xffF5F7FB),
+      backgroundColor: const Color(0xffF8FAFC),
 
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "PasarKita",
-                  style: TextStyle(
-                    color: Color(0xff2563EB),
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
+              // HEADER
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      "Akun Saya",
+                      style: TextStyle(
+                        fontSize: 40,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xff2563EB),
+                      ),
+                    ),
                   ),
-                ),
+                  CircleAvatar(
+                    radius: 22,
+                    backgroundColor: const Color(0xff2563EB).withValues(alpha: .15),
+                    child: Text(
+                      _initials(name),
+                      style: const TextStyle(
+                        color: Color(0xff2563EB),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
+              // PROFILE CARD
               Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  vertical: 24,
-                  horizontal: 20,
-                ),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: const Color(0xffEAF1FF),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: Colors.grey.shade200,
+                  ),
                 ),
                 child: Column(
                   children: [
-                    Stack(
+                    Row(
                       children: [
-                        Container(
-                          width: 90,
-                          height: 90,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: const Color(0xff2563EB),
-                              width: 3,
+                        Stack(
+                          children: [
+                            CircleAvatar(
+                              radius: 45,
+                              backgroundColor: const Color(0xff2563EB).withValues(alpha: .15),
+                              child: Text(
+                                _initials(name),
+                                style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xff2563EB),
+                                ),
+                              ),
                             ),
-                          ),
-                          child: const CircleAvatar(
-                            backgroundColor: Colors.black12,
-                            child: Icon(Icons.person, size: 50),
+                          ],
+                        ),
+                        const SizedBox(width: 20),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                name,
+                                style: const TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                "Member",
+                                style: TextStyle(color: Colors.black54),
+                              ),
+                              const SizedBox(height: 6),
+                              _profileStatusBadge(),
+                            ],
                           ),
                         ),
-
-    
+                        _statCard(
+                          _orderCount.toString(),
+                          "PESANAN",
+                        ),
                       ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // INFORMASI PRIBADI & ALAMAT
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: Colors.grey.shade200,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        "Informasi Pribadi",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    _editableField(
+                      "NAMA LENGKAP",
+                      _nameController,
+                    ),
+                    const SizedBox(height: 12),
+
+                    _readOnlyField(
+                      "ALAMAT EMAIL",
+                      email,
+                    ),
+                    const SizedBox(height: 12),
+
+                    _editableField(
+                      "NOMOR TELEPON",
+                      _phoneController,
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        "Alamat Pengiriman",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
 
                     const SizedBox(height: 16),
 
-                    Text(
-                      name,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    _editableField(
+                      "ALAMAT LENGKAP",
+                      _addressController,
                     ),
 
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 12),
 
-                    Text(
-                      email,
-                      style: const TextStyle(color: Colors.grey),
+                    _editableField(
+                      "KOTA",
+                      _cityController,
                     ),
 
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
 
-                    _profileStatusBadge(),
+                    _editableField(
+                      "PROVINSI",
+                      _provinceController,
+                    ),
 
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 12),
 
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            _orderCount.toString(),
-                            style: const TextStyle(
-                              color: Color(0xff2563EB),
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const Text("Orders"),
-                        ],
+                    _editableField(
+                      "KODE POS",
+                      _postalCodeController,
+                    ),
+
+                    const SizedBox(height: 30),
+
+                    const Divider(),
+
+                    const SizedBox(height: 20),
+
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _saving
+                              ? const Color(0xff2563EB).withValues(alpha: .5)
+                              : const Color(0xff2563EB),
+                        ),
+                        onPressed: _saving ? null : _onSave,
+                        child: _saving
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                "Simpan Perubahan",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                       ),
                     ),
                   ],
                 ),
               ),
-
               const SizedBox(height: 20),
-
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: Colors.grey.shade200),
                 ),
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        children: [
-                          const Text(
-                            "Account Settings",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
+                child: ListTile(
+                  leading: const Icon(Icons.assignment_return_outlined, color: Colors.black54),
+                  title: const Text(
+                    "Riwayat Retur",
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: const Text(
+                    "Lihat status pengajuan retur Anda",
+                    style: TextStyle(fontSize: 12, color: Colors.black54),
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const RiwayatReturPage(),
                       ),
-                    ),
-
-                    const Divider(height: 1),
-
-                    _menuItem(
-                      icon: Icons.person_outline,
-                      title: "Personal Information",
-                      subtitle: "Update your name, email, and phone",
-                      enabled: true,
-                      onTap: () => _showPersonalInfoDialog(),
-                    ),
-
-                    const Divider(height: 1),
-
-                    _menuItem(
-                      icon: Icons.location_on_outlined,
-                      title: "Address Book",
-                      subtitle: "Manage your primary and shipping address",
-                      enabled: true,
-                      onTap: () => _showAddressDialog(),
-                    ),
-
-                    const Divider(height: 1),
-
-                    _menuItem(
-                      icon: Icons.assignment_return_outlined,
-                      title: "Riwayat Retur",
-                      subtitle: "Lihat status pengajuan retur Anda",
-                      enabled: true,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                const RiwayatReturPage(),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ),
-
               const SizedBox(height: 20),
-
               SizedBox(
                 width: double.infinity,
                 height: 55,
@@ -301,138 +440,10 @@ class _ProfileCustomerMobileState
                   ),
                 ),
               ),
-
               const SizedBox(height: 20),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  void _showPersonalInfoDialog() {
-    final nameCtrl = TextEditingController(text: _userModel?.name ?? _account?.name ?? '');
-    final phoneCtrl = TextEditingController(text: _userModel?.phone ?? '');
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Personal Information'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameCtrl,
-                decoration: const InputDecoration(labelText: 'Nama Lengkap'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: phoneCtrl,
-                decoration: const InputDecoration(labelText: 'Nomor Telepon'),
-                keyboardType: TextInputType.phone,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                await AuthServiceAppwrite().updateUserData({
-                  'name': nameCtrl.text.trim(),
-                  'phone': phoneCtrl.text.trim(),
-                });
-                if (!ctx.mounted) return;
-                Navigator.pop(ctx);
-                _loadUser();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Profil tersimpan'), backgroundColor: Colors.green),
-                );
-              } catch (e) {
-                if (!ctx.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Gagal: $e'), backgroundColor: Colors.red),
-                );
-              }
-            },
-            child: const Text('Simpan'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showAddressDialog() {
-    final addressCtrl = TextEditingController(text: _userModel?.shippingAddress ?? '');
-    final cityCtrl = TextEditingController(text: _userModel?.shippingCity ?? '');
-    final provinceCtrl = TextEditingController(text: _userModel?.shippingProvince ?? '');
-    final postalCtrl = TextEditingController(text: _userModel?.shippingPostalCode ?? '');
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Address Book'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: addressCtrl,
-                decoration: const InputDecoration(labelText: 'Alamat Lengkap'),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: cityCtrl,
-                decoration: const InputDecoration(labelText: 'Kota'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: provinceCtrl,
-                decoration: const InputDecoration(labelText: 'Provinsi'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: postalCtrl,
-                decoration: const InputDecoration(labelText: 'Kode Pos'),
-                keyboardType: TextInputType.number,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                await AuthServiceAppwrite().updateUserData({
-                  'shippingAddress': addressCtrl.text.trim(),
-                  'shippingCity': cityCtrl.text.trim(),
-                  'shippingProvince': provinceCtrl.text.trim(),
-                  'shippingPostalCode': postalCtrl.text.trim(),
-                });
-                if (!ctx.mounted) return;
-                Navigator.pop(ctx);
-                _loadUser();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Alamat tersimpan'), backgroundColor: Colors.green),
-                );
-              } catch (e) {
-                if (!ctx.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Gagal: $e'), backgroundColor: Colors.red),
-                );
-              }
-            },
-            child: const Text('Simpan'),
-          ),
-        ],
       ),
     );
   }
@@ -449,7 +460,7 @@ class _ProfileCustomerMobileState
         : null;
     final isComplete = AuthServiceAppwrite.isCustomerProfileComplete(data);
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Icon(
           isComplete ? Icons.check_circle : Icons.warning_amber_rounded,
@@ -469,35 +480,98 @@ class _ProfileCustomerMobileState
     );
   }
 
-  Widget _menuItem({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    bool enabled = true,
-    VoidCallback? onTap,
-  }) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      leading: Icon(icon, color: enabled ? Colors.black54 : Colors.black26),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontWeight: FontWeight.w600,
-          color: enabled ? Colors.black : Colors.black38,
+  static Widget _statCard(
+    String value,
+    String title,
+  ) {
+    return Container(
+      width: 140,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xffF1F5F9),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color(0xff2563EB),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 11,
+              color: Colors.black54,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Widget _editableField(
+    String label,
+    TextEditingController controller,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.black54,
+            fontWeight: FontWeight.w600,
+          ),
         ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: TextStyle(
-          fontSize: 12,
-          color: enabled ? null : Colors.black26,
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            filled: true,
+            fillColor: const Color(0xffF8FAFC),
+          ),
         ),
-      ),
-      trailing: Icon(
-        Icons.chevron_right,
-        color: enabled ? null : Colors.black26,
-      ),
-      onTap: enabled ? onTap : null,
+      ],
+    );
+  }
+
+  static Widget _readOnlyField(
+    String label,
+    String value,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.black54,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: TextEditingController(text: value),
+          readOnly: true,
+          decoration: InputDecoration(
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            filled: true,
+            fillColor: Color(0xffF1F5F9),
+          ),
+        ),
+      ],
     );
   }
 }

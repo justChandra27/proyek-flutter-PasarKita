@@ -81,6 +81,8 @@ class _VerifikasiMobilePageState extends State<VerifikasiMobilePage> {
 
         return Column(
           children: [
+            _buildStatCards(docs.length, sellerCount, customerCount),
+            const SizedBox(height: 12),
             _buildFilterChips(docs.length, sellerCount, customerCount),
             const SizedBox(height: 12),
             Expanded(
@@ -89,6 +91,80 @@ class _VerifikasiMobilePageState extends State<VerifikasiMobilePage> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildStatCards(int total, int sellerCount, int customerCount) {
+    return SizedBox(
+      height: 80,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: [
+          _statCard(Icons.assignment_ind_outlined, 'Pending', total.toString(), Colors.blue),
+          const SizedBox(width: 12),
+          _statCard(Icons.storefront_outlined, 'Seller', sellerCount.toString(), Colors.orange),
+          const SizedBox(width: 12),
+          _statCard(Icons.person_outline, 'Customer', customerCount.toString(), Colors.green),
+          const SizedBox(width: 12),
+          _statCard(Icons.bolt, 'Realtime', 'Aktif', const Color(0xff2563EB)),
+        ],
+      ),
+    );
+  }
+
+  Widget _statCard(IconData icon, String title, String value, Color color) {
+    return Container(
+      width: 140,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color == const Color(0xff2563EB)
+            ? const Color(0xff2563EB)
+            : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: color == const Color(0xff2563EB)
+            ? null
+            : Border.all(color: const Color(0xffE5E7EB)),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: color == const Color(0xff2563EB)
+                ? Colors.white24
+                : color.withValues(alpha: 0.15),
+            child: Icon(icon,
+                color: color == const Color(0xff2563EB) ? Colors.white : color,
+                size: 18),
+          ),
+          const SizedBox(width: 10),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: color == const Color(0xff2563EB)
+                      ? Colors.white70
+                      : Colors.black54,
+                ),
+              ),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: color == const Color(0xff2563EB)
+                      ? Colors.white
+                      : const Color(0xff111827),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

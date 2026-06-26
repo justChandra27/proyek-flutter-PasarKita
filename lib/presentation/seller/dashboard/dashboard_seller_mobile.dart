@@ -7,7 +7,6 @@ import '../../../core/services/seller_analytics_service.dart';
 import '../../../data/models/seller_balance_model.dart';
 import '../../../core/appwrite/appwrite_config.dart';
 import '../../../core/appwrite/appwrite_service.dart';
-import '../profile/profile_seller_mobile.dart';
 import '../withdrawal/withdrawal_page.dart';
 
 class MobileSellerDashboard extends StatefulWidget {
@@ -96,7 +95,7 @@ class _MobileSellerDashboardState extends State<MobileSellerDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xffF8FAFC),
+      backgroundColor: const Color(0xffF5F6FA),
       body: SafeArea(
         child: FutureBuilder<SellerAnalytics>(
           future: _analyticsFuture,
@@ -163,57 +162,62 @@ class _MobileSellerDashboardState extends State<MobileSellerDashboard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // HEADER
+          // SEARCH
           Row(
             children: [
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Halo, $_sellerName 👋",
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      "Selamat datang kembali",
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(50),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const SellerEditProfileMobile(),
-                      ),
-                    );
-                  },
-                  child: CircleAvatar(
-                    radius: 24,
-                    backgroundColor: const Color(0xff2563EB),
-                    child: Text(
-                      _initial,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                child: SizedBox(
+                  height: 50,
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: "Cari pesanan atau produk...",
+                      prefixIcon: const Icon(Icons.search),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
                       ),
                     ),
                   ),
                 ),
               ),
+              const SizedBox(width: 16),
+              Text(
+                _sellerName,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(width: 8),
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: const Color(0xff2563EB),
+                child: Text(
+                  _initial,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             ],
+          ),
+          const SizedBox(height: 24),
+
+          // Ringkasan Merchant
+          const Text(
+            "Ringkasan Merchant",
+            style: TextStyle(
+              fontSize: 30,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            "Selamat datang kembali, mari lihat perkembangan toko Anda hari ini.",
+            style: TextStyle(color: Colors.grey),
           ),
           const SizedBox(height: 24),
 

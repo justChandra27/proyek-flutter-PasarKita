@@ -275,6 +275,8 @@ class _KategoriMobilePageState extends State<KategoriMobilePage> {
       children: [
         _buildHeader(),
         const SizedBox(height: 12),
+        _buildStatCards(),
+        const SizedBox(height: 12),
         Expanded(
           child: _filtered.isEmpty
               ? _buildEmptyState()
@@ -331,6 +333,52 @@ class _KategoriMobilePageState extends State<KategoriMobilePage> {
             onPressed: _showAddDialog,
             backgroundColor: const Color(0xff2563EB),
             child: const Icon(Icons.add, color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCards() {
+    final totalProducts = _categories.fold<int>(0, (sum, c) => sum + c.productCount);
+    return SizedBox(
+      height: 72,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: [
+          _statCard(Icons.grid_view_rounded, 'Total Kategori', _categories.length.toString(), Colors.blue),
+          const SizedBox(width: 10),
+          _statCard(Icons.inventory_2_outlined, 'Total Produk', totalProducts.toString(), Colors.blueGrey),
+        ],
+      ),
+    );
+  }
+
+  Widget _statCard(IconData icon, String title, String value, Color color) {
+    return Container(
+      width: 160,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xffE5E7EB)),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: color.withValues(alpha: 0.15),
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(width: 10),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontSize: 11, color: Colors.black54)),
+              Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xff111827))),
+            ],
           ),
         ],
       ),

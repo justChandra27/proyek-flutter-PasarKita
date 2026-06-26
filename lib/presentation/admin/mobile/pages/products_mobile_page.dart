@@ -3,8 +3,11 @@ import 'package:appwrite/appwrite.dart';
 
 import '../../../../core/appwrite/appwrite_config.dart';
 import '../../../../core/appwrite/appwrite_service.dart';
+import '../../../../core/services/product_service_appwrite.dart';
+import '../../../../core/services/auth_service_appwrite.dart';
 import '../../../../data/models/product_model.dart';
-
+import '../../../../data/models/moderation_status.dart';
+import '../../products/moderation_dialog.dart';
 import 'product_detail_mobile_page.dart';
 
 class _ProductDisplayItem {
@@ -27,8 +30,10 @@ class ProductsMobilePage extends StatefulWidget {
 class _ProductsMobilePageState extends State<ProductsMobilePage> {
   final Databases _db = AppwriteService.databases;
   final TextEditingController _searchController = TextEditingController();
+  final ProductServiceAppwrite _service = ProductServiceAppwrite();
 
   List<_ProductDisplayItem> _allItems = [];
+  String _adminName = 'Admin';
   List<_ProductDisplayItem> _filteredItems = [];
   bool _loading = true;
   String? _error;
@@ -39,12 +44,14 @@ class _ProductsMobilePageState extends State<ProductsMobilePage> {
     'Pending',
     'Approved',
     'Rejected',
+    'Deactivated',
   ];
 
   @override
   void initState() {
     super.initState();
     _loadProducts();
+    _loadAdminName();
     _searchController.addListener(_onSearchChanged);
   }
 
@@ -161,6 +168,8 @@ class _ProductsMobilePageState extends State<ProductsMobilePage> {
         return Colors.green;
       case 'rejected':
         return Colors.red;
+      case 'deactivated':
+        return Colors.grey;
       default:
         return Colors.grey;
     }
@@ -174,6 +183,8 @@ class _ProductsMobilePageState extends State<ProductsMobilePage> {
         return 'Disetujui';
       case 'rejected':
         return 'Ditolak';
+      case 'deactivated':
+        return 'Dinonaktifkan';
       default:
         return status;
     }
@@ -190,6 +201,102 @@ class _ProductsMobilePageState extends State<ProductsMobilePage> {
       buffer.write(p[i]);
     }
     return 'Rp $buffer';
+  }
+
+  Future<void> _loadAdminName() async {
+    try {
+      final userData = await AuthServiceAppwrite().getCurrentUserData();
+      if (mounted && userData != null) {
+        setState(() => _adminName = userData['name'] ?? 'Admin');
+      }
+    } catch (_) {}
+  }
+
+  int _countByStatus(String status) {
+    if (status == 'Semua') return _allItems.length;
+    return _allItems
+        .where((i) => i.product.moderationStatus == status.toLowerCase())
+        .length;
+  }
+
+  Future<void> _approveProduct(_ProductDisplayItem item) async {
+    try {
+      await _service.updateModerationStatus(
+        productId: item.product.id,
+        status: ModerationStatus.approved,
+        moderatedBy: _adminName,
+      );
+      _showSnackBar('${item.product.name} telah disetujui', Colors.green);
+      _loadProducts();
+    } catch (e) {
+      _showSnackBar('Gagal menyetujui: $e', Colors.red);
+    }
+  }
+
+  Future<void> _rejectProduct(_ProductDisplayItem item) async {
+    final note = await showModerationDialog(
+      context,
+      title: 'Tolak ${item.product.name}',
+      actionLabel: 'Tolak',
+      actionColor: Colors.red,
+    );
+    if (note == null) return;
+    try {
+      await _service.updateModerationStatus(
+        productId: item.product.id,
+        status: ModerationStatus.rejected,
+        moderatedBy: _adminName,
+        moderationNote: note,
+      );
+      _showSnackBar('${item.product.name} telah ditolak', Colors.red);
+      _loadProducts();
+    } catch (e) {
+      _showSnackBar('Gagal menolak: $e', Colors.red);
+    }
+  }
+
+  Future<void> _deactivateProduct(_ProductDisplayItem item) async {
+    final note = await showModerationDialog(
+      context,
+      title: 'Nonaktifkan ${item.product.name}',
+      actionLabel: 'Nonaktifkan',
+      actionColor: Colors.orange,
+    );
+    if (note == null) return;
+    try {
+      await _service.updateModerationStatus(
+        productId: item.product.id,
+        status: ModerationStatus.deactivated,
+        moderatedBy: _adminName,
+        moderationNote: note,
+      );
+      _showSnackBar('${item.product.name} telah dinonaktifkan', Colors.orange);
+      _loadProducts();
+    } catch (e) {
+      _showSnackBar('Gagal menonaktifkan: $e', Colors.red);
+    }
+  }
+
+  Future<void> _reactivateProduct(_ProductDisplayItem item) async {
+    try {
+      await _service.updateModerationStatus(
+        productId: item.product.id,
+        status: ModerationStatus.approved,
+        moderatedBy: _adminName,
+        moderationNote: '',
+      );
+      _showSnackBar('${item.product.name} telah diaktifkan kembali', Colors.green);
+      _loadProducts();
+    } catch (e) {
+      _showSnackBar('Gagal mengaktifkan: $e', Colors.red);
+    }
+  }
+
+  void _showSnackBar(String message, Color color) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: color),
+    );
   }
 
   @override
@@ -228,6 +335,8 @@ class _ProductsMobilePageState extends State<ProductsMobilePage> {
       children: [
         _buildSearchBar(),
         const SizedBox(height: 12),
+        _buildStatCards(),
+        const SizedBox(height: 12),
         _buildFilterChips(),
         const SizedBox(height: 12),
         Expanded(
@@ -246,6 +355,63 @@ class _ProductsMobilePageState extends State<ProductsMobilePage> {
                 ),
         ),
       ],
+    );
+  }
+
+  Widget _buildStatCards() {
+    return SizedBox(
+      height: 80,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: _filterOptions.map((tab) {
+          final count = _countByStatus(tab);
+          final isActive = _selectedFilter == tab;
+          final color = tab == 'Semua'
+              ? const Color(0xff2563EB)
+              : _moderationColor(tab.toLowerCase());
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () {
+                setState(() => _selectedFilter = tab);
+                _applyFilters();
+              },
+              child: Container(
+                width: 120,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isActive ? color : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isActive ? color : const Color(0xffE5E7EB),
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      count.toString(),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isActive ? Colors.white : const Color(0xff111827),
+                      ),
+                    ),
+                    Text(
+                      tab == 'Semua' ? 'Semua Produk' : _moderationLabel(tab.toLowerCase()),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isActive ? Colors.white70 : const Color(0xff6B7280),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 
@@ -326,6 +492,7 @@ class _ProductsMobilePageState extends State<ProductsMobilePage> {
 
   Widget _buildProductCard(_ProductDisplayItem item) {
     final p = item.product;
+    final status = p.moderationStatus;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -334,112 +501,224 @@ class _ProductsMobilePageState extends State<ProductsMobilePage> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xffE5E7EB)),
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ProductDetailMobilePage(productId: p.id),
-            ),
-          ).then((_) => _loadProducts());
-        },
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: p.imageUrl.isNotEmpty
-                  ? Image.network(
-                      p.imageUrl,
-                      width: 72,
-                      height: 72,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => Container(
-                        width: 72,
-                        height: 72,
-                        color: Colors.grey.shade100,
-                        child: Icon(Icons.image,
-                            size: 32, color: Colors.grey.shade400),
-                      ),
-                    )
-                  : Container(
-                      width: 72,
-                      height: 72,
-                      color: Colors.grey.shade100,
-                      child: Icon(Icons.image,
-                          size: 32, color: Colors.grey.shade400),
-                    ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    p.name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      color: Color(0xff111827),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(Icons.store_outlined,
-                          size: 14, color: Color(0xff6B7280)),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          item.sellerName,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Color(0xff374151),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ProductDetailMobilePage(productId: p.id),
+                ),
+              ).then((_) => _loadProducts());
+            },
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: p.imageUrl.isNotEmpty
+                      ? Image.network(
+                          p.imageUrl,
+                          width: 72,
+                          height: 72,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => Container(
+                            width: 72,
+                            height: 72,
+                            color: Colors.grey.shade100,
+                            child: Icon(Icons.image,
+                                size: 32, color: Colors.grey.shade400),
                           ),
-                          overflow: TextOverflow.ellipsis,
+                        )
+                      : Container(
+                          width: 72,
+                          height: 72,
+                          color: Colors.grey.shade100,
+                          child: Icon(Icons.image,
+                              size: 32, color: Colors.grey.shade400),
+                        ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        p.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: Color(0xff111827),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.store_outlined,
+                              size: 14, color: Color(0xff6B7280)),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              item.sellerName,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xff374151),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _formatPrice(p.price),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xff2563EB),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _moderationColor(p.moderationStatus)
+                              .withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          _moderationLabel(p.moderationStatus),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: _moderationColor(p.moderationStatus),
+                          ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _formatPrice(p.price),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xff2563EB),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _moderationColor(p.moderationStatus)
-                          .withValues(alpha: 0.1),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildActionButtons(status, item),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButtons(String status, _ProductDisplayItem item) {
+    switch (status) {
+      case 'pending':
+        return Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 36,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Text(
-                      _moderationLabel(p.moderationStatus),
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: _moderationColor(p.moderationStatus),
-                      ),
+                  ),
+                  onPressed: () => _approveProduct(item),
+                  child: const Text(
+                    'Setujui',
+                    style: TextStyle(fontSize: 12, color: Colors.white),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: SizedBox(
+                height: 36,
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    side: const BorderSide(color: Colors.red),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                ],
+                  onPressed: () => _rejectProduct(item),
+                  child: const Text(
+                    'Tolak',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ),
               ),
             ),
           ],
-        ),
-      ),
-    );
+        );
+      case 'approved':
+        return SizedBox(
+          width: double.infinity,
+          height: 36,
+          child: OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.orange,
+              side: const BorderSide(color: Colors.orange),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () => _deactivateProduct(item),
+            child: const Text(
+              'Nonaktifkan',
+              style: TextStyle(fontSize: 12),
+            ),
+          ),
+        );
+      case 'rejected':
+        return SizedBox(
+          width: double.infinity,
+          height: 36,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () => _approveProduct(item),
+            child: const Text(
+              'Setujui',
+              style: TextStyle(fontSize: 12, color: Colors.white),
+            ),
+          ),
+        );
+      case 'deactivated':
+        return SizedBox(
+          width: double.infinity,
+          height: 36,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () => _reactivateProduct(item),
+            child: const Text(
+              'Aktifkan',
+              style: TextStyle(fontSize: 12, color: Colors.white),
+            ),
+          ),
+        );
+      default:
+        return const SizedBox.shrink();
+    }
   }
 
   Widget _buildEmptyState() {

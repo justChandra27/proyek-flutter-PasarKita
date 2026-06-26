@@ -55,21 +55,13 @@ class _DashboardCustomerMobileState
       body: SafeArea(
         child: SingleChildScrollView(
           controller: _scrollController,
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Column(
             crossAxisAlignment:
                 CrossAxisAlignment.start,
             children: [
-              const Text(
-                "PasarKita",
-                style: TextStyle(
-                  color: Color(0xff2563EB),
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 20),
-              const PromoBanner(height: 190, borderRadius: 20),
+              const SizedBox(height: 4),
+              const PromoBanner(height: 220, borderRadius: 20),
               const SizedBox(height: 18),
               Consumer<ProductFilterProvider>(
                 builder: (context, filter, _) {
@@ -82,7 +74,7 @@ class _DashboardCustomerMobileState
                   final popular = List<ProductModel>.from(filter.products)
                     ..sort((a, b) => b.soldCount.compareTo(a.soldCount));
                   return PopularProductsRow(
-                    products: popular.take(6).toList(),
+                    products: popular.take(8).toList(),
                     onProductTap: (p) => Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -95,36 +87,35 @@ class _DashboardCustomerMobileState
               const SizedBox(height: 24),
               Row(
                 children: [
-                  const Text(
-                    "Produk Terbaru",
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
+                  const Expanded(
+                    child: Text(
+                      "Produk Terbaru",
+                      style: TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                  const Spacer(),
+                  TextButton(
+                    onPressed: () {},
+                    child: const Text("Lihat Semua"),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
               Consumer<ProductFilterProvider>(
                 builder: (context, filter, _) {
                   if (filter.isLoading) {
-                    return const SizedBox(
-                      height: 200,
-                      child: Center(
-                        child: CircularProgressIndicator(),
-                      ),
+                    return const Center(
+                      child: CircularProgressIndicator(),
                     );
                   }
 
                   if (filter.error != null) {
-                    return SizedBox(
-                      height: 200,
-                      child: Center(
-                        child: Text(
-                          "Gagal memuat produk",
-                          style: const TextStyle(color: Colors.red),
-                        ),
+                    return const Center(
+                      child: Text(
+                        "Gagal memuat produk",
+                        style: TextStyle(color: Colors.red),
                       ),
                     );
                   }
@@ -132,11 +123,8 @@ class _DashboardCustomerMobileState
                   final products = filter.products;
 
                   if (products.isEmpty) {
-                    return const SizedBox(
-                      height: 200,
-                      child: Center(
-                        child: Text("Tidak ada produk yang ditemukan"),
-                      ),
+                    return const Center(
+                      child: Text("Tidak ada produk yang ditemukan"),
                     );
                   }
 
@@ -192,40 +180,62 @@ class _DashboardCustomerMobileState
     return Row(
       children: [
         Expanded(
-          child: TextField(
-            onChanged: (value) => filter.setSearchQuery(value),
-            decoration: InputDecoration(
-              hintText: "Cari produk...",
-              prefixIcon: const Icon(Icons.search),
-              filled: true,
-              fillColor: const Color(0xffE8EEF9),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
+          child: SizedBox(
+            height: 50,
+            child: TextField(
+              onChanged: (value) => filter.setSearchQuery(value),
+              decoration: InputDecoration(
+                hintText: "Cari produk...",
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: const Color(0xffE2E8F0),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 16),
         Badge(
           isLabelVisible: filter.activeFilterCount > 0,
           label: Text('${filter.activeFilterCount}'),
           child: Container(
             height: 50,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade300),
+              color: filter.activeFilterCount > 0
+                  ? const Color(0xff2563EB)
+                  : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: filter.activeFilterCount > 0
+                    ? const Color(0xff2563EB)
+                    : Colors.grey.shade300,
+              ),
             ),
             child: InkWell(
               onTap: () => _showFilterBottomSheet(filter),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.filter_list, size: 20),
-                  SizedBox(width: 4),
-                  Text('Filter'),
+                  Icon(
+                    Icons.filter_list,
+                    size: 20,
+                    color: filter.activeFilterCount > 0
+                        ? Colors.white
+                        : Colors.black87,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Filter',
+                    style: TextStyle(
+                      color: filter.activeFilterCount > 0
+                          ? Colors.white
+                          : Colors.black87,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -387,6 +397,7 @@ class _DashboardCustomerMobileState
     return ProductCard(
       product: product,
       reviewStats: stats,
+      showStockText: false,
       showSoldCount: true,
       boxShadow: [
         BoxShadow(
@@ -395,16 +406,6 @@ class _DashboardCustomerMobileState
           offset: const Offset(0, 2),
         ),
       ],
-      borderRadius: 20,
-      addBorder: true,
-      contentPadding: const EdgeInsets.all(12),
-      nameFontSize: 18,
-      priceFontSize: 16,
-      stockInStockColor: Colors.grey,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      outOfStockPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      outOfStockFontSize: 12,
-      outOfStockRadius: 6,
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(
@@ -437,18 +438,16 @@ class _DashboardCustomerMobileState
       },
       buttonBuilder: (outOfStock, onAddToCart) => SizedBox(
         width: double.infinity,
-        child: ElevatedButton.icon(
+        child: ElevatedButton(
           style: ElevatedButton.styleFrom(
             backgroundColor:
                 outOfStock ? Colors.grey : const Color(0xff2563EB),
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
           ),
           onPressed: outOfStock ? null : onAddToCart,
-          icon: const Icon(Icons.shopping_cart, size: 16),
-          label: Text(outOfStock ? 'Stok Habis' : 'Tambah ke Keranjang'),
+          child: Text(
+            outOfStock ? 'Stok Habis' : 'Tambah ke Keranjang',
+            style: const TextStyle(color: Colors.white),
+          ),
         ),
       ),
     );

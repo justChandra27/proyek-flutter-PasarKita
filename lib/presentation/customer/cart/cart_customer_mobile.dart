@@ -12,7 +12,7 @@ class CartCustomerMobile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xffF5F7FB),
+      backgroundColor: const Color(0xffF8FAFC),
       body: Consumer<CartProvider>(
         builder: (context, cart, _) {
           if (cart.items.isEmpty) {
@@ -26,38 +26,47 @@ class CartCustomerMobile extends StatelessWidget {
                 crossAxisAlignment:
                     CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "Keranjang Saya",
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
+                  SizedBox(
+                    height: 50,
+                    child: TextField(
+                      decoration: InputDecoration(
+                        hintText:
+                            "Cari produk di PasarKita...",
+                        prefixIcon:
+                            const Icon(Icons.search),
+                        filled: true,
+                        fillColor:
+                            const Color(0xffE2E8F0),
+                        border: OutlineInputBorder(
+                          borderRadius:
+                              BorderRadius.circular(14),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
                     ),
                   ),
 
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 24),
 
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          "Anda memiliki ${cart.itemCount} item dalam keranjang",
-                          style: const TextStyle(
-                            color: Colors.grey,
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Column(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Keranjang Belanja",
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xff2563EB),
                           ),
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-
-                      TextButton(
-                        onPressed: cart.clear,
-                        child: const Text(
-                          "Bersihkan Keranjang",
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
 
                   ...cart.items.map(
                     (item) => Padding(
@@ -72,9 +81,9 @@ class CartCustomerMobile extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xffEAF1FF),
+                      color: const Color(0xffDBEAFE),
                       borderRadius:
-                          BorderRadius.circular(16),
+                          BorderRadius.circular(20),
                     ),
                     child: Column(
                       children: [
@@ -82,75 +91,76 @@ class CartCustomerMobile extends StatelessWidget {
                           alignment:
                               Alignment.centerLeft,
                           child: Text(
-                            "Ringkasan Belanja",
+                            "Ringkasan Pesanan",
                             style: TextStyle(
+                              fontSize: 20,
                               fontWeight:
                                   FontWeight.bold,
+                              color: Color(0xff2563EB),
                             ),
                           ),
                         ),
 
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 24),
 
                         _summaryRow(
                           "Subtotal (${cart.itemCount} item)",
                           _formatPrice(cart.totalPrice),
                         ),
 
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 12),
 
                         _summaryRow(
-                          "Biaya Pengiriman",
-                          "GRATIS",
+                          "Pengiriman",
+                          "Gratis",
                           valueColor: Colors.green,
                         ),
 
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 12),
 
                         _summaryRow(
                           "Biaya Layanan",
                           "Rp 2.000",
                         ),
 
-                        const Divider(height: 30),
+                        const Divider(height: 40),
 
                         Row(
                           children: [
-                            const Text(
-                              "Total",
-                              style: TextStyle(
-                                fontWeight:
-                                    FontWeight.bold,
+                            const Expanded(
+                              child: Text(
+                                "Total Biaya",
+                                style: TextStyle(
+                                  fontWeight:
+                                      FontWeight.bold,
+                                ),
                               ),
                             ),
-
-                            const Spacer(),
-
                             Text(
                               _formatPrice(
                                   cart.totalPrice + 2000),
-                              style: const TextStyle(
-                                fontSize: 24,
+                              style:
+                                  const TextStyle(
+                                fontSize: 22,
                                 fontWeight:
                                     FontWeight.bold,
-                                color:
-                                    Color(0xff2563EB),
+                                color: Color(0xff2563EB),
                               ),
                             ),
                           ],
                         ),
 
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 20),
 
                         SizedBox(
                           width: double.infinity,
-                          height: 52,
-                          child: ElevatedButton(
+                          height: 50,
+                          child:
+                              ElevatedButton.icon(
                             style: ElevatedButton
                                 .styleFrom(
                               backgroundColor:
-                                  const Color(
-                                      0xff2563EB),
+                                  const Color(0xff2563EB),
                               shape:
                                   RoundedRectangleBorder(
                                 borderRadius:
@@ -166,7 +176,11 @@ class CartCustomerMobile extends StatelessWidget {
                                 ),
                               );
                             },
-                            child: const Text(
+                            icon: const Icon(
+                              Icons.lock,
+                              color: Colors.white,
+                            ),
+                            label: const Text(
                               "Checkout Sekarang",
                               style: TextStyle(
                                 color: Colors.white,
@@ -203,24 +217,21 @@ class CartCustomerMobile extends StatelessWidget {
   Widget _cartItem(
       BuildContext context, CartModel item) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 90,
-                height: 90,
+          SizedBox(
+            width: 90,
+            child: AspectRatio(
+              aspectRatio: 1,
+              child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
-                  borderRadius:
-                      BorderRadius.circular(12),
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: item.imageUrl.isNotEmpty
                     ? ClipRRect(
@@ -232,149 +243,136 @@ class CartCustomerMobile extends StatelessWidget {
                           width: double.infinity,
                           height: double.infinity,
                           errorBuilder: (_, _, _) =>
-                              const Icon(
-                            Icons.image,
-                            size: 40,
-                            color: Colors.black54,
-                          ),
+                              const SizedBox(),
                         ),
                       )
-                    : const Icon(
-                        Icons.image,
-                        size: 40,
-                        color: Colors.black54,
-                      ),
+                    : const SizedBox(),
               ),
-
-              const SizedBox(width: 14),
-
-              Expanded(
-                child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-
-                    if (item.selectedColor.isNotEmpty ||
-                        item.selectedSize.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          [
-                            if (item.selectedColor.isNotEmpty)
-                              item.selectedColor,
-                            if (item.selectedSize.isNotEmpty)
-                              item.selectedSize,
-                          ].join(' / '),
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-
-                    const SizedBox(height: 12),
-
-                    Text(
-                      _formatPrice(item.price),
-                      style: const TextStyle(
-                        color: Color(0xff2563EB),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 22,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(width: 16),
 
-          Row(
-            mainAxisAlignment:
-                MainAxisAlignment.center,
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xffEEF3FF),
-                  borderRadius:
-                      BorderRadius.circular(30),
+          Expanded(
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              mainAxisAlignment:
+                  MainAxisAlignment.center,
+              children: [
+                Text(
+                  item.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                child: Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => context
-                          .read<CartProvider>()
-                          .updateQuantity(
-                            item.productId,
-                            item.quantity - 1,
-                            selectedColor: item.selectedColor,
-                            selectedSize: item.selectedSize,
-                          ),
-                      icon: const Icon(Icons.remove),
-                    ),
 
-                    Text(
-                      "${item.quantity}",
+                if (item.selectedColor.isNotEmpty ||
+                    item.selectedSize.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      [
+                        if (item.selectedColor.isNotEmpty)
+                          item.selectedColor,
+                        if (item.selectedSize.isNotEmpty)
+                          item.selectedSize,
+                      ].join(' / '),
                       style: const TextStyle(
-                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                        fontSize: 13,
                       ),
                     ),
+                  ),
 
-                    IconButton(
-                      onPressed: () {
-                        if (item.quantity >= item.stock) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Jumlah melebihi stok tersedia.'),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                          return;
-                        }
-                        context
+                const SizedBox(height: 12),
+
+                Container(
+                  width: 90,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: const Color(0xffE2E8F0),
+                    borderRadius:
+                        BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment:
+                        MainAxisAlignment.spaceEvenly,
+                    children: [
+                      GestureDetector(
+                        onTap: () => context
                             .read<CartProvider>()
                             .updateQuantity(
                               item.productId,
-                              item.quantity + 1,
+                              item.quantity - 1,
                               selectedColor: item.selectedColor,
                               selectedSize: item.selectedSize,
-                            );
-                      },
-                      icon: Icon(
-                        Icons.add,
-                        color: item.quantity >= item.stock
-                            ? Colors.grey
-                            : null,
+                            ),
+                        child: const Text("-"),
                       ),
-                    ),
-                  ],
+                      Text("${item.quantity}"),
+                      GestureDetector(
+                        onTap: () {
+                          if (item.quantity >= item.stock) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Jumlah melebihi stok tersedia.'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                            return;
+                          }
+                          context
+                              .read<CartProvider>()
+                              .updateQuantity(
+                                item.productId,
+                                item.quantity + 1,
+                                selectedColor: item.selectedColor,
+                                selectedSize: item.selectedSize,
+                              );
+                        },
+                        child: Text(
+                          "+",
+                          style: TextStyle(
+                            color: item.quantity >= item.stock
+                                ? Colors.grey
+                                : null,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
+            ),
+          ),
 
-              const Spacer(),
-
-              TextButton.icon(
-                onPressed: () => context
+          Column(
+            mainAxisAlignment:
+                MainAxisAlignment.spaceBetween,
+            crossAxisAlignment:
+                CrossAxisAlignment.end,
+            children: [
+              GestureDetector(
+                onTap: () => context
                     .read<CartProvider>()
                     .removeItem(item.productId,
                         selectedColor: item.selectedColor,
                         selectedSize: item.selectedSize),
-                icon: const Icon(
+                child: const Icon(
                   Icons.delete_outline,
-                  color: Colors.red,
-                  size: 18,
+                  color: Colors.black54,
                 ),
-                label: const Text(
-                  "Hapus",
-                  style: TextStyle(color: Colors.red),
+              ),
+              Text(
+                _formatPrice(item.price),
+                style: const TextStyle(
+                  color: Color(0xff2563EB),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
                 ),
               ),
             ],
@@ -387,22 +385,16 @@ class CartCustomerMobile extends StatelessWidget {
   Widget _summaryRow(
     String title,
     String value, {
-    Color valueColor = Colors.black87,
+    Color valueColor = Colors.black,
   }) {
     return Row(
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            color: Colors.black54,
-          ),
-        ),
-        const Spacer(),
+        Expanded(child: Text(title)),
         Text(
           value,
           style: TextStyle(
             color: valueColor,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ],

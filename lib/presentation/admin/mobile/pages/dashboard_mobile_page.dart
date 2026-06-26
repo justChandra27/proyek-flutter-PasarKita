@@ -289,6 +289,14 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
             const SizedBox(height: 24),
             if (_recentOrders != null && _recentOrders!.isNotEmpty)
               _buildRecentActivity(),
+            const SizedBox(height: 24),
+            _buildTopSellers(data),
+            const SizedBox(height: 24),
+            _buildTopProducts(data),
+            const SizedBox(height: 24),
+            _buildStatusSection(data),
+            const SizedBox(height: 24),
+            _buildQuickActions(),
           ],
         ),
       ),
@@ -588,6 +596,273 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
           );
         }),
       ],
+    );
+  }
+
+  Widget _buildTopSellers(AdminAnalytics data) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Top Seller",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+          const SizedBox(height: 16),
+          if (data.topSellers.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(20),
+              child: Text('Belum ada seller',
+                  style: TextStyle(color: Colors.grey)),
+            )
+          else
+            ...data.topSellers.map((s) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 18,
+                        backgroundColor: Colors.blue.shade50,
+                        child: Text(
+                          s.name.isNotEmpty ? s.name[0].toUpperCase() : '?',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(s.name,
+                                style:
+                                    const TextStyle(fontWeight: FontWeight.w600),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis),
+                            Text('${s.completedOrdersCount} pesanan selesai',
+                                style: const TextStyle(
+                                    color: Colors.grey, fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        _formatPrice(s.totalRevenue),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xff2563EB),
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopProducts(AdminAnalytics data) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Produk Terlaris",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+          const SizedBox(height: 16),
+          if (data.topProducts.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(20),
+              child: Text('Belum ada produk terjual',
+                  style: TextStyle(color: Colors.grey)),
+            )
+          else
+            ...data.topProducts.map((p) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.inventory_2_outlined,
+                            color: Colors.grey, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(p.productName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600)),
+                      ),
+                      Text(
+                        '${p.totalSold} terjual',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xff2563EB),
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusSection(AdminAnalytics data) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Status Order",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+          const SizedBox(height: 16),
+          ...data.orderStatusCounts.entries.map((e) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: _statusColor(e.key),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _statusLabel(e.key),
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    ),
+                    Text(
+                      '${e.value}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Rata-rata Pesanan",
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _formatPrice(data.averageOrderValue),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xff2563EB),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickActions() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Aksi Cepat",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                  child: _actionButton(Icons.person_add_alt, "Verifikasi User")),
+              const SizedBox(width: 12),
+              Expanded(
+                  child: _actionButton(Icons.add_box_outlined, "Tambah Produk")),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                  child: _actionButton(Icons.campaign_outlined, "Buat Promo")),
+              const SizedBox(width: 12),
+              Expanded(
+                  child: _actionButton(Icons.download, "Export Laporan")),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _actionButton(IconData icon, String title) {
+    return InkWell(
+      onTap: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fitur tersedia di menu $title')),
+        );
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        height: 80,
+        decoration: BoxDecoration(
+          color: const Color(0xffF5F7FB),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.blue),
+            const SizedBox(height: 8),
+            Text(title, style: const TextStyle(fontSize: 12)),
+          ],
+        ),
+      ),
     );
   }
 }

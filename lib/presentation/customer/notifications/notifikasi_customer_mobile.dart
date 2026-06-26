@@ -118,86 +118,105 @@ class _NotifikasiCustomerMobileState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xffF8FAFC),
-      appBar: AppBar(
-        title: const Text('Notifikasi Saya'),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        foregroundColor: Colors.black,
-        actions: [
-          if (_notifs.any((n) => !n.isRead))
-            TextButton(
-              onPressed: () async {
-                if (_userId == null) return;
-                await _service.markAllAsRead(_userId!);
-                _refresh();
-              },
-              child: const Text('Tandai Semua Dibaca'),
-            ),
-        ],
-      ),
+      backgroundColor: const Color(0xffF5F6FA),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _buildBody(),
-    );
-  }
-
-  Widget _buildBody() {
-    if (_notifs.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.notifications_off_outlined,
-                size: 64, color: Colors.grey.shade400),
-            const SizedBox(height: 16),
-            const Text(
-              'Belum ada notifikasi',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Notifikasi akan muncul di sini ketika ada perubahan status pesanan.',
-              style: TextStyle(color: Colors.grey.shade600),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: () async => _refresh(),
-      child: ListView.builder(
-        controller: _scrollController,
-        padding: const EdgeInsets.all(16),
-        itemCount: _notifs.length + (_hasMore || _isLoadingMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index == _notifs.length) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Center(
-                child: _isLoadingMore
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child:
-                            CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : TextButton.icon(
-                        onPressed: _loadMore,
-                        icon: const Icon(Icons.expand_more, size: 20),
-                        label: const Text('Muat lebih banyak'),
+          : Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Notifikasi Saya',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
+                      if (_notifs.any((n) => !n.isRead))
+                        TextButton(
+                          onPressed: () async {
+                            if (_userId == null) return;
+                            await _service.markAllAsRead(_userId!);
+                            _refresh();
+                          },
+                          child: const Text('Tandai Semua Dibaca'),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Pemberitahuan terkait pesanan Anda.',
+                    style: TextStyle(color: Colors.black54),
+                  ),
+                  const SizedBox(height: 24),
+                  Expanded(
+                    child: _notifs.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                    Icons.notifications_off_outlined,
+                                    size: 64,
+                                    color: Colors.grey.shade400),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'Belum ada notifikasi',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Notifikasi akan muncul di sini ketika ada perubahan status pesanan.',
+                                  style:
+                                      TextStyle(color: Colors.grey.shade600),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.builder(
+                            controller: _scrollController,
+                            itemCount: _notifs.length +
+                                (_hasMore || _isLoadingMore ? 1 : 0),
+                            itemBuilder: (context, index) {
+                              if (index == _notifs.length) {
+                                return Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 16),
+                                  child: Center(
+                                    child: _isLoadingMore
+                                        ? const SizedBox(
+                                            width: 24,
+                                            height: 24,
+                                            child:
+                                                CircularProgressIndicator(
+                                                    strokeWidth: 2),
+                                          )
+                                        : TextButton.icon(
+                                            onPressed: _loadMore,
+                                            icon: const Icon(
+                                                Icons.expand_more,
+                                                size: 20),
+                                            label: const Text(
+                                                'Muat lebih banyak'),
+                                          ),
+                                  ),
+                                );
+                              }
+                              return _notifCard(_notifs[index]);
+                            },
+                          ),
+                  ),
+                ],
               ),
-            );
-          }
-          return _notifCard(_notifs[index]);
-        },
-      ),
+            ),
     );
   }
 
@@ -231,10 +250,9 @@ class _NotifikasiCustomerMobileState
           ),
         ),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: notif.isRead
                     ? Colors.grey.shade100
@@ -242,12 +260,11 @@ class _NotifikasiCustomerMobileState
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
-                _notifIcon(notif.type),
+                Icons.sync_alt,
                 color: notif.isRead ? Colors.grey : const Color(0xff2563EB),
-                size: 22,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -286,7 +303,7 @@ class _NotifikasiCustomerMobileState
                       fontSize: 13,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   Text(
                     _formatTime(notif.createdAt),
                     style: const TextStyle(
@@ -301,14 +318,5 @@ class _NotifikasiCustomerMobileState
         ),
       ),
     );
-  }
-
-  IconData _notifIcon(String type) {
-    switch (type) {
-      case 'status_update':
-        return Icons.sync_alt;
-      default:
-        return Icons.notifications_outlined;
-    }
   }
 }

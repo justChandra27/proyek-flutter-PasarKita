@@ -236,6 +236,8 @@ class _UsersMobilePageState extends State<UsersMobilePage> {
       children: [
         _buildSearchBar(),
         const SizedBox(height: 12),
+        _buildStatCards(),
+        const SizedBox(height: 12),
         _buildRoleFilterChips(),
         const SizedBox(height: 8),
         _buildStatusFilterChips(),
@@ -256,6 +258,108 @@ class _UsersMobilePageState extends State<UsersMobilePage> {
                 ),
         ),
       ],
+    );
+  }
+
+  Widget _buildStatCards() {
+    final total = _allUsers.length;
+    final active = _allUsers.where((u) => u.status == 'active').length;
+    final pending = _allUsers.where((u) => u.status == 'pending').length;
+    final inactive = _allUsers.where((u) => u.status == 'inactive').length;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _statCard(
+                  'Total Pengguna',
+                  total.toString(),
+                  Icons.people_alt_outlined,
+                  const Color(0xff2563EB),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _statCard(
+                  'Pengguna Aktif',
+                  active.toString(),
+                  Icons.person_add_alt,
+                  const Color(0xff22C55E),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _statCard(
+                  'Pending',
+                  pending.toString(),
+                  Icons.hourglass_empty,
+                  const Color(0xffEAB308),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _statCard(
+                  'Ditangguhkan',
+                  inactive.toString(),
+                  Icons.person_off_outlined,
+                  const Color(0xffEF4444),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statCard(String title, String value, IconData icon, Color color) {
+    return Container(
+      height: 90,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xffE5E7EB)),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: color.withValues(alpha: .15),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontSize: 11, color: Colors.black54),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 

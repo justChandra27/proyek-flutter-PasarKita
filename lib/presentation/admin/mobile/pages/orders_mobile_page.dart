@@ -26,17 +26,19 @@ class _OrdersMobilePageState extends State<OrdersMobilePage> {
 
   static const _filterOptions = [
     'Semua',
-    'Unpaid',
-    'Verification',
-    'Paid',
-    'Rejected',
+    'Pending',
+    'Processing',
+    'Shipped',
+    'Completed',
+    'Cancelled',
   ];
 
-  static const _paymentStatusMap = {
-    'Unpaid': 'unpaid',
-    'Verification': 'verification',
-    'Paid': 'paid',
-    'Rejected': 'rejected',
+  static const _statusMap = {
+    'Pending': 'pending',
+    'Processing': 'processing',
+    'Shipped': 'shipped',
+    'Completed': 'completed',
+    'Cancelled': 'cancelled',
   };
 
   @override
@@ -90,13 +92,13 @@ class _OrdersMobilePageState extends State<OrdersMobilePage> {
 
   void _applyFilters() {
     final query = _searchController.text.toLowerCase().trim();
-    final paymentFilter = _selectedFilter;
+    final statusFilter = _selectedFilter;
 
     setState(() {
       _filteredOrders = _allOrders.where((o) {
-        if (paymentFilter != 'Semua') {
-          final targetStatus = _paymentStatusMap[paymentFilter];
-          if (o.paymentStatus.toLowerCase() != targetStatus) return false;
+        if (statusFilter != 'Semua') {
+          final targetStatus = _statusMap[statusFilter];
+          if (o.status.toLowerCase() != targetStatus) return false;
         }
         if (query.isNotEmpty) {
           final matchesCode = o.orderCode.toLowerCase().contains(query);
@@ -134,6 +136,23 @@ class _OrdersMobilePageState extends State<OrdersMobilePage> {
         return 'Unpaid';
       default:
         return status;
+    }
+  }
+
+  Color _statusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Colors.orange;
+      case 'processing':
+        return Colors.blue;
+      case 'shipped':
+        return Colors.deepPurple;
+      case 'completed':
+        return Colors.green;
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return Colors.grey;
     }
   }
 
@@ -200,6 +219,8 @@ class _OrdersMobilePageState extends State<OrdersMobilePage> {
         _buildSearchBar(),
         const SizedBox(height: 12),
         _buildFilterChips(),
+        const SizedBox(height: 8),
+        _buildStatCards(),
         const SizedBox(height: 12),
         Expanded(
           child: _filteredOrders.isEmpty
@@ -272,7 +293,9 @@ class _OrdersMobilePageState extends State<OrdersMobilePage> {
                 setState(() => _selectedFilter = filter);
                 _applyFilters();
               },
-              selectedColor: const Color(0xff2563EB),
+              selectedColor: filter == 'Semua'
+                  ? const Color(0xff2563EB)
+                  : _statusColor(_statusMap[filter]!),
               labelStyle: TextStyle(
                 color: selected ? Colors.white : const Color(0xff374151),
                 fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
@@ -289,6 +312,73 @@ class _OrdersMobilePageState extends State<OrdersMobilePage> {
             ),
           );
         }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildStatCards() {
+    final total = _allOrders.length;
+    final pending = _allOrders.where((o) => o.status == 'pending').length;
+    final shipped = _allOrders.where((o) => o.status == 'shipped').length;
+    final completed = _allOrders.where((o) => o.status == 'completed').length;
+
+    return SizedBox(
+      height: 80,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: [
+          _statCard('TOTAL', total.toString(), const Color(0xff2563EB), Icons.receipt_long),
+          const SizedBox(width: 8),
+          _statCard('PENDING', pending.toString(), Colors.orange, Icons.pending_actions),
+          const SizedBox(width: 8),
+          _statCard('DIKIRIM', shipped.toString(), Colors.deepPurple, Icons.local_shipping),
+          const SizedBox(width: 8),
+          _statCard('SELESAI', completed.toString(), Colors.green, Icons.check_circle),
+        ],
+      ),
+    );
+  }
+
+  Widget _statCard(String title, String value, Color color, IconData icon) {
+    return Container(
+      width: 150,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xffE5E7EB)),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: color.withValues(alpha: .15),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Colors.black54,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

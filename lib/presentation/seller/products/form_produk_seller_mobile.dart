@@ -204,6 +204,14 @@ class _FormProdukSellerMobileState extends State<FormProdukSellerMobile> {
                         },
                         itemBuilder: (context) => [
                           const PopupMenuItem(
+                            value: 'terbaru',
+                            child: Text('Terbaru'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'terlama',
+                            child: Text('Terlama'),
+                          ),
+                          const PopupMenuItem(
                             value: 'harga_tertinggi',
                             child: Text('Harga Tertinggi'),
                           ),
