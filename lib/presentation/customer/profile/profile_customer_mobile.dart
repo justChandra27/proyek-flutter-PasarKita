@@ -245,14 +245,11 @@ class _ProfileCustomerMobileState
                       ],
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        const Spacer(),
-                        _statCard(
-                          _orderCount.toString(),
-                          "PESANAN",
-                        ),
-                      ],
+                    Center(
+                      child: _statCard(
+                        _orderCount.toString(),
+                        "PESANAN",
+                      ),
                     ),
                   ],
                 ),

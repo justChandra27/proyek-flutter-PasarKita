@@ -86,11 +86,6 @@ class PesananCustomerWebState
                     ),
                   ),
                 ),
-                const SizedBox(width: 20),
-                const Icon(
-                  Icons.notifications_none,
-                  color: Colors.black54,
-                ),
                 const SizedBox(width: 16),
                 const CircleAvatar(
                   radius: 18,

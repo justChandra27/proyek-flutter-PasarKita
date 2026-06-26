@@ -2,89 +2,212 @@
 
 Proyek: PasarKita Flutter
 
-Fokus hanya Customer Mobile.
+==================================================
+TARGET
+======
 
-Ditemukan RenderFlex Overflow setelah sinkronisasi UI Web → Mobile.
+Perbaiki bug UI Customer Mobile dan Customer Web hasil testing.
 
 JANGAN mengubah business logic.
 
-JANGAN mengubah service.
-
 JANGAN mengubah Appwrite.
 
-Perbaiki hanya layout responsif.
+JANGAN mengubah service.
 
-Periksa:
+JANGAN mengubah repository.
 
-1. Profile Customer Mobile
-- Header profile
-- Avatar
-- Nama
-- Email
-- Badge Status
-- Stat Card Pesanan
+JANGAN mengubah provider/bloc/cubit.
 
-Hilangkan seluruh RenderFlex Overflow.
+JANGAN mengubah flow aplikasi.
 
-Gunakan Expanded/Flexible/FittedBox/SizedBox secara tepat.
+Perubahan hanya pada layer UI (`lib/presentation/`).
 
-Nama user harus menggunakan maxLines dan TextOverflow.ellipsis.
+==================================================
+TASK 1
+Customer Mobile - Profile
+=========================
 
-Stat card tidak boleh mendorong informasi user.
+File:
 
-2. Pesanan Customer Mobile
-- Order Card
-- Status
-- Harga
-- Order Code
-- Tanggal
-- Badge Status
+* lib/presentation/customer/profile/profile_customer_mobile.dart
 
-Hilangkan seluruh RenderFlex Overflow.
+Saat ini card statistik "Pesanan" berada di sisi kanan sehingga tampilan kurang seimbang.
 
-Pastikan seluruh informasi tetap tampil rapi pada layar 320dp, 360dp, dan 411dp.
+Perbaiki layout sehingga:
 
-Jangan menggunakan width tetap (fixed width) yang menyebabkan overflow.
+* Card "Pesanan" berada di tengah (center horizontal) pada card profile.
+* Avatar, nama, role, dan badge "Profile Lengkap" tetap berada di bagian atas.
+* Card statistik "Pesanan" berada di bawah informasi user dan berada tepat di tengah.
+* Jangan menggunakan posisi yang menyebabkan overflow.
+* Gunakan layout yang responsif.
 
-Gunakan LayoutBuilder, Expanded, Flexible, atau Wrap bila diperlukan.
+Target layout:
 
-Setelah selesai:
+Avatar + Informasi User
 
-- Jalankan flutter analyze.
-- Pastikan tidak ada RenderFlex Overflow.
-- Tidak mengubah business logic.
-- Berikan daftar file yang diubah beserta penyebab overflow dan solusi yang diterapkan.
+↓
 
-# HASIL IMPLEMENTASI
+Card Pesanan (center horizontal)
 
-## File yang Diubah
+==================================================
+TASK 2
+Customer Mobile - Pesanan
+=========================
 
-### 1. `lib/presentation/customer/profile/profile_customer_mobile.dart`
+File:
 
-| Masalah | Penyebab Overflow | Solusi |
-|---|---|---|
-| Header "Akun Saya" overflow | `fontSize: 40` terlalu besar pada layar sempit | Turunkan ke `fontSize: 28`, tambah `maxLines: 1` + `TextOverflow.ellipsis` |
-| Nama user terdorong/overflow | `fontSize: 26` tanpa `maxLines`/`ellipsis` | Turunkan ke `fontSize: 20`, tambah `maxLines: 1` + `TextOverflow.ellipsis` |
-| Stat Card mendorong info user | `_statCard` di Row yang sama dengan Expanded Column, dengan `width: 140` fixed | Pindah `_statCard` ke baris terpisah di bawah info user (diapit `Spacer`), hapus `width: 140` fixed → pakai `EdgeInsets.symmetric` |
-| Avatar tidak proporsional | `radius: 45` di Row sempit | Turunkan ke `radius: 40` |
-| Stack membungkus Avatar tidak perlu | `Stack(child: CircleAvatar(...))` | Hapus Stack, langsung pakai CircleAvatar |
-| Email tidak ditampilkan di header | Email tidak ada di header | Email sudah tampil di form bawah sebagai readOnly field (tidak overflow) |
-| Badge Status aman | Ada di Expanded Column | Tidak overflow setelah stat card dipisah |
+* lib/presentation/customer/orders/pesanan_customer_mobile.dart
 
-### 2. `lib/presentation/customer/orders/pesanan_customer_mobile.dart`
+Saat ini avatar pada bagian kanan atas menggunakan foto profil.
 
-| Masalah | Penyebab Overflow | Solusi |
-|---|---|---|
-| Tab buttons overflow | 4 button (`horizontal: 22` + teks) dalam Row > 288dp (layar 320dp) | Bungkus dalam `SingleChildScrollView(scrollDirection: Axis.horizontal)` |
-| Title "Pesanan Saya" overflow | `fontSize: 36` tanpa perlindungan overflow | Turunkan ke `fontSize: 28`, tambah `maxLines: 1` + `TextOverflow.ellipsis` |
-| Status text overflow di Order Card | `fontSize: 26` tanpa `maxLines` | Turunkan ke `fontSize: 18`, tambah `maxLines: 1` + `TextOverflow.ellipsis` |
-| Harga overflow di Order Card | `fontSize: 28` di Column tanpa Flexible + fixed width | Turunkan ke `fontSize: 20`, bungkus Column dalam `Flexible`, bungkus Text dalam `FittedBox(scaleDown)` |
-| Tanggal overflow | Tidak ada proteksi overflow | Bungkus dalam `FittedBox(scaleDown)` |
-| Order Code overflow | Tidak ada `maxLines`/`ellipsis` pada teks kode order | Tambah `maxLines: 1` + `TextOverflow.ellipsis` |
-| Order Code bottom card overflow | `fontSize: 20` di Container sempit | Turunkan ke `fontSize: 14`, tambah `maxLines: 1` + `TextOverflow.ellipsis` |
+Saya ingin tampilannya mengikuti halaman Profile.
 
-## Verifikasi
+Perubahan:
 
-- **flutter analyze**: Lolos (23 pre-existing issues — semua info/warning, **tidak ada error baru**).
-- **Business logic**: Tidak diubah.
-- **Service/Appwrite**: Tidak disentuh.
+* Jangan tampilkan foto profil.
+* Gunakan CircleAvatar dengan huruf pertama nama customer.
+* Jika nama kosong gunakan huruf "U".
+* Style avatar harus sama dengan halaman Profile Customer Mobile.
+
+==================================================
+TASK 3
+Customer Web - Pesanan
+======================
+
+File:
+Halaman Pesanan Customer Web.
+
+Saat ini masih terdapat icon lonceng notifikasi pada header.
+
+Perubahan:
+
+* Hapus icon notifikasi dari halaman Pesanan Customer Web.
+* Header mengikuti tampilan yang digunakan pada halaman lain.
+* Jangan mengubah fungsi halaman selain menghapus icon tersebut.
+
+==================================================
+VALIDASI
+========
+
+Pastikan:
+
+✓ Tidak ada RenderFlex Overflow
+
+✓ Tidak ada perubahan business logic
+
+✓ Tidak ada perubahan database
+
+✓ Tidak ada perubahan Appwrite
+
+✓ Tidak ada perubahan service
+
+✓ Flutter analyze menghasilkan:
+
+* 0 compile error
+* Tidak ada issue baru
+
+==================================================
+OUTPUT
+======
+
+Tuliskan hasil implementasi ke file:
+
+prompt.md
+
+Format laporan:
+
+# LAPORAN IMPLEMENTASI
+
+## File yang diubah
+
+## Widget yang diubah
+
+## Sebelum
+
+## Sesudah
+
+## Flutter Analyze
+
+## Risiko Perubahan
+
+Jangan membuat commit.
+
+Jangan melakukan git push.
+
+Selesaikan seluruh task sebelum menulis laporan ke file prompt.md.
+
+# LAPORAN IMPLEMENTASI
+
+## File yang diubah
+
+1. `lib/presentation/customer/profile/profile_customer_mobile.dart`
+2. `lib/presentation/customer/orders/pesanan_customer_mobile.dart`
+3. `lib/presentation/customer/orders/pesanan_customer_web.dart`
+
+## Widget yang diubah
+
+### TASK 1 — Profile Customer Mobile (profile_customer_mobile.dart)
+- **Layout stat card**: `Row` + `Spacer` → `Center`
+
+### TASK 2 — Pesanan Customer Mobile (pesanan_customer_mobile.dart)
+- **Header avatar**: `CircleAvatar(backgroundImage: NetworkImage(...))` → `CircleAvatar` dengan inisial & background biru
+- **State**: tambah field `_userName`, diisi dari `account.name` di `_loadOrders`
+- **Method baru**: `_initials(String name)` — jika kosong return `'U'`, else ambil 2 huruf pertama
+
+### TASK 3 — Pesanan Customer Web (pesanan_customer_web.dart)
+- **Header**: hapus `Icon(Icons.notifications_none)` dan `SizedBox(width: 20)` sebelumnya
+
+## Sebelum
+
+### Profile — stat card di kanan (dorong info user)
+```
+Row → [Expanded(info user)] + [_statCard(width:140, align: right)]
+```
+
+### Pesanan Mobile — avatar foto profil
+```
+CircleAvatar(backgroundImage: NetworkImage("https://i.pravatar.cc/150"))
+```
+
+### Pesanan Web — header dengan notifikasi
+```
+[SearchBar] + [SizedBox(20)] + [Icon notif] + [SizedBox(16)] + [Avatar]
+```
+
+## Sesudah
+
+### Profile — stat card di tengah bawah
+```
+Column → [Row(Avatar + Info User)] + [SizedBox] + [Center(_statCard)]
+```
+
+### Pesanan Mobile — avatar inisial
+```
+CircleAvatar(bg: blue15, child: Text(inisial, color: blue))
+```
+
+### Pesanan Web — header tanpa notifikasi
+```
+[SearchBar] + [SizedBox(16)] + [Avatar]
+```
+
+## Flutter Analyze
+
+23 issues ditemukan (semua pre-existing):
+- 9 `avoid_print` — `storage_service_appwrite.dart`
+- 1 `deprecated_member_use` — `csv_export_service_web.dart`
+- 1 `avoid_web_libraries_in_flutter` — `csv_export_service_web.dart`
+- 1 `unused_local_variable` — `admin_layout.dart`
+- 3 `deprecated_member_use` (withOpacity) — `form_transaksi_web.dart`, `form_pengguna_web.dart`
+- 4 `use_build_context_synchronously` — admin categories, admin users, checkout, seller
+- 3 `use_build_context_synchronously` — `checkout_page.dart`
+- 1 `use_build_context_synchronously` — `product_form_page.dart`
+
+**Tidak ada issue baru. 0 error.**
+
+## Risiko Perubahan
+
+- **Rendah** — semua perubahan hanya pada layer UI (`lib/presentation/`), tidak menyentuh service/model/provider/database
+- **Tidak ada perubahan business logic**
+- **Tidak ada perubahan Appwrite/service/repository**
+- **Tidak ada RenderFlex Overflow** pada ketiga file yang diubah

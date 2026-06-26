@@ -21,6 +21,7 @@ class PesananCustomerMobileState
   bool _isLoading = true;
   String? _error;
   String _activeTab = 'semua';
+  String _userName = '';
 
   List<OrderModel> get _filteredOrders {
     if (_activeTab == 'semua') return _orders;
@@ -46,12 +47,17 @@ class PesananCustomerMobileState
 
   void refresh() => _loadOrders();
 
+  String _initials(String name) {
+    if (name.isEmpty) return 'U';
+    return name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join().toUpperCase();
+  }
+
   Future<void> _loadOrders() async {
     setState(() { _isLoading = true; _error = null; });
     try {
       final account = await AuthServiceAppwrite().getCurrentUser();
       final orders = await _orderService.getOrdersByCustomer(account.$id);
-      if (mounted) setState(() { _orders = orders; _isLoading = false; });
+      if (mounted) setState(() { _orders = orders; _userName = account.name; _isLoading = false; });
     } catch (e) {
       if (mounted) setState(() { _error = e.toString(); _isLoading = false; });
     }
@@ -89,10 +95,15 @@ class PesananCustomerMobileState
                     ),
                   ),
                   const SizedBox(width: 16),
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 18,
-                    backgroundImage: NetworkImage(
-                      "https://i.pravatar.cc/150",
+                    backgroundColor: const Color(0xff2563EB).withValues(alpha: .15),
+                    child: Text(
+                      _initials(_userName),
+                      style: const TextStyle(
+                        color: Color(0xff2563EB),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
