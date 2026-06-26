@@ -164,14 +164,16 @@ class _ProfileCustomerMobileState
               // HEADER
               Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       "Akun Saya",
-                      style: TextStyle(
-                        fontSize: 40,
+                      style: const TextStyle(
+                        fontSize: 28,
                         fontWeight: FontWeight.bold,
                         color: Color(0xff2563EB),
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   CircleAvatar(
@@ -204,23 +206,19 @@ class _ProfileCustomerMobileState
                   children: [
                     Row(
                       children: [
-                        Stack(
-                          children: [
-                            CircleAvatar(
-                              radius: 45,
-                              backgroundColor: const Color(0xff2563EB).withValues(alpha: .15),
-                              child: Text(
-                                _initials(name),
-                                style: const TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xff2563EB),
-                                ),
-                              ),
+                        CircleAvatar(
+                          radius: 40,
+                          backgroundColor: const Color(0xff2563EB).withValues(alpha: .15),
+                          child: Text(
+                            _initials(name),
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xff2563EB),
                             ),
-                          ],
+                          ),
                         ),
-                        const SizedBox(width: 20),
+                        const SizedBox(width: 16),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -228,9 +226,11 @@ class _ProfileCustomerMobileState
                               Text(
                                 name,
                                 style: const TextStyle(
-                                  fontSize: 26,
+                                  fontSize: 20,
                                   fontWeight: FontWeight.bold,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 4),
                               const Text(
@@ -242,6 +242,12 @@ class _ProfileCustomerMobileState
                             ],
                           ),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        const Spacer(),
                         _statCard(
                           _orderCount.toString(),
                           "PESANAN",
@@ -485,8 +491,7 @@ class _ProfileCustomerMobileState
     String title,
   ) {
     return Container(
-      width: 140,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         color: const Color(0xffF1F5F9),
         borderRadius: BorderRadius.circular(12),

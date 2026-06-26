@@ -98,27 +98,32 @@ class PesananCustomerMobileState
                 ],
               ),
               const SizedBox(height: 24),
-              const Align(
+              Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   "Pesanan Saya",
-                  style: TextStyle(
-                    fontSize: 36,
+                  style: const TextStyle(
+                    fontSize: 28,
                     fontWeight: FontWeight.bold,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(height: 20),
-              Row(
-                children: [
-                  _tabButton("Semua", _activeTab == 'semua', 'semua'),
-                  const SizedBox(width: 10),
-                  _tabButton("Berjalan", _activeTab == 'berjalan', 'berjalan'),
-                  const SizedBox(width: 10),
-                  _tabButton("Selesai", _activeTab == 'selesai', 'selesai'),
-                  const SizedBox(width: 10),
-                  _tabButton("Dibatalkan", _activeTab == 'dibatalkan', 'dibatalkan'),
-                ],
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _tabButton("Semua", _activeTab == 'semua', 'semua'),
+                    const SizedBox(width: 10),
+                    _tabButton("Berjalan", _activeTab == 'berjalan', 'berjalan'),
+                    const SizedBox(width: 10),
+                    _tabButton("Selesai", _activeTab == 'selesai', 'selesai'),
+                    const SizedBox(width: 10),
+                    _tabButton("Dibatalkan", _activeTab == 'dibatalkan', 'dibatalkan'),
+                  ],
+                ),
               ),
               const SizedBox(height: 24),
               Expanded(
@@ -314,37 +319,50 @@ class _OrderCardMobile extends StatelessWidget {
                         fontSize: 12,
                         color: Colors.black54,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       order.status,
                       style: const TextStyle(
-                        fontSize: 26,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
-              Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    _formatDate(order.createdAt),
-                    style: const TextStyle(
-                      color: Colors.black54,
+              const SizedBox(width: 8),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.end,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        _formatDate(order.createdAt),
+                        style: const TextStyle(
+                          color: Colors.black54,
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _formatPrice(order.totalAmount),
-                    style: const TextStyle(
-                      color: Color(0xff2563EB),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 28,
+                    const SizedBox(height: 4),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        _formatPrice(order.totalAmount),
+                        style: const TextStyle(
+                          color: Color(0xff2563EB),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
@@ -392,8 +410,10 @@ class _OrderCardMobile extends StatelessWidget {
                         style: const TextStyle(
                           fontWeight:
                               FontWeight.bold,
-                          fontSize: 20,
+                          fontSize: 14,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 6),
                       Text(
