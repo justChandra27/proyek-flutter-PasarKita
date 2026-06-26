@@ -529,7 +529,7 @@ class _FormPesananWebState extends State<FormPesananWeb> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Daftar Pesanan",
+                    "Pesanan",
                     style: TextStyle(
                       fontSize: 30,
                       fontWeight: FontWeight.bold,

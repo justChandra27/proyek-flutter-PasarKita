@@ -263,15 +263,15 @@ class _MobileAdminDashboardState
             ),
             const SizedBox(height: 24),
 
-            const Text(
-              "Ringkasan Sistem",
-              style: TextStyle(
-                color: Color(0xff111827),
-                fontSize: 20,
-                fontWeight:
-                    FontWeight.bold,
-              ),
-            ),
+            // const Text(
+            //   "Ringkasan Sistem",
+            //   style: TextStyle(
+            //     color: Color(0xff111827),
+            //     fontSize: 20,
+            //     fontWeight:
+            //         FontWeight.bold,
+            //   ),
+            // ),
             const SizedBox(height: 16),
 
             GridView.count(

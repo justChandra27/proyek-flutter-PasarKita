@@ -44,7 +44,7 @@ class _AdminMobileShellState extends State<AdminMobileShell> {
     'Produk',
     'Pesanan',
     'Retur',
-    'Withdrawal',
+    'Penarikan',
     'Kategori',
     'Notifikasi',
     'Analytics',

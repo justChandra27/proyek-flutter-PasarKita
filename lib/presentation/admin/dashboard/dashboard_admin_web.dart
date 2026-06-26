@@ -66,8 +66,7 @@ class _DashboardAdminWebState extends State<DashboardAdminWeb> {
             }
 
             final data = snapshot.data!;
-            final isEmpty =
-                data.totalProducts == 0 && data.totalOrders == 0;
+            final isEmpty = data.totalProducts == 0 && data.totalOrders == 0;
 
             if (isEmpty) {
               return _buildEmptyState();
@@ -131,10 +130,19 @@ class _DashboardAdminWebState extends State<DashboardAdminWeb> {
       children: [
         const Expanded(
           child: Text(
-            "Ringkasan Dashboard",
+            "Dashboard",
             style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
           ),
         ),
+        Text(
+          "Halo, Admin 👋",
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        SizedBox(height: 10),
         SizedBox(
           width: 250,
           child: TextField(
@@ -254,12 +262,7 @@ class _DashboardAdminWebState extends State<DashboardAdminWeb> {
     );
   }
 
-  Widget _statCard(
-    String title,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
+  Widget _statCard(String title, String value, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -279,10 +282,7 @@ class _DashboardAdminWebState extends State<DashboardAdminWeb> {
           const SizedBox(height: 4),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -307,50 +307,60 @@ class _DashboardAdminWebState extends State<DashboardAdminWeb> {
           if (data.topSellers.isEmpty)
             const Padding(
               padding: EdgeInsets.all(20),
-              child: Text('Belum ada seller',
-                  style: TextStyle(color: Colors.grey)),
+              child: Text(
+                'Belum ada seller',
+                style: TextStyle(color: Colors.grey),
+              ),
             )
           else
-            ...data.topSellers.map((s) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 18,
-                        backgroundColor: Colors.blue.shade50,
-                        child: Text(
-                          s.name.isNotEmpty ? s.name[0].toUpperCase() : '?',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(s.name,
-                                style:
-                                    const TextStyle(fontWeight: FontWeight.w600),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis),
-                            Text('${s.completedOrdersCount} pesanan selesai',
-                                style: const TextStyle(
-                                    color: Colors.grey, fontSize: 12)),
-                          ],
-                        ),
-                      ),
-                      Text(
-                        _formatPrice(s.totalRevenue),
+            ...data.topSellers.map(
+              (s) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: Colors.blue.shade50,
+                      child: Text(
+                        s.name.isNotEmpty ? s.name[0].toUpperCase() : '?',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Color(0xff2563EB),
+                          color: Colors.blue,
                         ),
                       ),
-                    ],
-                  ),
-                )),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            s.name,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            '${s.completedOrdersCount} pesanan selesai',
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      _formatPrice(s.totalRevenue),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xff2563EB),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -374,42 +384,50 @@ class _DashboardAdminWebState extends State<DashboardAdminWeb> {
           if (data.topProducts.isEmpty)
             const Padding(
               padding: EdgeInsets.all(20),
-              child: Text('Belum ada produk terjual',
-                  style: TextStyle(color: Colors.grey)),
+              child: Text(
+                'Belum ada produk terjual',
+                style: TextStyle(color: Colors.grey),
+              ),
             )
           else
-            ...data.topProducts.map((p) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade200,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.inventory_2_outlined,
-                            color: Colors.grey, size: 20),
+            ...data.topProducts.map(
+              (p) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(p.productName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w600)),
+                      child: const Icon(
+                        Icons.inventory_2_outlined,
+                        color: Colors.grey,
+                        size: 20,
                       ),
-                      Text(
-                        '${p.totalSold} terjual',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xff2563EB),
-                        ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        p.productName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
-                    ],
-                  ),
-                )),
+                    ),
+                    Text(
+                      '${p.totalSold} terjual',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xff2563EB),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -430,35 +448,37 @@ class _DashboardAdminWebState extends State<DashboardAdminWeb> {
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
           const SizedBox(height: 16),
-          ...data.orderStatusCounts.entries.map((e) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: _statusColor(e.key),
-                        shape: BoxShape.circle,
-                      ),
+          ...data.orderStatusCounts.entries.map(
+            (e) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                children: [
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: _statusColor(e.key),
+                      shape: BoxShape.circle,
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _statusLabel(e.key),
-                        style: const TextStyle(fontSize: 13),
-                      ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _statusLabel(e.key),
+                      style: const TextStyle(fontSize: 13),
                     ),
-                    Text(
-                      '${e.value}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
+                  ),
+                  Text(
+                    '${e.value}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
                     ),
-                  ],
-                ),
-              )),
+                  ),
+                ],
+              ),
+            ),
+          ),
           const SizedBox(height: 16),
           Container(
             width: double.infinity,
@@ -542,8 +562,7 @@ class _DashboardAdminWebState extends State<DashboardAdminWeb> {
             child: _actionButton(Icons.add_box_outlined, "Tambah Produk"),
           ),
           const SizedBox(width: 16),
-          Expanded(
-              child: _actionButton(Icons.campaign_outlined, "Buat Promo")),
+          Expanded(child: _actionButton(Icons.campaign_outlined, "Buat Promo")),
           const SizedBox(width: 16),
           Expanded(child: _actionButton(Icons.download, "Export Laporan")),
         ],
