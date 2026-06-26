@@ -167,7 +167,7 @@ class _SidebarSellerWebState extends State<SidebarSellerWeb> {
           _menu(
             index: 4,
             icon: Icons.person_outline,
-            title: "Profil Saya",
+            title: "Profil",
           ),
 
           _menu(

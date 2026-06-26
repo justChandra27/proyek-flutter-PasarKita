@@ -79,11 +79,11 @@ class AdminMobileDrawer extends StatelessWidget {
                     title: "Pesanan",
                     index: 4,
                   ),
-                  _menuItem(
-                    icon: Icons.assignment_return_outlined,
-                    title: "Retur",
-                    index: 5,
-                  ),
+                  // _menuItem(
+                  //   icon: Icons.assignment_return_outlined,
+                  //   title: "Retur",
+                  //   index: 5,
+                  // ),
                   _menuItem(
                     icon: Icons.account_balance_wallet_outlined,
                     title: "Penarikan",
@@ -94,27 +94,27 @@ class AdminMobileDrawer extends StatelessWidget {
                     title: "Kategori",
                     index: 7,
                   ),
-                  _menuItem(
-                    icon: Icons.notifications_outlined,
-                    title: "Notifikasi",
-                    index: 8,
-                    badgeCount: unreadCount,
-                  ),
-                  _menuItem(
-                    icon: Icons.analytics_outlined,
-                    title: "Analytics",
-                    index: 9,
-                  ),
+                  // _menuItem(
+                  //   icon: Icons.notifications_outlined,
+                  //   title: "Notifikasi",
+                  //   index: 8,
+                  //   badgeCount: unreadCount,
+                  // ),
+                  // _menuItem(
+                  //   icon: Icons.analytics_outlined,
+                  //   title: "Analytics",
+                  //   index: 9,
+                  // ),
                   _menuItem(
                     icon: Icons.bar_chart_outlined,
                     title: "Laporan",
                     index: 10,
                   ),
-                  _menuItem(
-                    icon: Icons.settings_outlined,
-                    title: "Pengaturan",
-                    index: 11,
-                  ),
+                  // _menuItem(
+                  //   icon: Icons.settings_outlined,
+                  //   title: "Pengaturan",
+                  //   index: 11,
+                  // ),
                 ],
               ),
             ),
