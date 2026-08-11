@@ -244,115 +244,128 @@ class _DashboardCustomerWebState
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.9,
+      ),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) => StatefulBuilder(
-        builder: (context, setSheetState) => Padding(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Text(
-                    'Filter Produk',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () {
-                      filter.clearFilters();
-                      Navigator.pop(context);
-                    },
-                    child: const Text('Reset'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
+        builder: (context, setSheetState) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Text(
+                      'Filter Produk',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: () {
+                        filter.clearFilters();
+                        Navigator.pop(context);
+                      },
+                      child: const Text('Reset'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
 
-              // --- Sort Section ---
-              const Text(
-                'Urutkan',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black54),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: ['Terbaru', 'Nama A-Z', 'Nama Z-A'].map((opt) =>
-                  ChoiceChip(
-                    label: Text(opt),
-                    selected: filter.sortBy == opt,
-                    onSelected: (_) {
-                      filter.setSortBy(opt);
-                      setSheetState(() {});
-                    },
-                  ),
-                ).toList(),
-              ),
+                // --- Sort Section ---
+                const Text(
+                  'Urutkan',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black54),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: ['Terbaru', 'Nama A-Z', 'Nama Z-A'].map((opt) =>
+                    ChoiceChip(
+                      label: Text(opt),
+                      selected: filter.sortBy == opt,
+                      onSelected: (_) {
+                        filter.setSortBy(opt);
+                        setSheetState(() {});
+                      },
+                    ),
+                  ).toList(),
+                ),
 
-              const SizedBox(height: 20),
+                const SizedBox(height: 20),
 
-              // --- Stock Filter Section ---
-              const Text(
-                'Filter Stok',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black54),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: ['Semua', 'Tersedia', 'Stok Habis'].map((opt) =>
-                  ChoiceChip(
-                    label: Text(opt),
-                    selected: filter.stockFilter == opt,
-                    onSelected: (_) {
-                      filter.setStockFilter(opt);
-                      setSheetState(() {});
-                    },
-                  ),
-                ).toList(),
-              ),
+                // --- Stock Filter Section ---
+                const Text(
+                  'Filter Stok',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black54),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: ['Semua', 'Tersedia', 'Stok Habis'].map((opt) =>
+                    ChoiceChip(
+                      label: Text(opt),
+                      selected: filter.stockFilter == opt,
+                      onSelected: (_) {
+                        filter.setStockFilter(opt);
+                        setSheetState(() {});
+                      },
+                    ),
+                  ).toList(),
+                ),
 
-              const SizedBox(height: 20),
+                const SizedBox(height: 20),
 
-              // --- Category Section ---
-              const Text(
-                'Kategori',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black54),
-              ),
-              const SizedBox(height: 8),
-              if (filter.categories.isEmpty)
-                const Text('Tidak ada kategori', style: TextStyle(color: Colors.grey))
-              else
-                ...filter.categories.map((cat) => CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(cat),
-                  value: filter.selectedCategories.contains(cat),
-                  onChanged: (_) {
-                    filter.toggleCategory(cat);
-                    setSheetState(() {});
-                  },
-                  controlAffinity: ListTileControlAffinity.leading,
-                )),
-
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xff2563EB),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                // --- Category Section ---
+                const Text(
+                  'Kategori',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black54),
+                ),
+                const SizedBox(height: 8),
+                if (filter.categories.isEmpty)
+                  const Text('Tidak ada kategori', style: TextStyle(color: Colors.grey))
+                else
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: filter.categories.length,
+                      itemBuilder: (context, index) {
+                        final cat = filter.categories[index];
+                        return CheckboxListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(cat),
+                          value: filter.selectedCategories.contains(cat),
+                          onChanged: (_) {
+                            filter.toggleCategory(cat);
+                            setSheetState(() {});
+                          },
+                          controlAffinity: ListTileControlAffinity.leading,
+                        );
+                      },
                     ),
                   ),
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Terapkan'),
+
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xff2563EB),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Terapkan'),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

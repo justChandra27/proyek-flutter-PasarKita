@@ -716,6 +716,12 @@ class _DetailPesananCustomerState extends State<DetailPesananCustomer> {
     int rating = 5;
     final commentController = TextEditingController();
     bool submitting = false;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final starSize = screenWidth < 360
+        ? 24.0
+        : screenWidth < 600
+            ? 28.0
+            : 32.0;
 
     showDialog(
       context: context,
@@ -737,20 +743,22 @@ class _DetailPesananCustomerState extends State<DetailPesananCustomer> {
                   const SizedBox(height: 4),
                   Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: List.generate(5, (i) {
-                      final starValue = i + 1;
-                      return IconButton(
-                        icon: Icon(
-                          starValue <= rating
-                              ? Icons.star
-                              : Icons.star_border,
-                          color: Colors.amber,
-                          size: 32,
+                    children: [
+                      for (int i = 0; i < 5; i++) ...[
+                        if (i > 0) const SizedBox(width: 6),
+                        GestureDetector(
+                          onTap: () =>
+                              setDialogState(() => rating = i + 1),
+                          child: Icon(
+                            i + 1 <= rating
+                                ? Icons.star
+                                : Icons.star_border,
+                            color: Colors.amber,
+                            size: starSize,
+                          ),
                         ),
-                        onPressed: () =>
-                            setDialogState(() => rating = starValue),
-                      );
-                    }),
+                      ],
+                    ],
                   ),
                   const SizedBox(height: 16),
                   TextField(
